@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 💬 Ask a question or share an idea
+    url: https://github.com/ltmoerdani/opencode-copilot-chat/discussions
+    about: Questions about setup, which model to use, or feature ideas? Start a discussion!

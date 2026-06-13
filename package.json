@@ -1,25 +1,41 @@
 {
   "name": "opencode-copilot-chat",
-  "displayName": "OpenCode Copilot Chat",
-  "description": "Bring your own OpenCode API key to VS Code Copilot Chat. Adds OpenCode Go and OpenCode Zen models through the Language Model Chat Provider API.",
+  "displayName": "OpenCode for Copilot Chat — BYOK 30+ AI Models",
+  "description": "Use 30+ frontier AI models (DeepSeek V4, Kimi K2.6, GLM-5.1, Qwen3.7, MiMo V2.5, MiniMax M2.7, free Claude Opus, GPT-5.5, Gemini 3.5, Grok) in GitHub Copilot Chat. Bring Your Own Key — no Copilot Pro needed.",
   "version": "0.2.8",
   "publisher": "ltmoerdani",
   "license": "MIT",
   "icon": "media/opencodego.png",
   "galleryBanner": {
-    "color": "#1e1e2e",
+    "color": "#0d1117",
     "theme": "dark"
   },
   "keywords": [
     "opencode",
-    "opencode-copilot-chat",
     "copilot",
+    "copilot-chat",
     "byok",
+    "bring-your-own-key",
     "ai",
-    "language model",
+    "language-model",
     "openai",
+    "anthropic",
+    "claude",
+    "gpt",
+    "gemini",
+    "grok",
+    "deepseek",
+    "qwen",
+    "kimi",
+    "glm",
+    "minimax",
+    "mimo",
     "llm",
-    "chat"
+    "chat",
+    "agent",
+    "reasoning",
+    "thinking",
+    "free-models"
   ],
   "repository": {
     "type": "git",
@@ -33,7 +49,10 @@
     "vscode": "^1.118.0"
   },
   "categories": [
-    "AI"
+    "AI",
+    "Machine Learning",
+    "Education",
+    "Other"
   ],
   "activationEvents": [
     "onStartupFinished",
