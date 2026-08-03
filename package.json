@@ -156,6 +156,11 @@
           "minimum": 1,
           "description": "Total request timeout in seconds for OpenCode Go and Zen chat requests. Prevents long-running Copilot requests from hanging indefinitely."
         },
+        "opencodego.baseUrl": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Override the OpenCode Go gateway base URL used to build the models, chat completions, messages, and responses endpoints. Leave empty to use the default OpenCode gateway URL."
+        },
         "opencodego.streamIdleTimeoutSeconds": {
           "type": "number",
           "default": 120,

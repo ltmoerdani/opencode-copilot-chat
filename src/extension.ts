@@ -28,6 +28,10 @@ import {
   resolveModelRouting,
 } from "./routing";
 import {
+  GO_DEFAULT_BASE_URL,
+  buildProviderUrls,
+} from "./providerUrls";
+import {
   buildFamilyThinkingSchema,
   buildQwenAnthropicThinkingPayload,
   buildThinkingPayload,
@@ -328,15 +332,13 @@ function providerVariant(
   };
 }
 
-const PROVIDERS: Record<ProviderDefinition["vendor"], ProviderDefinition> = (() => {
+function createProviders(goBaseUrl?: string): Record<ProviderDefinition["vendor"], ProviderDefinition> {
+  const goUrls = buildProviderUrls(GO_DEFAULT_BASE_URL, goBaseUrl);
   const go: ProviderDefinition = {
     vendor: GO_VENDOR,
     displayName: "OpenCode Go",
     modelNamePrefix: "OpenCode Go",
-    modelsUrl: "https://opencode.ai/zen/go/v1/models",
-    chatCompletionsUrl: "https://opencode.ai/zen/go/v1/chat/completions",
-    messagesUrl: "https://opencode.ai/zen/go/v1/messages",
-    responsesUrl: "https://opencode.ai/zen/go/v1/responses",
+    ...goUrls,
     testModelId: "deepseek-v4-flash",
     fallbackModels: [
       "deepseek-v4-pro",
@@ -419,7 +421,7 @@ const PROVIDERS: Record<ProviderDefinition["vendor"], ProviderDefinition> = (() 
     [AGENT_GO_VENDOR]: { ...providerVariant(go, AGENT_GO_VENDOR, "OpenCode Go (Agents)"), isAgentVariant: true, baseVendor: GO_VENDOR },
     [AGENT_ZEN_VENDOR]: { ...providerVariant(zen, AGENT_ZEN_VENDOR, "OpenCode Zen (Agents)"), isAgentVariant: true, baseVendor: ZEN_VENDOR },
   };
-})();
+}
 
 type ApiRole = "user" | "assistant" | "tool";
 
@@ -733,6 +735,8 @@ export function activate(context: vscode.ExtensionContext) {
 
   ensureUsageStatusBar(context);
   ensureGoUsageStatusBar(context);
+  const goBaseUrl = vscode.workspace.getConfiguration("opencodego").get<string>("baseUrl", "");
+  const PROVIDERS = createProviders(goBaseUrl);
   const goProvider = new OpenCodeProvider(context, PROVIDERS[GO_VENDOR]);
   const zenProvider = new OpenCodeProvider(context, PROVIDERS[ZEN_VENDOR]);
 
