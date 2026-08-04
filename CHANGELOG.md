@@ -2,6 +2,12 @@
 
 All notable changes to the **OpenCode Go BYOK Provider** extension are documented here.
 
+## [0.4.6] — unreleased
+
+### Fixed
+
+- **`[Streaming]` DeepSeek 400 "Upstream response was not valid JSON" on large sessions — wire up the dead payload trimmer (#104).** The OpenCode Go gateway rejects request bodies over ~400 KB with a wrapped 4xx/5xx, even when the model's token context window is far from full, because the limit is raw JSON bytes, not tokens. Long sessions accumulate history past that ceiling. The extension already shipped a byte-aware trimmer (`messageTrimmer.ts`, `MAX_PAYLOAD_BYTES = 380_000`, `MESSAGE_BYTE_BUDGET = 200_000` per endpoint) but **no code path ever called it** — it was dead code. The trimmer is now wired into the request path in `provideLanguageModelChatResponse()` after the image-history trim, pruning older conversation turns (preserving the system prompt, the most recent turns, and tool-call atomicity) to the endpoint's byte budget across all four endpoints. A safety net converts the pathological single-turn-over-limit case into a clear "start a new chat session" error instead of the cryptic upstream 400. Added `src/test/messageTrimmer.test.ts` (6 unit tests). Diagnostic log line `[payload-trim] Trimmed messages from N to M...` appears in the Output channel when trimming fires. Documented in `docs/issues/45-20260804-payload-trimmer.md`.
+
 ## [0.4.5] — 2026-08-03
 
 ### Fixed

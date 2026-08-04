@@ -28,6 +28,11 @@ import {
   resolveModelRouting,
 } from "./routing";
 import {
+  MAX_PAYLOAD_BYTES,
+  MESSAGE_BYTE_BUDGET,
+  trimApiMessages,
+} from "./messageTrimmer";
+import {
   buildFamilyThinkingSchema,
   buildQwenAnthropicThinkingPayload,
   buildThinkingPayload,
@@ -2148,6 +2153,29 @@ class OpenCodeProvider implements vscode.LanguageModelChatProvider<OpenCodeModel
     const trimmedCount = trimOldImagesFromHistoryInPlace(apiMessages);
     if (trimmedCount > 0) {
       this.log(`[history-trim] Replaced ${trimmedCount} old image(s) with placeholder text to bound payload (kept most recent ${MAX_HISTORY_IMAGES_KEPT}).`);
+    }
+
+    // Bound the raw JSON request body against the OpenCode Go gateway's
+    // ~400 KB payload limit (see messageTrimmer.ts). Long sessions can exceed
+    // that ceiling even when the model's token context window is far from
+    // full, because the gateway rejects on raw bytes, not tokens — surfacing
+    // as a cryptic `400 Upstream response was not valid JSON` (issue #104).
+    // Prune older turns to the endpoint's byte budget while preserving the
+    // system prompt, the most recent turns, and tool-call atomicity.
+    const messageBudget = MESSAGE_BYTE_BUDGET[routing.endpointKind] ?? MESSAGE_BYTE_BUDGET["chat-completions"];
+    const trimmedMessages = trimApiMessages(apiMessages, messageBudget);
+    if (trimmedMessages.length < apiMessages.length) {
+      this.log(`[payload-trim] Trimmed messages from ${apiMessages.length} to ${trimmedMessages.length} (${messageBudget} byte budget) to stay under the gateway payload limit.`);
+      apiMessages.splice(0, apiMessages.length, ...trimmedMessages);
+    }
+    // Safety net: if even the guaranteed minimum context alone exceeds the
+    // gateway limit (e.g. a single turn with a very large attachment), fail
+    // with a clear, actionable message instead of the cryptic upstream 400.
+    if (JSON.stringify(apiMessages).length > MAX_PAYLOAD_BYTES) {
+      throw new OpenCodeRequestError(
+        `OpenCode Go payload too large (messages exceed ${MAX_PAYLOAD_BYTES} bytes). The current conversation is too large for the gateway's request limit. Start a new chat session to continue.`,
+        `OpenCode Go rejected the request: the conversation is too large for the gateway's ~400 KB request limit. Start a new chat session to continue.`,
+      );
     }
 
     const thinkingPayload = buildThinkingPayload(rawModelId, settings.thinking, hasImageInput && metadata.supportsVision);
