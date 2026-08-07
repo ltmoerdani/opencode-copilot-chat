@@ -1,13 +1,7 @@
-import {
-  GO_VENDOR,
-  ZEN_VENDOR,
-  resolveBaseVendor,
-  type ProviderRoutingDefinition,
-} from "./providerTypes";
+import { GO_VENDOR, ZEN_VENDOR, resolveBaseVendor, type ProviderRoutingDefinition } from "./providerTypes";
 
 function isMessagesQwenModel(modelId: string): boolean {
-  return /^qwen3\.(?:5|6)-plus(?:-free)?$/i.test(modelId)
-    || /^qwen3\.7-max$/i.test(modelId);
+  return /^qwen3\.(?:5|6)-plus(?:-free)?$/i.test(modelId) || /^qwen3\.7-max$/i.test(modelId);
 }
 
 export function resolveModelRouting(
@@ -32,11 +26,7 @@ export function resolveModelRouting(
     };
   }
 
-  if (
-    /^claude-/i.test(modelId) ||
-    (baseVendor === GO_VENDOR && /^minimax-m2\./i.test(modelId)) ||
-    isMessagesQwenModel(modelId)
-  ) {
+  if (/^claude-/i.test(modelId) || (baseVendor === GO_VENDOR && /^minimax-m2\./i.test(modelId)) || isMessagesQwenModel(modelId)) {
     return {
       endpointKind: "messages",
       endpointUrl: provider.messagesUrl,
@@ -86,11 +76,7 @@ export function normalizeResponsesStreamEvent(data: unknown): unknown {
 
   if (eventType === "response.output_item.added") {
     const item = data.item;
-    if (
-      isRecord(item) &&
-      item.type === "function_call" &&
-      typeof item.name === "string"
-    ) {
+    if (isRecord(item) && item.type === "function_call" && typeof item.name === "string") {
       return {
         choices: [
           {
@@ -98,10 +84,7 @@ export function normalizeResponsesStreamEvent(data: unknown): unknown {
             delta: {
               tool_calls: [
                 {
-                  index:
-                    typeof data.output_index === "number"
-                      ? data.output_index
-                      : 0,
+                  index: typeof data.output_index === "number" ? data.output_index : 0,
                   id: firstString(item.call_id, item.id) ?? "",
                   type: "function",
                   function: { name: item.name, arguments: "" },
@@ -125,10 +108,7 @@ export function normalizeResponsesStreamEvent(data: unknown): unknown {
               delta: {
                 tool_calls: [
                   {
-                    index:
-                      typeof data.output_index === "number"
-                        ? data.output_index
-                        : 0,
+                    index: typeof data.output_index === "number" ? data.output_index : 0,
                     function: { arguments: delta },
                   },
                 ],
@@ -163,9 +143,7 @@ export function normalizeResponsesStreamEvent(data: unknown): unknown {
         {
           index: 0,
           delta: {},
-          finish_reason: normalizeResponsesFinishReason(
-            firstString(response.stop_reason, data.stop_reason),
-          ),
+          finish_reason: normalizeResponsesFinishReason(firstString(response.stop_reason, data.stop_reason)),
         },
       ],
       ...(usage ? { usage } : {}),
@@ -192,11 +170,7 @@ export function normalizeResponsesFullResponse(data: unknown): unknown {
 
     if (item.type === "message" && Array.isArray(item.content)) {
       for (const part of item.content) {
-        if (
-          isRecord(part) &&
-          part.type === "output_text" &&
-          typeof part.text === "string"
-        ) {
+        if (isRecord(part) && part.type === "output_text" && typeof part.text === "string") {
           text += part.text;
         }
       }
@@ -209,10 +183,7 @@ export function normalizeResponsesFullResponse(data: unknown): unknown {
         type: "function",
         function: {
           name: item.name,
-          arguments:
-            typeof item.arguments === "string"
-              ? item.arguments
-              : JSON.stringify(item.arguments ?? {}),
+          arguments: typeof item.arguments === "string" ? item.arguments : JSON.stringify(item.arguments ?? {}),
         },
       });
     }
@@ -227,9 +198,7 @@ export function normalizeResponsesFullResponse(data: unknown): unknown {
           ...(text ? { content: text } : {}),
           ...(toolCalls.length ? { tool_calls: toolCalls } : {}),
         },
-        finish_reason: normalizeResponsesFinishReason(
-          firstString(response.stop_reason, response.finish_reason),
-        ),
+        finish_reason: normalizeResponsesFinishReason(firstString(response.stop_reason, response.finish_reason)),
       },
     ],
     ...(usage ? { usage } : {}),
@@ -241,14 +210,8 @@ export function normalizeGoogleStreamEvent(data: unknown): unknown {
     return data;
   }
 
-  const candidate =
-    Array.isArray(data.candidates) && isRecord(data.candidates[0])
-      ? data.candidates[0]
-      : undefined;
-  const parts =
-    isRecord(candidate?.content) && Array.isArray(candidate.content.parts)
-      ? candidate.content.parts.filter(isRecord)
-      : [];
+  const candidate = Array.isArray(data.candidates) && isRecord(data.candidates[0]) ? data.candidates[0] : undefined;
+  const parts = isRecord(candidate?.content) && Array.isArray(candidate.content.parts) ? candidate.content.parts.filter(isRecord) : [];
   const text = parts
     .filter((part) => typeof part.text === "string" && part.thought !== true)
     .map((part) => part.text as string)
@@ -258,10 +221,7 @@ export function normalizeGoogleStreamEvent(data: unknown): unknown {
     .map((part) => part.text as string)
     .join("");
   const toolCalls = parts.flatMap((part, index) => {
-    if (
-      !isRecord(part.functionCall) ||
-      typeof part.functionCall.name !== "string"
-    ) {
+    if (!isRecord(part.functionCall) || typeof part.functionCall.name !== "string") {
       return [];
     }
 
@@ -293,9 +253,7 @@ export function normalizeGoogleStreamEvent(data: unknown): unknown {
           ...(toolCalls.length ? { tool_calls: toolCalls } : {}),
         },
         finish_reason: normalizeGoogleFinishReason(
-          typeof candidate?.finishReason === "string"
-            ? candidate.finishReason
-            : undefined,
+          typeof candidate?.finishReason === "string" ? candidate.finishReason : undefined,
           toolCalls.length > 0,
         ),
       },
@@ -309,14 +267,8 @@ export function normalizeGoogleFullResponse(data: unknown): unknown {
     return data;
   }
 
-  const candidate =
-    Array.isArray(data.candidates) && isRecord(data.candidates[0])
-      ? data.candidates[0]
-      : undefined;
-  const parts =
-    isRecord(candidate?.content) && Array.isArray(candidate.content.parts)
-      ? candidate.content.parts.filter(isRecord)
-      : [];
+  const candidate = Array.isArray(data.candidates) && isRecord(data.candidates[0]) ? data.candidates[0] : undefined;
+  const parts = isRecord(candidate?.content) && Array.isArray(candidate.content.parts) ? candidate.content.parts.filter(isRecord) : [];
   const text = parts
     .filter((part) => typeof part.text === "string" && part.thought !== true)
     .map((part) => part.text as string)
@@ -326,10 +278,7 @@ export function normalizeGoogleFullResponse(data: unknown): unknown {
     .map((part) => part.text as string)
     .join("");
   const toolCalls = parts.flatMap((part) => {
-    if (
-      !isRecord(part.functionCall) ||
-      typeof part.functionCall.name !== "string"
-    ) {
+    if (!isRecord(part.functionCall) || typeof part.functionCall.name !== "string") {
       return [];
     }
 
@@ -356,9 +305,7 @@ export function normalizeGoogleFullResponse(data: unknown): unknown {
           ...(toolCalls.length ? { tool_calls: toolCalls } : {}),
         },
         finish_reason: normalizeGoogleFinishReason(
-          typeof candidate?.finishReason === "string"
-            ? candidate.finishReason
-            : undefined,
+          typeof candidate?.finishReason === "string" ? candidate.finishReason : undefined,
           toolCalls.length > 0,
         ),
       },
@@ -367,9 +314,7 @@ export function normalizeGoogleFullResponse(data: unknown): unknown {
   };
 }
 
-function normalizeResponsesFinishReason(
-  value: string | undefined,
-): "stop" | "tool_calls" | "length" | "content_filter" | null {
+function normalizeResponsesFinishReason(value: string | undefined): "stop" | "tool_calls" | "length" | "content_filter" | null {
   if (!value) {
     return null;
   }
@@ -390,20 +335,15 @@ function normalizeResponsesFinishReason(
   return null;
 }
 
-function normalizeResponsesUsage(
-  usage: unknown,
-): Record<string, unknown> | undefined {
+function normalizeResponsesUsage(usage: unknown): Record<string, unknown> | undefined {
   if (!isRecord(usage)) {
     return undefined;
   }
 
-  const promptTokens =
-    typeof usage.input_tokens === "number" ? usage.input_tokens : undefined;
-  const completionTokens =
-    typeof usage.output_tokens === "number" ? usage.output_tokens : undefined;
+  const promptTokens = typeof usage.input_tokens === "number" ? usage.input_tokens : undefined;
+  const completionTokens = typeof usage.output_tokens === "number" ? usage.output_tokens : undefined;
   const cachedTokens =
-    isRecord(usage.input_tokens_details) &&
-    typeof usage.input_tokens_details.cached_tokens === "number"
+    isRecord(usage.input_tokens_details) && typeof usage.input_tokens_details.cached_tokens === "number"
       ? usage.input_tokens_details.cached_tokens
       : undefined;
 
@@ -414,23 +354,13 @@ function normalizeResponsesUsage(
   return {
     prompt_tokens: promptTokens,
     completion_tokens: completionTokens,
-    total_tokens:
-      promptTokens !== undefined && completionTokens !== undefined
-        ? promptTokens + completionTokens
-        : undefined,
-    ...(cachedTokens !== undefined
-      ? { prompt_tokens_details: { cached_tokens: cachedTokens } }
-      : {}),
+    total_tokens: promptTokens !== undefined && completionTokens !== undefined ? promptTokens + completionTokens : undefined,
+    ...(cachedTokens !== undefined ? { prompt_tokens_details: { cached_tokens: cachedTokens } } : {}),
   };
 }
 
 function extractResponsesReasoningText(data: Record<string, unknown>): string {
-  const direct = firstString(
-    data.delta,
-    data.text,
-    data.summary_text,
-    data.output_text_delta,
-  );
+  const direct = firstString(data.delta, data.text, data.summary_text, data.output_text_delta);
   if (direct) {
     return direct;
   }
@@ -446,10 +376,7 @@ function extractResponsesReasoningText(data: Record<string, unknown>): string {
 
   if (Array.isArray(item.summary)) {
     return item.summary
-      .filter(
-        (part): part is Record<string, unknown> =>
-          isRecord(part) && typeof part.text === "string",
-      )
+      .filter((part): part is Record<string, unknown> => isRecord(part) && typeof part.text === "string")
       .map((part) => part.text as string)
       .join("");
   }
@@ -457,33 +384,16 @@ function extractResponsesReasoningText(data: Record<string, unknown>): string {
   return "";
 }
 
-function normalizeGoogleUsage(
-  usage: unknown,
-): Record<string, unknown> | undefined {
+function normalizeGoogleUsage(usage: unknown): Record<string, unknown> | undefined {
   if (!isRecord(usage)) {
     return undefined;
   }
 
-  const promptTokens =
-    typeof usage.promptTokenCount === "number"
-      ? usage.promptTokenCount
-      : undefined;
-  const candidatesTokens =
-    typeof usage.candidatesTokenCount === "number"
-      ? usage.candidatesTokenCount
-      : undefined;
-  const thoughtsTokens =
-    typeof usage.thoughtsTokenCount === "number"
-      ? usage.thoughtsTokenCount
-      : undefined;
-  const cachedTokens =
-    typeof usage.cachedContentTokenCount === "number"
-      ? usage.cachedContentTokenCount
-      : undefined;
-  const completionTokens =
-    candidatesTokens !== undefined
-      ? candidatesTokens + (thoughtsTokens ?? 0)
-      : undefined;
+  const promptTokens = typeof usage.promptTokenCount === "number" ? usage.promptTokenCount : undefined;
+  const candidatesTokens = typeof usage.candidatesTokenCount === "number" ? usage.candidatesTokenCount : undefined;
+  const thoughtsTokens = typeof usage.thoughtsTokenCount === "number" ? usage.thoughtsTokenCount : undefined;
+  const cachedTokens = typeof usage.cachedContentTokenCount === "number" ? usage.cachedContentTokenCount : undefined;
+  const completionTokens = candidatesTokens !== undefined ? candidatesTokens + (thoughtsTokens ?? 0) : undefined;
 
   if (promptTokens === undefined && completionTokens === undefined) {
     return undefined;
@@ -498,9 +408,7 @@ function normalizeGoogleUsage(
         : promptTokens !== undefined && completionTokens !== undefined
           ? promptTokens + completionTokens
           : undefined,
-    ...(cachedTokens !== undefined
-      ? { prompt_tokens_details: { cached_tokens: cachedTokens } }
-      : {}),
+    ...(cachedTokens !== undefined ? { prompt_tokens_details: { cached_tokens: cachedTokens } } : {}),
   };
 }
 
@@ -517,16 +425,7 @@ function normalizeGoogleFinishReason(
   if (finishReason === "MAX_TOKENS") {
     return "length";
   }
-  if (
-    [
-      "IMAGE_SAFETY",
-      "RECITATION",
-      "SAFETY",
-      "BLOCKLIST",
-      "PROHIBITED_CONTENT",
-      "SPII",
-    ].includes(finishReason)
-  ) {
+  if (["IMAGE_SAFETY", "RECITATION", "SAFETY", "BLOCKLIST", "PROHIBITED_CONTENT", "SPII"].includes(finishReason)) {
     return "content_filter";
   }
   return null;

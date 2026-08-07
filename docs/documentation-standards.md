@@ -6,19 +6,21 @@
 
 ## 🎯 Core Principles
 
-| # | Principle | Description |
-|---|-----------|-------------|
-| 1 | **One topic = One document** | Consolidate, don't fragment |
-| 2 | **Self-contained** | Readers should not need to open other documents |
-| 3 | **Codebase verification** | Cross-check against the codebase before deprecating |
-| 4 | **English language** | Primary language for all documentation (open-source project) |
-| 5 | **No Hardcoded Secrets** | Use env vars or references to secret managers |
+| #   | Principle                    | Description                                                  |
+| --- | ---------------------------- | ------------------------------------------------------------ |
+| 1   | **One topic = One document** | Consolidate, don't fragment                                  |
+| 2   | **Self-contained**           | Readers should not need to open other documents              |
+| 3   | **Codebase verification**    | Cross-check against the codebase before deprecating          |
+| 4   | **English language**         | Primary language for all documentation (open-source project) |
+| 5   | **No Hardcoded Secrets**     | Use env vars or references to secret managers                |
 
 ### Codebase Verification
+
 ```bash
 # REQUIRED before deprecating — check if a pattern is still used
 grep -r "ClassName" src/
 ```
+
 > ⚠️ **DO NOT** deprecate something just because it looks old. Verify first!
 
 ---
@@ -26,6 +28,7 @@ grep -r "ClassName" src/
 ## 📁 File Naming & Header
 
 ### Naming Format
+
 ```
 [seq]-[YYYYMMDD]-[topic-description].md
 ```
@@ -35,6 +38,7 @@ grep -r "ClassName" src/
 **Rules:** Lowercase • Sequential 2-digit • YYYYMMDD • Dash separator
 
 ### Header Template
+
 ```markdown
 **Status:** 🟢 Active | ✅ Solved | ⚠️ Deprecated
 
@@ -48,10 +52,12 @@ grep -r "ClassName" src/
 ---
 
 ## Overview
+
 [Brief description of the document]
 ```
 
 ### Common Tags
+
 ```
 #streaming #routing #models #provider #usage #byok #vscode #thinking #tool-calling #security
 ```
@@ -60,13 +66,14 @@ grep -r "ClassName" src/
 
 ## 📊 Status & Lifecycle
 
-| Status | When to Use |
-|--------|-------------|
-| 🟢 **Active** | Ongoing, not yet resolved |
-| ✅ **Solved** | Issue fixed, still relevant for reference |
+| Status            | When to Use                                        |
+| ----------------- | -------------------------------------------------- |
+| 🟢 **Active**     | Ongoing, not yet resolved                          |
+| ✅ **Solved**     | Issue fixed, still relevant for reference          |
 | ⚠️ **Deprecated** | A newer document exists (stays in original folder) |
 
 ### Lifecycle Rules
+
 - **DELETE** → If 100% covered by a new document
 - **DEPRECATED** → If historical reference is useful, or the issue may recur
 - **SOLVED** → If the fix is permanent and still useful for reference
@@ -78,12 +85,14 @@ grep -r "ClassName" src/
 ## 🔐 Security Rules
 
 **NEVER** include in documentation:
+
 - Passwords, API keys, tokens
 - OpenCode API keys, GitHub tokens, or secrets
 - Connection strings with credentials
 - VS Code `globalState` contents with real data
 
 ### ✅ Safe Patterns
+
 ```bash
 # Environment variable
 OPENCODE_API_KEY=<YOUR_API_KEY>
@@ -96,6 +105,7 @@ Configure via VS Code Settings > Extensions > OpenCode Copilot Chat
 ```
 
 ### If Secrets Are Accidentally Committed
+
 1. **STOP** — Do not push
 2. **Report** to maintainers immediately
 3. **Rotate** the secret immediately
@@ -118,11 +128,14 @@ Configure via VS Code Settings > Extensions > OpenCode Copilot Chat
 ```
 
 ### Root Directory Clean Rules
+
 **Only allowed in root:**
+
 - `package.json`, `tsconfig.json`, `README.md`, `LICENSE`, `CHANGELOG.md`
 - `.gitignore`, `.eslintrc.*`, `.prettierrc.*`
 
 **Move to appropriate folder:**
+
 - Debug scripts → delete or `scripts/`
 - Verification scripts → `scripts/`
 
@@ -131,9 +144,11 @@ Configure via VS Code Settings > Extensions > OpenCode Copilot Chat
 ## 🔄 Workflow
 
 ### Development Phase
+
 Create separate documents during research/analysis/implementation → **OK**
 
 ### Consolidation Phase
+
 ```
 User: "consolidate, make it compact"
 ├── Read all related documents
@@ -151,58 +166,72 @@ User: "consolidate, make it compact"
 3. **Create a clear timeline** — readers must understand the sequence of events
 
 #### Consolidated Document Format
+
 ```markdown
 # [Topic] - Consolidated Issues
 
 ## Overview
+
 Summary of the problem and final solution.
 
 ## Timeline
 
 ### 1. [YYYY-MM-DD] First Issue
+
 **Problem:** Description of the initial issue
 **Root Cause:** The cause
 **Solution:** What was done
 **Status:** ✅ Solved
 
 ### 2. [YYYY-MM-DD] Second Issue
+
 **Problem:** The next issue
 **Root Cause:** The cause
 **Solution:** What was done
 **Status:** ✅ Solved
 
 ### 3. [YYYY-MM-DD] Latest Issue
+
 **Problem:** The current issue
 **Root Cause:** The cause
 **Solution:** What was done
 **Status:** 🟢 Active / ✅ Solved
 
 ## Final Solution
+
 The solution that resolved all issues.
 
 ## Files Changed
+
 - src/path/to/file1.ts
 - src/path/to/file2.ts
 ```
 
 #### Example Timeline Table (Alternative)
+
 ```markdown
 ## Issue Timeline
-| # | Date | Issue | Root Cause | Status |
-|---|------|-------|------------|--------|
-| 1 | 2026-06-01 | Stream SSE parse error | Missing event handler | ✅ Solved |
-| 2 | 2026-06-05 | Qwen tool calls dropped | Wrong endpoint routing | ✅ Solved |
-| 3 | 2026-06-10 | Usage tracker NaN | Missing cost metadata | ✅ Solved |
+
+| #   | Date       | Issue                   | Root Cause             | Status    |
+| --- | ---------- | ----------------------- | ---------------------- | --------- |
+| 1   | 2026-06-01 | Stream SSE parse error  | Missing event handler  | ✅ Solved |
+| 2   | 2026-06-05 | Qwen tool calls dropped | Wrong endpoint routing | ✅ Solved |
+| 3   | 2026-06-10 | Usage tracker NaN       | Missing cost metadata  | ✅ Solved |
 ```
 
 ### Document Structure (Single Issue)
+
 ```markdown
 # [Topic] - [Description]
 
 ## Problem
+
 ## Root Cause
+
 ## Solution
+
 ## Files Changed
+
 ## Verification
 ```
 
@@ -216,11 +245,11 @@ When writing or modifying code, document the **function contract** so that contr
 
 ### 3-Tier Contract — When to Write What
 
-| Tier | When | What to Document in Source |
-|------|------|---------------------------|
-| **Tier 1: Type = Contract** | Simple pure function, clear signature | Nothing needed |
-| **Tier 2: JSDoc Contract** | Shared utility, critical business logic, behavior that's easy to get wrong | Brief JSDoc in the source file |
-| **Tier 3: Contract Header** | Non-obvious behavior, many edge cases, complex logic | Block comment above the function |
+| Tier                        | When                                                                       | What to Document in Source       |
+| --------------------------- | -------------------------------------------------------------------------- | -------------------------------- |
+| **Tier 1: Type = Contract** | Simple pure function, clear signature                                      | Nothing needed                   |
+| **Tier 2: JSDoc Contract**  | Shared utility, critical business logic, behavior that's easy to get wrong | Brief JSDoc in the source file   |
+| **Tier 3: Contract Header** | Non-obvious behavior, many edge cases, complex logic                       | Block comment above the function |
 
 ### Workflow While Coding
 

@@ -22,6 +22,7 @@ After installing v0.2.0 and using OpenCode Go models in Copilot Chat, the status
 **Discovery:** Initial implementation used SQLite-first approach — reading `~/.local/share/opencode/opencode.db` to get server-computed cost data. This required the user to have run OpenCode CLI (TUI) at least once.
 
 **User Rejection:**
+
 > "Kenapa anda masih bahasa terkait CLI, mac saya memang pernah menjalankan opencode dan melaui CLI, tapi jauh sebelum itu open usage sudha berfungsi"
 
 **Root Cause:** The SQLite reader path was the primary data source. If `opencode.db` didn't exist or had no data, the tracker fell back to extension-tracked data. But the fallback was incomplete — it only worked for requests made AFTER extension install.
@@ -30,18 +31,18 @@ After installing v0.2.0 and using OpenCode Go models in Copilot Chat, the status
 
 Searched all possible OpenCode endpoints for programmatic usage data:
 
-| Endpoint | Status |
-|----------|--------|
-| `/zen/go/v1/usage` | 404 |
-| `/billing` | 404 |
-| `/subscription` | 404 |
-| `/me` | 404 |
-| `/account` | 404 |
-| `/quota` | 404 |
-| `/limits` | 404 |
-| `/balance` | 404 |
-| `/api/billing/*` | 404 |
-| `/api/workspace/*/billing` | 404 |
+| Endpoint                   | Status |
+| -------------------------- | ------ |
+| `/zen/go/v1/usage`         | 404    |
+| `/billing`                 | 404    |
+| `/subscription`            | 404    |
+| `/me`                      | 404    |
+| `/account`                 | 404    |
+| `/quota`                   | 404    |
+| `/limits`                  | 404    |
+| `/balance`                 | 404    |
+| `/api/billing/*`           | 404    |
+| `/api/workspace/*/billing` | 404    |
 
 **Conclusion:** No public REST API for usage/billing. All billing functions are server-side only. Extension-tracked estimation is the only viable approach.
 
@@ -49,13 +50,13 @@ Searched all possible OpenCode endpoints for programmatic usage data:
 
 Removed all CLI-dependent code paths:
 
-| Removed | Detail |
-|---------|--------|
-| `askUsdAmount()` | Manual dollar input Quick Pick |
-| `setManualGoUsageBaseline()` | Manual baseline setting |
-| Manual baseline Quick Pick item | "Set manual baseline..." option |
-| SQLite-first path | Removed from `getSummary()`, now only calls `buildSummaryFromTracked()` |
-| CLI messaging | Removed all references to "run CLI first" |
+| Removed                         | Detail                                                                  |
+| ------------------------------- | ----------------------------------------------------------------------- |
+| `askUsdAmount()`                | Manual dollar input Quick Pick                                          |
+| `setManualGoUsageBaseline()`    | Manual baseline setting                                                 |
+| Manual baseline Quick Pick item | "Set manual baseline..." option                                         |
+| SQLite-first path               | Removed from `getSummary()`, now only calls `buildSummaryFromTracked()` |
+| CLI messaging                   | Removed all references to "run CLI first"                               |
 
 **Result:** `getSummary()` now exclusively uses extension-tracked data. SQLite reader `readOpenCodeHistory()` kept as dead code for potential future enrichment.
 
@@ -64,6 +65,7 @@ Removed all CLI-dependent code paths:
 Added diagnostic logging to identify why `record()` might silently skip entries:
 
 **`goUsageTracker.ts` — `record()` method:**
+
 ```typescript
 // Guard 1: Provider filter
 if (!providerDisplayName.toLowerCase().includes("go")) {
@@ -79,6 +81,7 @@ if (promptTokens === 0 && completionTokens === 0) {
 ```
 
 **`extension.ts` — `onTransportSummary` callback:**
+
 ```typescript
 // Log before recording
 console.log(`[GoUsage] onTransportSummary: vendor=${vendor}, provider=${providerDisplayName}, model=${modelId}`);
@@ -98,14 +101,14 @@ goUsageTracker.record({ ... });
 
 ## Resolution
 
-| Change | File | Detail |
-|--------|------|--------|
-| Removed CLI dependency | `goUsageTracker.ts` | `getSummary()` → only `buildSummaryFromTracked()` |
-| Removed manual baseline | `extension.ts` | Deleted `askUsdAmount()`, `setManualGoUsageBaseline()` |
-| Added debug logging | `goUsageTracker.ts` | `record()` guards log skip reasons |
-| Added debug logging | `extension.ts` | `onTransportSummary` logs vendor/provider/model |
-| Fixed session.percent | `goUsageTracker.ts` | Use `GO_LIMITS.session` not `GO_LIMITS.weekly` |
-| Built test VSIX | `package.json` | Temporarily v0.2.1 for testing |
+| Change                  | File                | Detail                                                 |
+| ----------------------- | ------------------- | ------------------------------------------------------ |
+| Removed CLI dependency  | `goUsageTracker.ts` | `getSummary()` → only `buildSummaryFromTracked()`      |
+| Removed manual baseline | `extension.ts`      | Deleted `askUsdAmount()`, `setManualGoUsageBaseline()` |
+| Added debug logging     | `goUsageTracker.ts` | `record()` guards log skip reasons                     |
+| Added debug logging     | `extension.ts`      | `onTransportSummary` logs vendor/provider/model        |
+| Fixed session.percent   | `goUsageTracker.ts` | Use `GO_LIMITS.session` not `GO_LIMITS.weekly`         |
+| Built test VSIX         | `package.json`      | Temporarily v0.2.1 for testing                         |
 
 ## Verification
 
@@ -116,6 +119,7 @@ code --install-extension opencode-copilot-chat-0.2.1.vsix --force
 ```
 
 **Testing approach:**
+
 1. Open Copilot Chat
 2. Send a message using a Go model
 3. Check Output panel → "OpenCode Go Usage" channel

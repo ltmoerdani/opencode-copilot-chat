@@ -67,6 +67,7 @@ Original text-only model processes the text normally
 Single command: **OpenCode Go: Configure Vision Proxy** (`opencodego.configureVisionProxy`).
 
 QuickPick shows:
+
 - **None (disable)** — clears `VISION_PROXY_MODEL_ID_KEY`, proxy turns off
 - **Customize description prompt...** — edit `VISION_PROXY_PROMPT_KEY` via InputBox (defaults to `DEFAULT_VISION_PROXY_PROMPT`)
 - **Vision-capable models** — filtered by `VISION_CAPABLE_MODELS` set + `models.dev` metadata's `supportsVision` flag
@@ -74,6 +75,7 @@ QuickPick shows:
 No settings JSON, no boolean toggle. If a model ID is stored in `globalState`, the proxy is on.
 
 Storage keys (in extension `globalState`):
+
 - `opencodego.visionProxyModelId` — target Copilot model ID (e.g. `copilot:gpt-5.5`)
 - `opencodego.visionProxyPrompt` — description instruction sent to the vision model
 
@@ -85,8 +87,7 @@ If the proxy fails (model not found, API error, empty description), images are s
 
 ```typescript
 const TOKEN_ESTIMATE_SAFETY_MARGIN = 64;
-const promptReserve = (promptTokens ?? Math.floor(contextWindow * 0.8))
-  + TOKEN_ESTIMATE_SAFETY_MARGIN;
+const promptReserve = (promptTokens ?? Math.floor(contextWindow * 0.8)) + TOKEN_ESTIMATE_SAFETY_MARGIN;
 ```
 
 64 tokens compensates for `estimateTokenCount()`'s 0–2% underestimation. On a 130K-token prompt, 2% = 2,600 tokens of headroom beyond the 64-token margin, so the margin is conservative without wasting meaningful output budget.
@@ -99,16 +100,16 @@ Removed `.show(true)` from the empty-response warning in `streamChatCompletions(
 
 ## Files Changed
 
-| File | Change | Lines |
-|------|--------|-------|
-| `src/extension.ts` | Vision proxy logic (`proxyVision`, `showVisionProxyPicker`, `isVisionProxyEnabled`), `modelCapabilities()` override, `notifyModelInfoChanged()` method, 64-token margin in `modelLimits()` | +312 / −8 |
-| `src/metadata.ts` | Export `VISION_CAPABLE_MODELS` (was private) | +1 / −1 |
-| `src/streaming.ts` | Remove `.show(true)` from empty-response warning | +2 / −1 |
-| `package.json` | Register `opencodego.configureVisionProxy` command | +4 / 0 |
-| `README.md` | Add "Vision proxy" row to features table | +1 / 0 |
-| `CHANGELOG.md` | `[Unreleased]` → `[0.4.1]` section | +11 / −1 |
-| `src/test/metadata.test.ts` | `VISION_CAPABLE_MODELS` membership tests | +23 / −1 |
-| `src/test/visionProxy.test.ts` | New: 9 tests for proxy condition + circular-regression guard | +90 / 0 |
+| File                           | Change                                                                                                                                                                                     | Lines     |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------- |
+| `src/extension.ts`             | Vision proxy logic (`proxyVision`, `showVisionProxyPicker`, `isVisionProxyEnabled`), `modelCapabilities()` override, `notifyModelInfoChanged()` method, 64-token margin in `modelLimits()` | +312 / −8 |
+| `src/metadata.ts`              | Export `VISION_CAPABLE_MODELS` (was private)                                                                                                                                               | +1 / −1   |
+| `src/streaming.ts`             | Remove `.show(true)` from empty-response warning                                                                                                                                           | +2 / −1   |
+| `package.json`                 | Register `opencodego.configureVisionProxy` command                                                                                                                                         | +4 / 0    |
+| `README.md`                    | Add "Vision proxy" row to features table                                                                                                                                                   | +1 / 0    |
+| `CHANGELOG.md`                 | `[Unreleased]` → `[0.4.1]` section                                                                                                                                                         | +11 / −1  |
+| `src/test/metadata.test.ts`    | `VISION_CAPABLE_MODELS` membership tests                                                                                                                                                   | +23 / −1  |
+| `src/test/visionProxy.test.ts` | New: 9 tests for proxy condition + circular-regression guard                                                                                                                               | +90 / 0   |
 
 **Total:** 8 files, +444 / −12
 
@@ -116,19 +117,19 @@ Removed `.show(true)` from the empty-response warning in `streamChatCompletions(
 
 ## Code Locations
 
-| Concern | Location |
-|---------|----------|
-| Proxy condition + image replacement | `src/extension.ts` `provideLanguageModelChatResponse()` (~L1818–L1860) |
-| `proxyVision()` function | `src/extension.ts` (~L3345) |
-| `showVisionProxyPicker()` QuickPick | `src/extension.ts` (~L3380) |
-| `isVisionProxyEnabled()` + storage keys | `src/extension.ts` (~L3520) |
-| `modelCapabilities()` proxy override | `src/extension.ts` (~L3283) |
-| `actuallySupportsVision` cache (circular fix) | `src/extension.ts` (~L1821) |
-| `notifyModelInfoChanged()` refresh trigger | `src/extension.ts` `OpenCodeProvider` (~L1303) |
-| 64-token safety margin | `src/extension.ts` `modelLimits()` (~L3240) |
-| Command registration | `src/extension.ts` `activate()` (~L709) |
-| Output pane fix | `src/streaming.ts` `streamChatCompletions()` (~L107) |
-| `VISION_CAPABLE_MODELS` export | `src/metadata.ts` (~L238) |
+| Concern                                       | Location                                                               |
+| --------------------------------------------- | ---------------------------------------------------------------------- |
+| Proxy condition + image replacement           | `src/extension.ts` `provideLanguageModelChatResponse()` (~L1818–L1860) |
+| `proxyVision()` function                      | `src/extension.ts` (~L3345)                                            |
+| `showVisionProxyPicker()` QuickPick           | `src/extension.ts` (~L3380)                                            |
+| `isVisionProxyEnabled()` + storage keys       | `src/extension.ts` (~L3520)                                            |
+| `modelCapabilities()` proxy override          | `src/extension.ts` (~L3283)                                            |
+| `actuallySupportsVision` cache (circular fix) | `src/extension.ts` (~L1821)                                            |
+| `notifyModelInfoChanged()` refresh trigger    | `src/extension.ts` `OpenCodeProvider` (~L1303)                         |
+| 64-token safety margin                        | `src/extension.ts` `modelLimits()` (~L3240)                            |
+| Command registration                          | `src/extension.ts` `activate()` (~L709)                                |
+| Output pane fix                               | `src/streaming.ts` `streamChatCompletions()` (~L107)                   |
+| `VISION_CAPABLE_MODELS` export                | `src/metadata.ts` (~L238)                                              |
 
 ---
 
@@ -140,13 +141,13 @@ Removed `.show(true)` from the empty-response warning in `streamChatCompletions(
 
 Covers the 6 boolean combinations of the proxy condition (`hasImageInput && !actuallySupportsVision && visionProxyModelId`):
 
-| Scenario | Expected |
-|----------|----------|
-| Text-only model + images + proxy configured | Proxy fires |
-| No images present | Proxy skipped |
-| Model natively supports vision | Proxy skipped |
-| No vision model configured (empty string) | Proxy skipped |
-| All conditions false | Proxy skipped |
+| Scenario                                             | Expected              |
+| ---------------------------------------------------- | --------------------- |
+| Text-only model + images + proxy configured          | Proxy fires           |
+| No images present                                    | Proxy skipped         |
+| Model natively supports vision                       | Proxy skipped         |
+| No vision model configured (empty string)            | Proxy skipped         |
+| All conditions false                                 | Proxy skipped         |
 | Circular-regression guard: text-only vs vision model | Both behave correctly |
 
 Plus 3 tests for `modelCapabilities()` flag behavior (proxy on text-only, native vision, neither).

@@ -8,16 +8,10 @@ describe("provider model display names", () => {
   });
 
   it("includes the provider prefix by default", () => {
-    assert.equal(
-      providerModelDisplayName("OpenCode Go", "kimi-k3"),
-      "OpenCode Go / Kimi K3",
-    );
+    assert.equal(providerModelDisplayName("OpenCode Go", "kimi-k3"), "OpenCode Go / Kimi K3");
   });
 
   it("can hide the provider prefix without changing the model name", () => {
-    assert.equal(
-      providerModelDisplayName("OpenCode Zen", "kimi-k3", false),
-      "Kimi K3",
-    );
+    assert.equal(providerModelDisplayName("OpenCode Zen", "kimi-k3", false), "Kimi K3");
   });
 });

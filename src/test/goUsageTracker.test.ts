@@ -35,11 +35,7 @@ interface GoUsageTrackerInstance {
 }
 
 interface GoUsageTrackerConstructor {
-  new (
-    context: any,
-    log?: (msg: string) => void,
-    costResolver?: (modelId: string) => ModelCost | undefined,
-  ): GoUsageTrackerInstance;
+  new (context: any, log?: (msg: string) => void, costResolver?: (modelId: string) => ModelCost | undefined): GoUsageTrackerInstance;
 }
 
 let GoUsageTracker: GoUsageTrackerConstructor;
@@ -50,8 +46,7 @@ function createMockStore(initial: Record<string, unknown> = {}) {
   const _data = new Map(Object.entries(initial));
   return {
     _data,
-    get: (key: string, defaultVal: any): any =>
-      _data.has(key) ? _data.get(key) : defaultVal,
+    get: (key: string, defaultVal: any): any => (_data.has(key) ? _data.get(key) : defaultVal),
     update: (key: string, value: unknown): Promise<void> => {
       _data.set(key, value);
       return Promise.resolve();
@@ -66,9 +61,7 @@ function createMockContext(initial: Record<string, unknown> = {}) {
   };
 }
 
-function makeSummary(
-  overrides: Partial<TransportRequestSummary> = {},
-): TransportRequestSummary {
+function makeSummary(overrides: Partial<TransportRequestSummary> = {}): TransportRequestSummary {
   return {
     providerDisplayName: "OpenCode Go",
     modelId: "qwen3.6-plus",
@@ -90,10 +83,7 @@ function makeSummary(
  * Module._resolveFilename can redirect require("vscode") to it.
  * This avoids the need for mock.module() which is unavailable in this Node version.
  */
-const vscodeMockPath = path.join(
-  fs.mkdtempSync(path.join(os.tmpdir(), "vscode-mock-opencode-")),
-  "index.js",
-);
+const vscodeMockPath = path.join(fs.mkdtempSync(path.join(os.tmpdir(), "vscode-mock-opencode-")), "index.js");
 fs.mkdirSync(path.dirname(vscodeMockPath), { recursive: true });
 fs.writeFileSync(
   vscodeMockPath,
@@ -113,11 +103,7 @@ module.exports = {
 );
 
 const originalResolveFilename = (Module as any)._resolveFilename;
-(Module as any)._resolveFilename = function (
-  request: string,
-  parent: any,
-  ...args: any[]
-): string {
+(Module as any)._resolveFilename = function (request: string, parent: any, ...args: any[]): string {
   if (request === "vscode") {
     return vscodeMockPath;
   }
@@ -180,8 +166,7 @@ describe("goUsageTracker", () => {
     });
 
     it("prefers liveCostResolver over the bundled table when externalCost absent", () => {
-      const resolver = (id: string): ModelCost | undefined =>
-        id === "custom-model" ? { input: 2.0, output: 4.0 } : undefined;
+      const resolver = (id: string): ModelCost | undefined => (id === "custom-model" ? { input: 2.0, output: 4.0 } : undefined);
       const cost = estimateCost("custom-model", 100, 50, 0, undefined, resolver);
       // billablePrompt = 100
       // 100 * 2.0/1M  = 0.0002
@@ -255,14 +240,10 @@ describe("goUsageTracker", () => {
       it("accumulates cost for the same sessionId", () => {
         const tracker = new GoUsageTracker(createMockContext());
 
-        tracker.record(
-          makeSummary({ sessionId: "s1", promptTokens: 100, completionTokens: 50, cachedTokens: 0 }),
-        );
+        tracker.record(makeSummary({ sessionId: "s1", promptTokens: 100, completionTokens: 50, cachedTokens: 0 }));
         // Cost for s1: 100 * 0.5/1M + 50 * 3.0/1M = 0.0002
 
-        tracker.record(
-          makeSummary({ sessionId: "s1", promptTokens: 200, completionTokens: 100, cachedTokens: 0 }),
-        );
+        tracker.record(makeSummary({ sessionId: "s1", promptTokens: 200, completionTokens: 100, cachedTokens: 0 }));
         // Additional: 200 * 0.5/1M + 100 * 3.0/1M = 0.0004
         // Total: 0.0006
 
@@ -276,18 +257,14 @@ describe("goUsageTracker", () => {
 
       it("skips records when providerDisplayName does not contain 'go'", () => {
         const tracker = new GoUsageTracker(createMockContext());
-        tracker.record(
-          makeSummary({ providerDisplayName: "OpenCode Zen", sessionId: "s1" }),
-        );
+        tracker.record(makeSummary({ providerDisplayName: "OpenCode Zen", sessionId: "s1" }));
 
         assert.equal(tracker.getCurrentSessionCost(), undefined);
       });
 
       it("skips records when prompt+completion tokens are zero", () => {
         const tracker = new GoUsageTracker(createMockContext());
-        tracker.record(
-          makeSummary({ sessionId: "s1", promptTokens: 0, completionTokens: 0, cachedTokens: 0 }),
-        );
+        tracker.record(makeSummary({ sessionId: "s1", promptTokens: 0, completionTokens: 0, cachedTokens: 0 }));
 
         assert.equal(tracker.getCurrentSessionCost(), undefined);
       });
@@ -303,10 +280,7 @@ describe("goUsageTracker", () => {
       it("accepts an externalCost override", () => {
         const tracker = new GoUsageTracker(createMockContext());
         const externalCost: ModelCost = { input: 10, output: 20 };
-        tracker.record(
-          makeSummary({ sessionId: "s1", promptTokens: 100, completionTokens: 50, cachedTokens: 0 }),
-          externalCost,
-        );
+        tracker.record(makeSummary({ sessionId: "s1", promptTokens: 100, completionTokens: 50, cachedTokens: 0 }), externalCost);
 
         const session = tracker.getCurrentSessionCost();
         // 100 * 10/1M + 50 * 20/1M = 0.001 + 0.001 = 0.002
@@ -314,8 +288,7 @@ describe("goUsageTracker", () => {
       });
 
       it("delegates to costResolver when no externalCost is passed", () => {
-        const resolver = (id: string): ModelCost | undefined =>
-          id === "custom-resolved" ? { input: 5, output: 10 } : undefined;
+        const resolver = (id: string): ModelCost | undefined => (id === "custom-resolved" ? { input: 5, output: 10 } : undefined);
         const tracker = new GoUsageTracker(createMockContext(), undefined, resolver);
 
         tracker.record(
@@ -331,9 +304,7 @@ describe("goUsageTracker", () => {
         const context = createMockContext();
         const tracker = new GoUsageTracker(context);
 
-        tracker.record(
-          makeSummary({ sessionId: "s1", promptTokens: 100, completionTokens: 50 }),
-        );
+        tracker.record(makeSummary({ sessionId: "s1", promptTokens: 100, completionTokens: 50 }));
 
         const storedEntries = context.globalState.get("opencodego.usageLog.v1", []);
         assert.equal(storedEntries.length, 1);
@@ -404,9 +375,7 @@ describe("goUsageTracker", () => {
       it("respects the limit parameter", () => {
         const tracker = new GoUsageTracker(createMockContext());
         for (let i = 0; i < 10; i++) {
-          tracker.record(
-            makeSummary({ sessionId: `s${i}`, promptTokens: 1, completionTokens: 0 }),
-          );
+          tracker.record(makeSummary({ sessionId: `s${i}`, promptTokens: 1, completionTokens: 0 }));
         }
 
         assert.equal(tracker.getRecentSessionCosts(3).length, 3);
@@ -504,16 +473,12 @@ describe("goUsageTracker", () => {
         mock.timers.setTime(baseTime);
 
         const tracker = new GoUsageTracker(createMockContext());
-        tracker.record(
-          makeSummary({ sessionId: "old", promptTokens: 1, completionTokens: 0 }),
-        );
+        tracker.record(makeSummary({ sessionId: "old", promptTokens: 1, completionTokens: 0 }));
 
         // Advance past the 2-hour idle threshold
         mock.timers.tick(2 * 60 * 60 * 1000 + 1000);
 
-        tracker.record(
-          makeSummary({ sessionId: "new", promptTokens: 1, completionTokens: 0 }),
-        );
+        tracker.record(makeSummary({ sessionId: "new", promptTokens: 1, completionTokens: 0 }));
 
         const session = tracker.getCurrentSessionCost();
         assert.equal(session?.sessionId, "new", "old session should have been pruned");
@@ -543,9 +508,7 @@ describe("goUsageTracker", () => {
         const tracker = new GoUsageTracker(createMockContext());
         // Create 51 sessions
         for (let i = 0; i < 51; i++) {
-          tracker.record(
-            makeSummary({ sessionId: `s${i}`, promptTokens: 1, completionTokens: 0 }),
-          );
+          tracker.record(makeSummary({ sessionId: `s${i}`, promptTokens: 1, completionTokens: 0 }));
         }
 
         const sessions = tracker.getRecentSessionCosts(100);
@@ -569,9 +532,7 @@ describe("goUsageTracker", () => {
     describe("edge cases", () => {
       it("handles missing sessionId (no session cost tracked)", () => {
         const tracker = new GoUsageTracker(createMockContext());
-        tracker.record(
-          makeSummary({ sessionId: undefined, promptTokens: 100, completionTokens: 50 }),
-        );
+        tracker.record(makeSummary({ sessionId: undefined, promptTokens: 100, completionTokens: 50 }));
 
         assert.equal(tracker.getCurrentSessionCost(), undefined);
         assert.equal(tracker.getRecentSessionCosts().length, 0);
@@ -596,9 +557,7 @@ describe("goUsageTracker", () => {
 
       it("handles record with only cached tokens (no prompt or completion)", () => {
         const tracker = new GoUsageTracker(createMockContext());
-        tracker.record(
-          makeSummary({ sessionId: "s1", promptTokens: 0, completionTokens: 0, cachedTokens: 100 }),
-        );
+        tracker.record(makeSummary({ sessionId: "s1", promptTokens: 0, completionTokens: 0, cachedTokens: 100 }));
 
         // Zero prompt+completion → record is skipped
         assert.equal(tracker.getCurrentSessionCost(), undefined);
@@ -606,9 +565,7 @@ describe("goUsageTracker", () => {
 
       it("handles record with only cached tokens but non-zero prompt", () => {
         const tracker = new GoUsageTracker(createMockContext());
-        tracker.record(
-          makeSummary({ sessionId: "s1", promptTokens: 50, completionTokens: 0, cachedTokens: 50 }),
-        );
+        tracker.record(makeSummary({ sessionId: "s1", promptTokens: 50, completionTokens: 0, cachedTokens: 50 }));
 
         // prompt+completion = 50 > 0 → record proceeds
         // billablePrompt = max(0, 50-50) = 0
@@ -621,15 +578,11 @@ describe("goUsageTracker", () => {
       it("handles multiple records in the same session with reset in between", () => {
         const context = createMockContext();
         const tracker1 = new GoUsageTracker(context);
-        tracker1.record(
-          makeSummary({ sessionId: "shared", promptTokens: 100, completionTokens: 50, cachedTokens: 0 }),
-        );
+        tracker1.record(makeSummary({ sessionId: "shared", promptTokens: 100, completionTokens: 50, cachedTokens: 0 }));
 
         // Create a new tracker from the same context to simulate restart
         const tracker2 = new GoUsageTracker(context);
-        tracker2.record(
-          makeSummary({ sessionId: "shared", promptTokens: 50, completionTokens: 25, cachedTokens: 0 }),
-        );
+        tracker2.record(makeSummary({ sessionId: "shared", promptTokens: 50, completionTokens: 25, cachedTokens: 0 }));
 
         // First tracker's session
         assert.equal(tracker1.getCurrentSessionCost()?.sessionId, "shared");

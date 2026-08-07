@@ -19,37 +19,37 @@ const MAX_LOG_ENTRIES = 2000;
 
 /** OpenCode Go subscription limits in USD, from https://opencode.ai/docs/go */
 export const GO_LIMITS = {
-  session: 12,   // $12 per rolling 5-hour window
-  weekly:  30,   // $30 per week (Mon–Mon UTC)
-  monthly: 60,   // $60 per month (anchor-based)
+  session: 12, // $12 per rolling 5-hour window
+  weekly: 30, // $30 per week (Mon–Mon UTC)
+  monthly: 60, // $60 per month (anchor-based)
 } as const;
 
 const FIVE_HOURS_MS = 5 * 60 * 60 * 1000;
-const WEEK_MS       = 7 * 24 * 60 * 60 * 1000;
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
 // ─── Go model pricing ($/1M tokens) — bundled snapshot fallback ────────────
 // This table is a static snapshot kept as a last resort. The primary source
 // is the live models.dev metadata cache injected via CostResolver.
 
 const GO_MODEL_PRICING: Record<string, ModelCost> = {
-  "glm-5.1":         { input: 1.40, output: 4.40,  cache_read: 0.26  },
-  "glm-5":           { input: 1.00, output: 3.20,  cache_read: 0.20  },
-  "kimi-k2.6":       { input: 0.95, output: 4.00,  cache_read: 0.16  },
-  "kimi-k2.5":       { input: 0.60, output: 3.00,  cache_read: 0.10  },
-  "minimax-m3":      { input: 0.60, output: 2.40,  cache_read: 0.12  },
-  "minimax-m2.7":    { input: 0.30, output: 1.20,  cache_read: 0.06  },
-  "minimax-m2.5":    { input: 0.30, output: 1.20,  cache_read: 0.06  },
-  "mimo-v2.5":       { input: 0.14, output: 0.28,  cache_read: 0.003 },
-  "mimo-v2.5-pro":   { input: 1.74, output: 3.48,  cache_read: 0.015 },
-  "mimo-v2-omni":    { input: 0.14, output: 0.28,  cache_read: 0.003 },
-  "mimo-v2-pro":     { input: 1.74, output: 3.48,  cache_read: 0.015 },
-  "qwen3.7-max":     { input: 2.50, output: 7.50,  cache_read: 0.50  },
-  "qwen3.7-plus":    { input: 0.40, output: 1.60,  cache_read: 0.04  },
-  "qwen3.6-plus":    { input: 0.50, output: 3.00,  cache_read: 0.05  },
-  "qwen3.5-plus":    { input: 0.20, output: 1.20,  cache_read: 0.02  },
-  "deepseek-v4-pro": { input: 1.74, output: 3.48,  cache_read: 0.015 },
-  "deepseek-v4-flash":{ input: 0.14, output: 0.28, cache_read: 0.003 },
-  "hy3-preview":     { input: 0.50, output: 1.50,  cache_read: 0.05  },
+  "glm-5.1": { input: 1.4, output: 4.4, cache_read: 0.26 },
+  "glm-5": { input: 1.0, output: 3.2, cache_read: 0.2 },
+  "kimi-k2.6": { input: 0.95, output: 4.0, cache_read: 0.16 },
+  "kimi-k2.5": { input: 0.6, output: 3.0, cache_read: 0.1 },
+  "minimax-m3": { input: 0.6, output: 2.4, cache_read: 0.12 },
+  "minimax-m2.7": { input: 0.3, output: 1.2, cache_read: 0.06 },
+  "minimax-m2.5": { input: 0.3, output: 1.2, cache_read: 0.06 },
+  "mimo-v2.5": { input: 0.14, output: 0.28, cache_read: 0.003 },
+  "mimo-v2.5-pro": { input: 1.74, output: 3.48, cache_read: 0.015 },
+  "mimo-v2-omni": { input: 0.14, output: 0.28, cache_read: 0.003 },
+  "mimo-v2-pro": { input: 1.74, output: 3.48, cache_read: 0.015 },
+  "qwen3.7-max": { input: 2.5, output: 7.5, cache_read: 0.5 },
+  "qwen3.7-plus": { input: 0.4, output: 1.6, cache_read: 0.04 },
+  "qwen3.6-plus": { input: 0.5, output: 3.0, cache_read: 0.05 },
+  "qwen3.5-plus": { input: 0.2, output: 1.2, cache_read: 0.02 },
+  "deepseek-v4-pro": { input: 1.74, output: 3.48, cache_read: 0.015 },
+  "deepseek-v4-flash": { input: 0.14, output: 0.28, cache_read: 0.003 },
+  "hy3-preview": { input: 0.5, output: 1.5, cache_read: 0.05 },
 };
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -88,7 +88,7 @@ export interface PeriodUsage {
 
 export interface UsageSummary {
   session: PeriodUsage;
-  weekly:  PeriodUsage;
+  weekly: PeriodUsage;
   monthly: PeriodUsage;
   today: {
     cost: number;
@@ -153,7 +153,12 @@ function anchoredMonthStart(nowMs: number, anchorDay: number, anchorHour: number
   let month = now.getUTCMonth();
   let candidate = Date.UTC(year, month, anchorDay, anchorHour, 0, 0, 0);
   if (candidate > nowMs) {
-    if (month === 0) { year--; month = 11; } else { month--; }
+    if (month === 0) {
+      year--;
+      month = 11;
+    } else {
+      month--;
+    }
     candidate = Date.UTC(year, month, anchorDay, anchorHour, 0, 0, 0);
   }
   return candidate;
@@ -163,7 +168,10 @@ function anchoredMonthEnd(startMs: number, anchorDay: number, anchorHour: number
   const d = new Date(startMs);
   let year = d.getUTCFullYear();
   let month = d.getUTCMonth() + 1;
-  if (month > 11) { year++; month = 0; }
+  if (month > 11) {
+    year++;
+    month = 0;
+  }
   return Date.UTC(year, month, anchorDay, anchorHour, 0, 0, 0);
 }
 
@@ -194,7 +202,7 @@ function buildMonthlyWindow(
   const now = new Date(nowMs);
   return {
     monthStartMs: Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1),
-    monthEndMs:   Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1),
+    monthEndMs: Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1),
   };
 }
 
@@ -227,9 +235,9 @@ export function estimateCost(
 
   const billablePrompt = Math.max(0, promptTokens - cachedTokens);
   return (
-    billablePrompt     * pricing.input / 1_000_000 +
-    completionTokens   * pricing.output / 1_000_000 +
-    cachedTokens       * (pricing.cache_read ?? pricing.input * 0.1) / 1_000_000
+    (billablePrompt * pricing.input) / 1_000_000 +
+    (completionTokens * pricing.output) / 1_000_000 +
+    (cachedTokens * (pricing.cache_read ?? pricing.input * 0.1)) / 1_000_000
   );
 }
 
@@ -259,18 +267,16 @@ function readOpenCodeHistory(): HistoryRow[] | null {
   if (!fs.existsSync(OPENCODE_DB_PATH)) return null;
 
   try {
-    const result = execFileSync(
-      "sqlite3",
-      ["-readonly", "-json", OPENCODE_DB_PATH, HISTORY_ROWS_SQL],
-      { timeout: 5000, encoding: "utf-8", stdio: ["pipe", "pipe", "pipe"] },
-    );
+    const result = execFileSync("sqlite3", ["-readonly", "-json", OPENCODE_DB_PATH, HISTORY_ROWS_SQL], {
+      timeout: 5000,
+      encoding: "utf-8",
+      stdio: ["pipe", "pipe", "pipe"],
+    });
     const rows = JSON.parse(result);
     if (!Array.isArray(rows)) return null;
     return rows.filter(
       (r: any) =>
-        r && typeof r === "object" &&
-        typeof r.createdMs === "number" && r.createdMs > 0 &&
-        typeof r.cost === "number" && r.cost >= 0,
+        r && typeof r === "object" && typeof r.createdMs === "number" && r.createdMs > 0 && typeof r.cost === "number" && r.cost >= 0,
     );
   } catch {
     return null;
@@ -316,8 +322,7 @@ export class GoUsageTracker {
    */
   migrateFromSingleton(): void {
     if (!this.storageKeySuffix) return; // i am the singleton
-    const hasLegacyEntries =
-      this.context.globalState.get<unknown[]>(STORAGE_KEY, []).length > 0;
+    const hasLegacyEntries = this.context.globalState.get<unknown[]>(STORAGE_KEY, []).length > 0;
     if (!hasLegacyEntries) return;
 
     this.log?.("[go-tracker] migrating legacy singleton data into profile");
@@ -328,9 +333,7 @@ export class GoUsageTracker {
       const targetKey = this.storageKey(STORAGE_KEY);
       this.context.globalState.update(targetKey, legacyEntries);
       this.context.globalState.update(STORAGE_KEY, []);
-      this.entries = legacyEntries.filter(
-        e => typeof e.timestamp === "number" && typeof e.cost === "number",
-      );
+      this.entries = legacyEntries.filter((e) => typeof e.timestamp === "number" && typeof e.cost === "number");
     }
 
     // Migrate baseline
@@ -367,9 +370,9 @@ export class GoUsageTracker {
       return;
     }
 
-    const prompt     = summary.promptTokens     ?? 0;
+    const prompt = summary.promptTokens ?? 0;
     const completion = summary.completionTokens ?? 0;
-    const cached     = summary.cachedTokens     ?? 0;
+    const cached = summary.cachedTokens ?? 0;
 
     if (prompt + completion === 0) {
       this.log?.(`[go-tracker] SKIP: zero tokens (prompt=${prompt} completion=${completion}) for model=${summary.modelId}`);
@@ -381,16 +384,18 @@ export class GoUsageTracker {
     // Compute from USD cost so the session info popover shows accurate totals.
     const copilotCredits = cost * 100;
 
-    this.log?.(`[go-tracker] RECORD: model=${summary.modelId} prompt=${prompt} completion=${completion} cached=${cached} cost=$${cost.toFixed(6)} credits=${copilotCredits.toFixed(4)}`);
+    this.log?.(
+      `[go-tracker] RECORD: model=${summary.modelId} prompt=${prompt} completion=${completion} cached=${cached} cost=$${cost.toFixed(6)} credits=${copilotCredits.toFixed(4)}`,
+    );
 
     this.entries.push({
-      timestamp:         Date.now(),
-      modelId:           summary.modelId,
+      timestamp: Date.now(),
+      modelId: summary.modelId,
       cost,
-      promptTokens:      prompt,
-      completionTokens:  completion,
-      cachedTokens:      cached,
-      sessionId:         summary.sessionId,
+      promptTokens: prompt,
+      completionTokens: completion,
+      cachedTokens: cached,
+      sessionId: summary.sessionId,
       copilotCredits,
     });
 
@@ -421,9 +426,8 @@ export class GoUsageTracker {
   }
 
   getSummary(): UsageSummary {
-    const nowMs       = Date.now();
-    const clamp = (v: number, limit: number) =>
-      Math.round(Math.min(100, (v / limit) * 100) * 10) / 10;
+    const nowMs = Date.now();
+    const clamp = (v: number, limit: number) => Math.round(Math.min(100, (v / limit) * 100) * 10) / 10;
 
     // When namespaced (per-profile), skip the shared SQLite — it has no
     // key column, so reading it would mix quota from all accounts.
@@ -440,15 +444,11 @@ export class GoUsageTracker {
   }
 
   /** Build summary from SQLite, enriched with token/request counts from tracked entries. */
-  private buildSqliteEnrichedSummary(
-    nowMs: number,
-    rows: HistoryRow[],
-    clamp: (v: number, limit: number) => number,
-  ): UsageSummary {
+  private buildSqliteEnrichedSummary(nowMs: number, rows: HistoryRow[], clamp: (v: number, limit: number) => number): UsageSummary {
     const base = this.buildSummaryFromRows(nowMs, rows, clamp, true);
 
     // Enrich today/yesterday tokens+requests from tracked entries (SQLite doesn't store tokens).
-    const dayMs       = startOfUtcDay(nowMs);
+    const dayMs = startOfUtcDay(nowMs);
     const yesterdayMs = dayMs - 24 * 60 * 60 * 1000;
     let todayReq = base.today.requests;
     let todayTokens = 0;
@@ -464,7 +464,7 @@ export class GoUsageTracker {
 
     // Apply baselines on top of SQLite costs.
     const activeBaselineSession = this.getActiveBaselineAmount("session", nowMs);
-    const activeBaselineWeekly  = this.getActiveBaselineAmount("weekly", nowMs);
+    const activeBaselineWeekly = this.getActiveBaselineAmount("weekly", nowMs);
     const activeBaselineMonthly = this.getActiveBaselineAmount("monthly", nowMs);
 
     return {
@@ -497,28 +497,32 @@ export class GoUsageTracker {
     clamp: (v: number, limit: number) => number,
     hasData: boolean,
   ): UsageSummary {
-    const dayMs       = startOfUtcDay(nowMs);
+    const dayMs = startOfUtcDay(nowMs);
     const yesterdayMs = dayMs - 24 * 60 * 60 * 1000;
-    const weekMs      = startOfUtcWeek(nowMs);
+    const weekMs = startOfUtcWeek(nowMs);
     const sessionStart = nowMs - FIVE_HOURS_MS;
-    const earliest = rows.length > 0 ? Math.min(...rows.map(r => r.createdMs)) : null;
+    const earliest = rows.length > 0 ? Math.min(...rows.map((r) => r.createdMs)) : null;
     const { monthStartMs, monthEndMs } = buildMonthlyWindow(nowMs, this.baseline, earliest);
-    const weekEnd      = weekMs + WEEK_MS;
+    const weekEnd = weekMs + WEEK_MS;
 
-    let sessionCost = 0, weeklyCost = 0, monthlyCost = 0;
-    let todayCost = 0, todayReq = 0;
-    let yestCost  = 0, yestReq  = 0;
+    let sessionCost = 0,
+      weeklyCost = 0,
+      monthlyCost = 0;
+    let todayCost = 0,
+      todayReq = 0;
+    let yestCost = 0,
+      yestReq = 0;
 
     for (const r of rows) {
       if (r.createdMs >= sessionStart && r.createdMs <= nowMs) sessionCost += r.cost;
-      if (r.createdMs >= weekMs      && r.createdMs <= nowMs) weeklyCost  += r.cost;
+      if (r.createdMs >= weekMs && r.createdMs <= nowMs) weeklyCost += r.cost;
       if (r.createdMs >= monthStartMs && r.createdMs < monthEndMs) monthlyCost += r.cost;
       if (r.createdMs >= dayMs) {
         todayCost += r.cost;
-        todayReq  += 1;
+        todayReq += 1;
       } else if (r.createdMs >= yesterdayMs) {
         yestCost += r.cost;
-        yestReq  += 1;
+        yestReq += 1;
       }
     }
 
@@ -531,38 +535,36 @@ export class GoUsageTracker {
     }
 
     // If a monthly baseline exists and is active, use its expiresAt for resetsAt.
-    const monthlyResetsAt = this.baseline.monthly
-      ? new Date(this.baseline.monthly.expiresAt)
-      : new Date(monthEndMs);
+    const monthlyResetsAt = this.baseline.monthly ? new Date(this.baseline.monthly.expiresAt) : new Date(monthEndMs);
 
     return {
       session: {
-        spent:    Math.round(sessionCost * 10000) / 10000,
-        limit:    GO_LIMITS.session,
-        percent:  clamp(sessionCost, GO_LIMITS.session),
+        spent: Math.round(sessionCost * 10000) / 10000,
+        limit: GO_LIMITS.session,
+        percent: clamp(sessionCost, GO_LIMITS.session),
         resetsAt: new Date((oldest ?? nowMs) + FIVE_HOURS_MS),
       },
       weekly: {
-        spent:    Math.round(weeklyCost * 10000) / 10000,
-        limit:    GO_LIMITS.weekly,
-        percent:  clamp(weeklyCost, GO_LIMITS.weekly),
+        spent: Math.round(weeklyCost * 10000) / 10000,
+        limit: GO_LIMITS.weekly,
+        percent: clamp(weeklyCost, GO_LIMITS.weekly),
         resetsAt: new Date(weekEnd),
       },
       monthly: {
-        spent:    Math.round(monthlyCost * 10000) / 10000,
-        limit:    GO_LIMITS.monthly,
-        percent:  clamp(monthlyCost, GO_LIMITS.monthly),
+        spent: Math.round(monthlyCost * 10000) / 10000,
+        limit: GO_LIMITS.monthly,
+        percent: clamp(monthlyCost, GO_LIMITS.monthly),
         resetsAt: monthlyResetsAt,
       },
       today: {
-        cost:     Math.round(todayCost * 10000) / 10000,
+        cost: Math.round(todayCost * 10000) / 10000,
         requests: todayReq,
-        tokens:   0, // not available from SQLite
+        tokens: 0, // not available from SQLite
       },
       yesterday: {
-        cost:     Math.round(yestCost * 10000) / 10000,
+        cost: Math.round(yestCost * 10000) / 10000,
         requests: yestReq,
-        tokens:   0,
+        tokens: 0,
       },
       hasData,
       sqliteAvailable: false,
@@ -576,31 +578,34 @@ export class GoUsageTracker {
   }
 
   /** Build summary from extension-tracked entries (fallback when opencode.db unavailable) */
-  private buildSummaryFromTracked(
-    nowMs: number,
-    clamp: (v: number, limit: number) => number,
-  ): UsageSummary {
-    const dayMs       = startOfUtcDay(nowMs);
+  private buildSummaryFromTracked(nowMs: number, clamp: (v: number, limit: number) => number): UsageSummary {
+    const dayMs = startOfUtcDay(nowMs);
     const yesterdayMs = dayMs - 24 * 60 * 60 * 1000;
-    const weekMs      = startOfUtcWeek(nowMs);
+    const weekMs = startOfUtcWeek(nowMs);
     const { monthStartMs, monthEndMs } = buildMonthlyWindow(nowMs, this.baseline);
     const sessionStart = nowMs - FIVE_HOURS_MS;
 
-    let trackedSessionCost = 0, trackedWeeklyCost = 0, trackedMonthlyCost = 0;
-    let todayCost = 0, todayReq = 0, todayTokens = 0;
-    let yestCost  = 0, yestReq  = 0, yestTokens  = 0;
+    let trackedSessionCost = 0,
+      trackedWeeklyCost = 0,
+      trackedMonthlyCost = 0;
+    let todayCost = 0,
+      todayReq = 0,
+      todayTokens = 0;
+    let yestCost = 0,
+      yestReq = 0,
+      yestTokens = 0;
 
     for (const e of this.entries) {
       if (e.timestamp >= sessionStart && e.timestamp <= nowMs) trackedSessionCost += e.cost;
-      if (e.timestamp >= weekMs      && e.timestamp <= nowMs) trackedWeeklyCost  += e.cost;
+      if (e.timestamp >= weekMs && e.timestamp <= nowMs) trackedWeeklyCost += e.cost;
       if (e.timestamp >= monthStartMs && e.timestamp < monthEndMs) trackedMonthlyCost += e.cost;
       if (e.timestamp >= dayMs) {
-        todayCost   += e.cost;
-        todayReq    += 1;
+        todayCost += e.cost;
+        todayReq += 1;
         todayTokens += e.promptTokens + e.completionTokens;
       } else if (e.timestamp >= yesterdayMs) {
-        yestCost   += e.cost;
-        yestReq    += 1;
+        yestCost += e.cost;
+        yestReq += 1;
         yestTokens += e.promptTokens + e.completionTokens;
       }
     }
@@ -617,38 +622,36 @@ export class GoUsageTracker {
 
     // If a monthly baseline exists and is active, use its expiresAt for resetsAt
     // instead of the anchor-based calculation (which ignores manual targets).
-    const monthlyResetsAt = this.baseline.monthly
-      ? new Date(this.baseline.monthly.expiresAt)
-      : new Date(monthEndMs);
+    const monthlyResetsAt = this.baseline.monthly ? new Date(this.baseline.monthly.expiresAt) : new Date(monthEndMs);
 
     return {
       session: {
-        spent:    Math.round(sessionCost * 10000) / 10000,
-        limit:    GO_LIMITS.session,
-        percent:  clamp(sessionCost, GO_LIMITS.session),
+        spent: Math.round(sessionCost * 10000) / 10000,
+        limit: GO_LIMITS.session,
+        percent: clamp(sessionCost, GO_LIMITS.session),
         resetsAt: nextSessionReset(this.entries, nowMs),
       },
       weekly: {
-        spent:    Math.round(weeklyCost * 10000) / 10000,
-        limit:    GO_LIMITS.weekly,
-        percent:  clamp(weeklyCost, GO_LIMITS.weekly),
+        spent: Math.round(weeklyCost * 10000) / 10000,
+        limit: GO_LIMITS.weekly,
+        percent: clamp(weeklyCost, GO_LIMITS.weekly),
         resetsAt: new Date(weekEnd),
       },
       monthly: {
-        spent:    Math.round(monthlyCost * 10000) / 10000,
-        limit:    GO_LIMITS.monthly,
-        percent:  clamp(monthlyCost, GO_LIMITS.monthly),
+        spent: Math.round(monthlyCost * 10000) / 10000,
+        limit: GO_LIMITS.monthly,
+        percent: clamp(monthlyCost, GO_LIMITS.monthly),
         resetsAt: monthlyResetsAt,
       },
       today: {
-        cost:     Math.round(todayCost * 10000) / 10000,
+        cost: Math.round(todayCost * 10000) / 10000,
         requests: todayReq,
-        tokens:   todayTokens,
+        tokens: todayTokens,
       },
       yesterday: {
-        cost:     Math.round(yestCost * 10000) / 10000,
+        cost: Math.round(yestCost * 10000) / 10000,
         requests: yestReq,
-        tokens:   yestTokens,
+        tokens: yestTokens,
       },
       hasData: this.entries.length > 0,
       sqliteAvailable: false,
@@ -665,7 +668,7 @@ export class GoUsageTracker {
     const sqliteRows = isPerProfile ? null : readOpenCodeHistory();
     let sqliteMonthlyCost = 0;
     if (sqliteRows && sqliteRows.length > 0) {
-      const earliest = Math.min(...sqliteRows.map(r => r.createdMs));
+      const earliest = Math.min(...sqliteRows.map((r) => r.createdMs));
       // Build a temporary baseline to let buildMonthlyWindow find the anchor
       const tempBaseline: UsageBaseline = { ...this.baseline };
       if (targets.monthlyAnchorDay && targets.monthlyAnchorDay >= 1 && targets.monthlyAnchorDay <= 31) {
@@ -745,7 +748,10 @@ export class GoUsageTracker {
       if (candidate <= nowMs) {
         // If the anchor day+hour has passed this month, next reset is next month.
         month++;
-        if (month > 11) { year++; month = 0; }
+        if (month > 11) {
+          year++;
+          month = 0;
+        }
         candidate = Date.UTC(year, month, targets.monthlyAnchorDay, hour, 0, 0, 0);
       }
       this.baseline.monthly = {
@@ -768,9 +774,7 @@ export class GoUsageTracker {
 
   private prune(): void {
     const cutoff = Date.now() - 31 * 24 * 60 * 60 * 1000; // 31 days
-    this.entries = this.entries
-      .filter(e => e.timestamp > cutoff)
-      .slice(-MAX_LOG_ENTRIES);
+    this.entries = this.entries.filter((e) => e.timestamp > cutoff).slice(-MAX_LOG_ENTRIES);
   }
 
   /** Remove idle sessions and cap total count. */
@@ -784,8 +788,7 @@ export class GoUsageTracker {
     }
     // If still over limit, remove oldest by lastActivity
     if (this.sessionCosts.size > GoUsageTracker.MAX_SESSIONS) {
-      const sorted = [...this.sessionCosts.entries()]
-        .sort((a, b) => a[1].lastActivity - b[1].lastActivity);
+      const sorted = [...this.sessionCosts.entries()].sort((a, b) => a[1].lastActivity - b[1].lastActivity);
       const toRemove = sorted.length - GoUsageTracker.MAX_SESSIONS;
       for (let i = 0; i < toRemove; i++) {
         this.sessionCosts.delete(sorted[i][0]);
@@ -806,9 +809,7 @@ export class GoUsageTracker {
 
   /** Returns up to `limit` most recent session cost summaries, ordered by last activity (newest first). */
   getRecentSessionCosts(limit = 5): SessionCostSummary[] {
-    return [...this.sessionCosts.values()]
-      .sort((a, b) => b.lastActivity - a.lastActivity)
-      .slice(0, limit);
+    return [...this.sessionCosts.values()].sort((a, b) => b.lastActivity - a.lastActivity).slice(0, limit);
   }
 
   private persist(): void {
@@ -834,9 +835,7 @@ export class GoUsageTracker {
   private restore(): void {
     const stored = this.context.globalState.get<UsageLogEntry[]>(this.storageKey(STORAGE_KEY), []);
     if (Array.isArray(stored)) {
-      this.entries = stored.filter(
-        e => typeof e.timestamp === "number" && typeof e.cost === "number",
-      );
+      this.entries = stored.filter((e) => typeof e.timestamp === "number" && typeof e.cost === "number");
     }
 
     const baseline = this.context.globalState.get<UsageBaseline>(this.storageKey(BASELINE_STORAGE_KEY), {});
@@ -865,7 +864,7 @@ function fmtUsd(v: number): string {
 
 function fmtTokens(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000)     return `${Math.round(n / 1_000)}k`;
+  if (n >= 1_000) return `${Math.round(n / 1_000)}k`;
   return String(n);
 }
 
@@ -878,18 +877,22 @@ function fmtRelativeTime(target: Date, from: Date = new Date()): string {
   const diffMs = target.getTime() - from.getTime();
   if (diffMs <= 0) return "now";
   const totalMinutes = Math.ceil(diffMs / 60_000);
-  const hours   = Math.floor(totalMinutes / 60);
+  const hours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;
-  if (hours === 0)  return `${minutes}m`;
+  if (hours === 0) return `${minutes}m`;
   if (minutes === 0) return `${hours}h`;
   return `${hours}h ${minutes}m`;
 }
 
 function fmtDate(d: Date): string {
-  return d.toLocaleDateString("en-US", {
-    weekday: "short", month: "short", day: "numeric",
-    timeZone: "UTC",
-  }) + " UTC";
+  return (
+    d.toLocaleDateString("en-US", {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+      timeZone: "UTC",
+    }) + " UTC"
+  );
 }
 
 function percentColor(pct: number): string {
@@ -920,22 +923,26 @@ export function formatGoUsageTooltip(summary: UsageSummary): vscode.MarkdownStri
   for (const [label, period] of [
     ["Session (5h rolling)", summary.session],
     ["Weekly (Mon–Mon UTC)", summary.weekly],
-    ["Monthly",              summary.monthly],
+    ["Monthly", summary.monthly],
   ] as [string, PeriodUsage][]) {
-    const bar     = progressBar(period.percent);
-    const icon    = percentColor(period.percent);
-    const resets  = fmtRelativeTime(period.resetsAt);
+    const bar = progressBar(period.percent);
+    const icon = percentColor(period.percent);
+    const resets = fmtRelativeTime(period.resetsAt);
     md.appendMarkdown(
       `${icon} **${label}**\n\n` +
-      `\`${bar}\` ${period.percent}% · ${fmtUsd(period.spent)} / ${fmtUsd(period.limit)} · resets in ${resets}\n\n`,
+        `\`${bar}\` ${period.percent}% · ${fmtUsd(period.spent)} / ${fmtUsd(period.limit)} · resets in ${resets}\n\n`,
     );
   }
 
   md.appendMarkdown("---\n\n");
-  md.appendMarkdown(`$(history) **Today:** ${fmtUsd(summary.today.cost)} · ${fmtTokens(summary.today.tokens)} tokens · ${summary.today.requests} req\n\n`);
+  md.appendMarkdown(
+    `$(history) **Today:** ${fmtUsd(summary.today.cost)} · ${fmtTokens(summary.today.tokens)} tokens · ${summary.today.requests} req\n\n`,
+  );
 
   if (summary.yesterday.requests > 0) {
-    md.appendMarkdown(`$(history) **Yesterday:** ${fmtUsd(summary.yesterday.cost)} · ${fmtTokens(summary.yesterday.tokens)} tokens · ${summary.yesterday.requests} req\n\n`);
+    md.appendMarkdown(
+      `$(history) **Yesterday:** ${fmtUsd(summary.yesterday.cost)} · ${fmtTokens(summary.yesterday.tokens)} tokens · ${summary.yesterday.requests} req\n\n`,
+    );
   }
 
   md.appendMarkdown("\n$(info) Click for details");
@@ -974,27 +981,20 @@ export function formatGoUsageLanguageStatusDetail(summary: UsageSummary): string
 }
 
 /** Build Quick Pick items for the usage panel */
-export function buildUsageQuickPickItems(
-  summary: UsageSummary,
-): vscode.QuickPickItem[] {
+export function buildUsageQuickPickItems(summary: UsageSummary): vscode.QuickPickItem[] {
   const now = new Date();
   const isEmpty = !summary.hasData;
 
-  function periodItem(
-    icon: string,
-    label: string,
-    period: PeriodUsage,
-    resetLabel: string,
-  ): vscode.QuickPickItem {
-    const bar    = progressBar(period.percent);
-    const spent  = fmtUsd(period.spent);
-    const limit  = fmtUsd(period.limit);
+  function periodItem(icon: string, label: string, period: PeriodUsage, resetLabel: string): vscode.QuickPickItem {
+    const bar = progressBar(period.percent);
+    const spent = fmtUsd(period.spent);
+    const limit = fmtUsd(period.limit);
     const resets = fmtRelativeTime(period.resetsAt, now);
     return {
-      label:       `${icon} ${label}`,
+      label: `${icon} ${label}`,
       description: `${bar} ${period.percent}%`,
-      detail:      `${spent} / ${limit} used · resets in ${resets} (${resetLabel})`,
-      alwaysShow:  true,
+      detail: `${spent} / ${limit} used · resets in ${resets} (${resetLabel})`,
+      alwaysShow: true,
     };
   }
 
@@ -1002,8 +1002,8 @@ export function buildUsageQuickPickItems(
 
   if (isEmpty) {
     items.push({
-      label:      "$(info) Ready to track",
-      detail:     "Send a chat message to any OpenCode Go model to start tracking usage.",
+      label: "$(info) Ready to track",
+      detail: "Send a chat message to any OpenCode Go model to start tracking usage.",
       alwaysShow: true,
     });
   }
@@ -1011,42 +1011,36 @@ export function buildUsageQuickPickItems(
   // ── Period bars ──────────────────────────────────────────────────────────
   items.push({ label: "Subscription Limits", kind: vscode.QuickPickItemKind.Separator });
 
-  items.push(periodItem(
-    percentColor(summary.session.percent) + " $(clock)",
-    "Session (5h rolling)",
-    summary.session,
-    fmtDate(summary.session.resetsAt),
-  ));
+  items.push(
+    periodItem(
+      percentColor(summary.session.percent) + " $(clock)",
+      "Session (5h rolling)",
+      summary.session,
+      fmtDate(summary.session.resetsAt),
+    ),
+  );
 
-  items.push(periodItem(
-    percentColor(summary.weekly.percent) + " $(calendar)",
-    "Weekly",
-    summary.weekly,
-    fmtDate(summary.weekly.resetsAt),
-  ));
+  items.push(periodItem(percentColor(summary.weekly.percent) + " $(calendar)", "Weekly", summary.weekly, fmtDate(summary.weekly.resetsAt)));
 
-  items.push(periodItem(
-    percentColor(summary.monthly.percent) + " $(graph)",
-    "Monthly",
-    summary.monthly,
-    fmtDate(summary.monthly.resetsAt),
-  ));
+  items.push(
+    periodItem(percentColor(summary.monthly.percent) + " $(graph)", "Monthly", summary.monthly, fmtDate(summary.monthly.resetsAt)),
+  );
 
   // ── Daily summary ────────────────────────────────────────────────────────
   items.push({ label: "Daily Summary", kind: vscode.QuickPickItemKind.Separator });
 
   items.push({
-    label:      `$(history) Today`,
+    label: `$(history) Today`,
     description: fmtUsd(summary.today.cost),
-    detail:     `${fmtTokens(summary.today.tokens)} tokens · ${summary.today.requests} requests`,
+    detail: `${fmtTokens(summary.today.tokens)} tokens · ${summary.today.requests} requests`,
     alwaysShow: true,
   });
 
   if (summary.yesterday.requests > 0 || isEmpty) {
     items.push({
-      label:      `$(history) Yesterday`,
+      label: `$(history) Yesterday`,
       description: fmtUsd(summary.yesterday.cost),
-      detail:     `${fmtTokens(summary.yesterday.tokens)} tokens · ${summary.yesterday.requests} requests`,
+      detail: `${fmtTokens(summary.yesterday.tokens)} tokens · ${summary.yesterday.requests} requests`,
       alwaysShow: true,
     });
   }
@@ -1055,15 +1049,15 @@ export function buildUsageQuickPickItems(
   items.push({ label: "Actions", kind: vscode.QuickPickItemKind.Separator });
 
   items.push({
-    label:      "$(link-external) Open OpenCode console",
+    label: "$(link-external) Open OpenCode console",
     description: "View usage at opencode.ai",
-    alwaysShow:  true,
+    alwaysShow: true,
   });
 
   items.push({
-    label:      "$(trash) Reset tracked usage data",
+    label: "$(trash) Reset tracked usage data",
     description: "Clears all locally tracked data",
-    alwaysShow:  true,
+    alwaysShow: true,
   });
 
   return items;

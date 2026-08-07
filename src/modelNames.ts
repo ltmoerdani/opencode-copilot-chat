@@ -20,16 +20,10 @@ export function formatModelName(modelId: string): string {
     displayParts.push(part);
   }
 
-  return displayParts
-    .map((part) => part.toUpperCase() === part ? part : part.charAt(0).toUpperCase() + part.slice(1))
-    .join(" ");
+  return displayParts.map((part) => (part.toUpperCase() === part ? part : part.charAt(0).toUpperCase() + part.slice(1))).join(" ");
 }
 
-export function providerModelDisplayName(
-  providerPrefix: string,
-  modelId: string,
-  showProviderPrefix = true,
-): string {
+export function providerModelDisplayName(providerPrefix: string, modelId: string, showProviderPrefix = true): string {
   const modelName = formatModelName(modelId);
   return showProviderPrefix ? `${providerPrefix} / ${modelName}` : modelName;
 }

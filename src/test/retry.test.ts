@@ -1,9 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import {
-  analyzeHttp400ForRetry,
-  isTransientServerError,
-} from "../retry.js";
+import { analyzeHttp400ForRetry, isTransientServerError } from "../retry.js";
 
 describe("analyzeHttp400ForRetry — thinking errors", () => {
   it("patches 'only type=enabled is allowed' to force thinking.type='enabled'", () => {
@@ -78,10 +75,7 @@ describe("isTransientServerError", () => {
   });
 
   it("flags a 500 whose body names Router.Unavailable as transient", () => {
-    assert.equal(
-      isTransientServerError(500, '{"error":{"type":"Router.Unavailable"}}'),
-      true,
-    );
+    assert.equal(isTransientServerError(500, '{"error":{"type":"Router.Unavailable"}}'), true);
   });
 
   it("treats 500 with unrelated body as permanent", () => {

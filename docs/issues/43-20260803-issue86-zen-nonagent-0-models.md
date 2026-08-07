@@ -13,12 +13,12 @@ When the OpenCode Zen API key is stored via the extension's own command (`OpenCo
 
 ### Symptom matrix (reported)
 
-| Provider | Models visible | Expected |
-|---|---|---|
-| `opencodego` (non-agent Go) | ✅ 23 | 23 |
-| `opencodego-agent` | ✅ 23 | 23 |
-| `opencodezen-agent` | ✅ 7 | 7 |
-| `opencodezen` (non-agent Zen) | ❌ **0** | 7 |
+| Provider                      | Models visible | Expected |
+| ----------------------------- | -------------- | -------- |
+| `opencodego` (non-agent Go)   | ✅ 23          | 23       |
+| `opencodego-agent`            | ✅ 23          | 23       |
+| `opencodezen-agent`           | ✅ 7           | 7        |
+| `opencodezen` (non-agent Zen) | ❌ **0**       | 7        |
 
 ### Steps to reproduce
 
@@ -40,7 +40,7 @@ if (!apiKey && (this.definition.isAgentVariant || options.configuration)) {
 }
 
 if (!apiKey) {
-  return [];  // ← Zen non-agent stops here → 0 models
+  return []; // ← Zen non-agent stops here → 0 models
 }
 ```
 
@@ -76,15 +76,15 @@ Two pieces of evidence from `microsoft/vscode` confirm the correct pattern.
 
 ```typescript
 export interface PrepareLanguageModelChatModelOptions {
-    /**
-     * Configuration for the model. This is only present if the provider
-     * has declared that it requires configuration via the `configuration`
-     * property. The object adheres to the schema that the extension
-     * provided during declaration.
-     */
-    readonly configuration?: {
-        readonly [key: string]: any;
-    };
+  /**
+   * Configuration for the model. This is only present if the provider
+   * has declared that it requires configuration via the `configuration`
+   * property. The object adheres to the schema that the extension
+   * provided during declaration.
+   */
+  readonly configuration?: {
+    readonly [key: string]: any;
+  };
 }
 ```
 
@@ -129,13 +129,13 @@ The accompanying comment was rewritten to document the verified lifecycle semant
 
 ### Why this is safe (no regression)
 
-| Scenario | `isAgentVariant` | `options.configuration` | `apiKey` after step 1 | After fix |
-|---|---|---|---|---|
-| Non-agent + key set via extension command | false | undefined | undefined | ✅ falls back to secrets |
-| Non-agent + key set via native BYOK | false | `{apiKey:"sk-…"}` | `"sk-…"` | ✅ step 1 already set it; fallback skipped |
-| Non-agent + empty config (VS Code 1.126+) | false | `{}` | undefined | ✅ falls back to secrets |
-| Agent variant (any state) | true | (ignored) | undefined | ✅ falls back to secrets |
-| Non-agent + no key anywhere | false | undefined | undefined | ✅ returns `[]` (no behavior change) |
+| Scenario                                  | `isAgentVariant` | `options.configuration` | `apiKey` after step 1 | After fix                                  |
+| ----------------------------------------- | ---------------- | ----------------------- | --------------------- | ------------------------------------------ |
+| Non-agent + key set via extension command | false            | undefined               | undefined             | ✅ falls back to secrets                   |
+| Non-agent + key set via native BYOK       | false            | `{apiKey:"sk-…"}`       | `"sk-…"`              | ✅ step 1 already set it; fallback skipped |
+| Non-agent + empty config (VS Code 1.126+) | false            | `{}`                    | undefined             | ✅ falls back to secrets                   |
+| Agent variant (any state)                 | true             | (ignored)               | undefined             | ✅ falls back to secrets                   |
+| Non-agent + no key anywhere               | false            | undefined               | undefined             | ✅ returns `[]` (no behavior change)       |
 
 Because step 1 (`getConfiguredApiKey(opts)`) already resolves the BYOK key when present, the new `if (!apiKey)` only fires when BYOK truly has nothing to offer — at which point secret storage is the only remaining source of truth.
 
@@ -148,10 +148,12 @@ Because step 1 (`getConfiguredApiKey(opts)`) already resolves the BYOK key when 
 After applying the fix, verify with the diagnostic commands the reporter used:
 
 **`OpenCode: Model Picker Diagnostics`**
+
 - Before: `vendor: opencodezen` → `models: 0`
 - After: `vendor: opencodezen` → `models: N` (N > 0)
 
 **`OpenCode Zen: Diagnostics`**
+
 - Before: `Models visible through vscode.lm.selectChatModels({ vendor: "opencodezen" }): 0`
 - After: `... : N`
 

@@ -56,16 +56,16 @@ Gate the `::agent-host` duplicate behind a new boolean setting `opencodego.showI
 
 ### Settings
 
-| Setting | Default | Effect |
-|---------|---------|--------|
+| Setting                         | Default | Effect                                                                                  |
+| ------------------------------- | ------- | --------------------------------------------------------------------------------------- |
 | `opencodego.showInAgentsWindow` | `false` | When `true`, also registers the `::agent-host` variant; `(Agents)` suffix added to name |
 
 ### Files Changed (PR #42)
 
-| File | Change |
-|------|--------|
+| File               | Change                                                                                                                   |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------ |
 | `src/extension.ts` | Read `showInAgentsWindow`; return `[info]` by default, `[info, agentHostInfo]` when opted in; add `(Agents)` name suffix |
-| `package.json` | Add `opencodego.showInAgentsWindow` boolean setting (default `false`) |
+| `package.json`     | Add `opencodego.showInAgentsWindow` boolean setting (default `false`)                                                    |
 
 ### Trade-off
 
@@ -87,19 +87,19 @@ Register agent models under **dedicated vendor IDs** (`opencodego-agent`, `openc
 
 ### Vendor Architecture
 
-| Vendor | Models | Visible in |
-|--------|--------|------------|
-| `opencodego` | General models | Chat view, Manage panel |
-| `opencodego-agent` | Agent-only models (`targetChatSessionType: "copilotcli"`) | Agents window, Manage panel (hidden by default) |
-| `opencodezen` | General models | Chat view, Manage panel |
+| Vendor              | Models                                                    | Visible in                                      |
+| ------------------- | --------------------------------------------------------- | ----------------------------------------------- |
+| `opencodego`        | General models                                            | Chat view, Manage panel                         |
+| `opencodego-agent`  | Agent-only models (`targetChatSessionType: "copilotcli"`) | Agents window, Manage panel (hidden by default) |
+| `opencodezen`       | General models                                            | Chat view, Manage panel                         |
 | `opencodezen-agent` | Agent-only models (`targetChatSessionType: "copilotcli"`) | Agents window, Manage panel (hidden by default) |
 
 ### Settings (replaces `showInAgentsWindow`)
 
-| Setting | Default | Purpose |
-|---------|---------|---------|
-| `opencodego.agentsWindow` | `true` | Register agent providers at runtime (controls whether Agents window works at all) |
-| `opencodego.showAgentModelsInManagePanel` | `false` | Show agent vendors in the Manage Language Models panel |
+| Setting                                   | Default | Purpose                                                                           |
+| ----------------------------------------- | ------- | --------------------------------------------------------------------------------- |
+| `opencodego.agentsWindow`                 | `true`  | Register agent providers at runtime (controls whether Agents window works at all) |
+| `opencodego.showAgentModelsInManagePanel` | `false` | Show agent vendors in the Manage Language Models panel                            |
 
 Two independent controls: `agentsWindow` controls registration (whether agent models work), `showAgentModelsInManagePanel` controls UI visibility in the Manage panel.
 
@@ -111,9 +111,7 @@ Maps agent vendor IDs back to base vendor for routing and metadata lookups:
 
 ```typescript
 export function resolveBaseVendor(vendor: AllProviderVendor): ProviderVendor {
-  return vendor === AGENT_GO_VENDOR ? GO_VENDOR
-    : vendor === AGENT_ZEN_VENDOR ? ZEN_VENDOR
-    : vendor as ProviderVendor;
+  return vendor === AGENT_GO_VENDOR ? GO_VENDOR : vendor === AGENT_ZEN_VENDOR ? ZEN_VENDOR : (vendor as ProviderVendor);
 }
 ```
 
@@ -145,10 +143,7 @@ This is a **new mechanism** in the codebase — previously all providers read ke
 Creates agent provider definitions from base definitions to avoid duplicate data:
 
 ```typescript
-function providerVariant(
-  base: OpenCodeProviderDefinition,
-  agentVendor: AllProviderVendor,
-): OpenCodeProviderDefinition
+function providerVariant(base: OpenCodeProviderDefinition, agentVendor: AllProviderVendor): OpenCodeProviderDefinition;
 ```
 
 ### Why This Is Cleaner Than PR #42
@@ -162,22 +157,23 @@ function providerVariant(
 ### Migration from v0.3.1
 
 Users who set `opencodego.showInAgentsWindow: true` in v0.3.1:
+
 - **Remove** the `showInAgentsWindow` setting (it no longer exists)
 - Agent models are **on by default** — no action required for basic usage
 - To see agent vendors in Manage panel, set `showAgentModelsInManagePanel: true`
 
 ### Files Changed (PR #43)
 
-| File | Change |
-|------|--------|
-| `package.json` | Added `agentsWindow` and `showAgentModelsInManagePanel` configs; declared agent vendors (`opencodego-agent`, `opencodezen-agent`) with `when` clause |
-| `src/extension.ts` | DRY provider definitions via `providerVariant()`; agent registration; BYOK key sync via `context.secrets` + `triggerChange()`; `baseVendor` getter |
-| `src/providerTypes.ts` | Agent vendor constants (`AGENT_GO_VENDOR`, `AGENT_ZEN_VENDOR`); `AllProviderVendor` type; `resolveBaseVendor()` helper |
-| `src/routing.ts` | Uses `resolveBaseVendor()` before all vendor comparisons in `resolveModelRouting()` |
-| `src/metadata.ts` | Widened `toEffectiveModelId` vendor parameter from `ProviderVendor` to `AllProviderVendor` |
-| `docs/features/06-20260614-agents-window-model-visibility.md` | Updated to document both approaches |
-| `README.md` | Updated Agents Window section with new settings |
-| `CHANGELOG.md` | Added v0.3.2 section |
+| File                                                          | Change                                                                                                                                               |
+| ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `package.json`                                                | Added `agentsWindow` and `showAgentModelsInManagePanel` configs; declared agent vendors (`opencodego-agent`, `opencodezen-agent`) with `when` clause |
+| `src/extension.ts`                                            | DRY provider definitions via `providerVariant()`; agent registration; BYOK key sync via `context.secrets` + `triggerChange()`; `baseVendor` getter   |
+| `src/providerTypes.ts`                                        | Agent vendor constants (`AGENT_GO_VENDOR`, `AGENT_ZEN_VENDOR`); `AllProviderVendor` type; `resolveBaseVendor()` helper                               |
+| `src/routing.ts`                                              | Uses `resolveBaseVendor()` before all vendor comparisons in `resolveModelRouting()`                                                                  |
+| `src/metadata.ts`                                             | Widened `toEffectiveModelId` vendor parameter from `ProviderVendor` to `AllProviderVendor`                                                           |
+| `docs/features/06-20260614-agents-window-model-visibility.md` | Updated to document both approaches                                                                                                                  |
+| `README.md`                                                   | Updated Agents Window section with new settings                                                                                                      |
+| `CHANGELOG.md`                                                | Added v0.3.2 section                                                                                                                                 |
 
 **Lines changed:** +273 / −169 across 8 files.
 
@@ -200,45 +196,45 @@ These appear to be **VS Code Agents window bugs** (the Agents window does not re
 
 ## Behavioral Matrix After PR #43
 
-| Setting | Chat View Picker | Agents Window Picker | Manage Panel |
-|---------|-----------------|---------------------|--------------|
-| `agentsWindow: true` (default) | General models only | Agent models visible | General vendors only (agent vendors hidden) |
-| `agentsWindow: true` + `showAgentModelsInManagePanel: true` | General models only | Agent models visible | General + agent vendors visible |
-| `agentsWindow: false` | General models only | ❌ No OpenCode models | General vendors only |
+| Setting                                                     | Chat View Picker    | Agents Window Picker  | Manage Panel                                |
+| ----------------------------------------------------------- | ------------------- | --------------------- | ------------------------------------------- |
+| `agentsWindow: true` (default)                              | General models only | Agent models visible  | General vendors only (agent vendors hidden) |
+| `agentsWindow: true` + `showAgentModelsInManagePanel: true` | General models only | Agent models visible  | General + agent vendors visible             |
+| `agentsWindow: false`                                       | General models only | ❌ No OpenCode models | General vendors only                        |
 
 ---
 
 ## Verification Results
 
-| Check | Result |
-|-------|--------|
-| `npm run compile` | ✅ 0 errors |
-| VSIX build + install | ✅ `ltmoerdani.opencode-copilot-chat@0.3.2` |
-| Chat view model picker | ✅ Each model appears exactly once (no duplication) |
-| Manage Language Models panel | ✅ Only `opencodego` + `opencodezen` visible by default (no `-agent` vendors) |
-| Manage panel with `showAgentModelsInManagePanel: true` | ✅ Agent vendors visible alongside general vendors |
-| Routing: GPT (Zen) | ✅ `responses` API |
-| Routing: Claude | ✅ `messages` API |
-| Routing: Gemini (Zen) | ✅ `google` API |
-| Routing: Qwen3.7-max | ✅ `messages` API |
-| Routing: MiniMax | ✅ `chat-completions` API |
-| BYOK key sync | ✅ API key set on main provider syncs to agent provider via `triggerChange()` |
-| Agents window (Copilot CLI) | ✅ Agent models appear in picker |
-| Marketplace safety | ✅ No `enabledApiProposals` needed (`targetChatSessionType` is stable API) |
+| Check                                                  | Result                                                                        |
+| ------------------------------------------------------ | ----------------------------------------------------------------------------- |
+| `npm run compile`                                      | ✅ 0 errors                                                                   |
+| VSIX build + install                                   | ✅ `ltmoerdani.opencode-copilot-chat@0.3.2`                                   |
+| Chat view model picker                                 | ✅ Each model appears exactly once (no duplication)                           |
+| Manage Language Models panel                           | ✅ Only `opencodego` + `opencodezen` visible by default (no `-agent` vendors) |
+| Manage panel with `showAgentModelsInManagePanel: true` | ✅ Agent vendors visible alongside general vendors                            |
+| Routing: GPT (Zen)                                     | ✅ `responses` API                                                            |
+| Routing: Claude                                        | ✅ `messages` API                                                             |
+| Routing: Gemini (Zen)                                  | ✅ `google` API                                                               |
+| Routing: Qwen3.7-max                                   | ✅ `messages` API                                                             |
+| Routing: MiniMax                                       | ✅ `chat-completions` API                                                     |
+| BYOK key sync                                          | ✅ API key set on main provider syncs to agent provider via `triggerChange()` |
+| Agents window (Copilot CLI)                            | ✅ Agent models appear in picker                                              |
+| Marketplace safety                                     | ✅ No `enabledApiProposals` needed (`targetChatSessionType` is stable API)    |
 
 ---
 
 ## Timeline
 
-| # | Date | Event |
-|---|------|-------|
-| 1 | 2026-06-14 | PR #39 merged — Agents Window support with `flatMap` double registration (regression: model duplication) |
-| 2 | 2026-06-15 | Issue #41 opened by @hu3bi — models shown twice in Manage panel |
-| 3 | 2026-06-15 | PR #42 opened by @Marinski — opt-in gate fix (`showInAgentsWindow: false` default) |
-| 4 | 2026-06-15 | PR #42 merged to main → shipped in v0.3.1 |
-| 5 | 2026-06-15 | PR #43 opened by @Wallacy — alternative: separate vendor IDs (no duplication at all) |
-| 6 | 2026-06-15 | PR #43 merged to main → shipped in v0.3.2 |
-| 7 | 2026-06-15 | Issue #41 comment by @hu3bi: disabled models still show twice in Agents window (VS Code-side bug, not extension bug) |
+| #   | Date       | Event                                                                                                                |
+| --- | ---------- | -------------------------------------------------------------------------------------------------------------------- |
+| 1   | 2026-06-14 | PR #39 merged — Agents Window support with `flatMap` double registration (regression: model duplication)             |
+| 2   | 2026-06-15 | Issue #41 opened by @hu3bi — models shown twice in Manage panel                                                      |
+| 3   | 2026-06-15 | PR #42 opened by @Marinski — opt-in gate fix (`showInAgentsWindow: false` default)                                   |
+| 4   | 2026-06-15 | PR #42 merged to main → shipped in v0.3.1                                                                            |
+| 5   | 2026-06-15 | PR #43 opened by @Wallacy — alternative: separate vendor IDs (no duplication at all)                                 |
+| 6   | 2026-06-15 | PR #43 merged to main → shipped in v0.3.2                                                                            |
+| 7   | 2026-06-15 | Issue #41 comment by @hu3bi: disabled models still show twice in Agents window (VS Code-side bug, not extension bug) |
 
 ---
 

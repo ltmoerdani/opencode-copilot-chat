@@ -45,11 +45,11 @@ VS Code 1.126 accumulates session cost by reading `usage.copilotCredits` from `I
 // goUsageTracker.ts
 interface SessionCostSummary {
   sessionId: string;
-  cost: number;            // USD
+  cost: number; // USD
   requests: number;
   promptTokens: number;
   completionTokens: number;
-  lastActivity: number;    // Date.now()
+  lastActivity: number; // Date.now()
 }
 ```
 
@@ -73,11 +73,11 @@ if (summary.sessionId) {
 
 ### Session pruning
 
-| Parameter | Value | Purpose |
-|-----------|-------|---------|
-| `SESSION_IDLE_MS` | 2 hours | Remove sessions with no activity for >2h |
-| `MAX_SESSIONS` | 50 | Hard cap on total session count |
-| Storage | `globalState` key `opencodego.sessionCosts.v1` | Survives VS Code restarts |
+| Parameter         | Value                                          | Purpose                                  |
+| ----------------- | ---------------------------------------------- | ---------------------------------------- |
+| `SESSION_IDLE_MS` | 2 hours                                        | Remove sessions with no activity for >2h |
+| `MAX_SESSIONS`    | 50                                             | Hard cap on total session count          |
+| Storage           | `globalState` key `opencodego.sessionCosts.v1` | Survives VS Code restarts                |
 
 Pruning runs on every `record()` call. Idle sessions are removed first, then oldest-by-`lastActivity` if still over cap.
 
@@ -94,7 +94,7 @@ The fix exports `estimateCost()` from `goUsageTracker.ts` and calls it from both
 ```typescript
 // extension.ts (onTransportSummary)
 const cost = estimateCost(summary.modelId, prompt, completion, cached, metadata.cost);
-summary.copilotCredits = cost * 100;  // 1 credit = $0.01
+summary.copilotCredits = cost * 100; // 1 credit = $0.01
 
 // goUsageTracker.ts (record)
 const cost = estimateCost(summary.modelId, prompt, completion, cached, externalCost, this.costResolver);
@@ -138,11 +138,11 @@ In `streaming.ts`, `onTransportSummary` is now called **before** the usage `Data
 
 ### UI surfaces
 
-| Surface | What it shows | Condition |
-|---------|---------------|-----------|
+| Surface                      | What it shows                                                             | Condition                            |
+| ---------------------------- | ------------------------------------------------------------------------- | ------------------------------------ |
 | **Status bar tooltip (SVG)** | `Session (est): $0.0042  Requests: 3  Tokens: 4.2K` above Today/Yesterday | Session has ≥1 request with cost > 0 |
-| **QuickPick (icon menu)** | `💬 Latest Session (est)` item in Daily Summary section | Same condition |
-| **Usage webview (SVG)** | Same SVG card as tooltip | Same condition |
+| **QuickPick (icon menu)**    | `💬 Latest Session (est)` item in Daily Summary section                   | Same condition                       |
+| **Usage webview (SVG)**      | Same SVG card as tooltip                                                  | Same condition                       |
 
 SVG card height adjusts dynamically: `310px` with session data, `286px` without. Card width widens from `330px` to `345px` when session data is present to fit the longer `Session (est):` label.
 
@@ -152,29 +152,29 @@ SVG card height adjusts dynamically: `310px` with session data, `286px` without.
 
 PR #55 added 35 tests in `src/test/goUsageTracker.test.ts` (test count: 40 → 75).
 
-| Test group | Cases |
-|------------|-------|
-| `estimateCost()` | Pricing lookup, cache_read fallback, unknown model, zero tokens |
-| `record()` accumulation | Cost +=, requests++, promptTokens/completionTokens sum |
-| `getCurrentSessionCost()` | Single session, multi-session (returns latest), empty state |
-| `getRecentSessionCosts()` | Ordering by lastActivity, limit parameter |
-| State restoration from `globalState` | Persist + restore round-trip, corrupt data handling |
-| Idle session pruning | Sessions older than 2h removed, recent sessions kept |
-| 50-session cap | Excess sessions pruned by oldest lastActivity |
-| Edge cases | Zero tokens, unknown model IDs, missing sessionId |
+| Test group                           | Cases                                                           |
+| ------------------------------------ | --------------------------------------------------------------- |
+| `estimateCost()`                     | Pricing lookup, cache_read fallback, unknown model, zero tokens |
+| `record()` accumulation              | Cost +=, requests++, promptTokens/completionTokens sum          |
+| `getCurrentSessionCost()`            | Single session, multi-session (returns latest), empty state     |
+| `getRecentSessionCosts()`            | Ordering by lastActivity, limit parameter                       |
+| State restoration from `globalState` | Persist + restore round-trip, corrupt data handling             |
+| Idle session pruning                 | Sessions older than 2h removed, recent sessions kept            |
+| 50-session cap                       | Excess sessions pruned by oldest lastActivity                   |
+| Edge cases                           | Zero tokens, unknown model IDs, missing sessionId               |
 
 ---
 
 ## Files Changed
 
-| File | Change |
-|------|--------|
-| `src/goUsageTracker.ts` | `estimateCost` exported, `SessionCostSummary` interface, session Map accumulation, `pruneSessions()`, `getCurrentSessionCost()`, `getRecentSessionCosts()`, session persistence/restore |
-| `src/extension.ts` | `copilotCredits` computation in `onTransportSummary`, session cost in QuickPick, session cost in SVG tooltip/webview, `buildUsageTooltip()`/`buildUsageTooltipSvg()` accept optional `sessionCost` param |
-| `src/streaming.ts` | `copilotCredits` added to `TransportRequestSummary`, `onTransportSummary` moved before data part creation |
-| `src/usage.ts` | `copilotCredits` added to `UsageSnapshot` and `ProviderUsagePayload` |
-| `src/test/goUsageTracker.test.ts` | **New** — 35 unit tests |
-| `CHANGELOG.md` | Added + Known Issue entries |
+| File                              | Change                                                                                                                                                                                                   |
+| --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/goUsageTracker.ts`           | `estimateCost` exported, `SessionCostSummary` interface, session Map accumulation, `pruneSessions()`, `getCurrentSessionCost()`, `getRecentSessionCosts()`, session persistence/restore                  |
+| `src/extension.ts`                | `copilotCredits` computation in `onTransportSummary`, session cost in QuickPick, session cost in SVG tooltip/webview, `buildUsageTooltip()`/`buildUsageTooltipSvg()` accept optional `sessionCost` param |
+| `src/streaming.ts`                | `copilotCredits` added to `TransportRequestSummary`, `onTransportSummary` moved before data part creation                                                                                                |
+| `src/usage.ts`                    | `copilotCredits` added to `UsageSnapshot` and `ProviderUsagePayload`                                                                                                                                     |
+| `src/test/goUsageTracker.test.ts` | **New** — 35 unit tests                                                                                                                                                                                  |
+| `CHANGELOG.md`                    | Added + Known Issue entries                                                                                                                                                                              |
 
 ---
 

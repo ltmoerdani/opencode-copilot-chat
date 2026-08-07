@@ -45,9 +45,11 @@ The `modelLimits()` function calculated `apiMaxOutputTokens = Math.min(maxOutput
 ### SSE log noise
 
 The `[sse-stats]` line was logged unconditionally after every streamed response:
+
 ```
 [sse-stats] totalBytes=12345 totalEvents=42 bufferTailLen=0
 ```
+
 This added noise to the Output channel during normal usage, with no opt-out mechanism.
 
 ---
@@ -109,9 +111,7 @@ At the call site, prompt size is estimated via `estimateTokenCount(JSON.stringif
 
 ```typescript
 if (options.debugReasoning && options.output) {
-  options.output.appendLine(
-    `[sse-stats] totalBytes=${totalBytes} totalEvents=${totalEvents} bufferTailLen=${buffer.length}`,
-  );
+  options.output.appendLine(`[sse-stats] totalBytes=${totalBytes} totalEvents=${totalEvents} bufferTailLen=${buffer.length}`);
 }
 ```
 
@@ -119,15 +119,15 @@ if (options.debugReasoning && options.output) {
 
 ## Changes
 
-| # | Change | Files | Impact |
-|---|--------|-------|--------|
-| P0 | SQLite-backed cost accuracy for subscription totals | `src/goUsageTracker.ts` | Usage percentages reflect actual billing, not estimates |
-| P0 | `buildSqliteEnrichedSummary()` — new method | `src/goUsageTracker.ts` | Combines SQLite costs with tracked token counts |
-| P0 | `sqliteAvailable` field on `UsageSummary` | `src/goUsageTracker.ts` | Downstream consumers know data source |
-| P0 | `promptTokens` param on `modelLimits()` | `src/extension.ts` | Prevents context window overflow for all providers |
-| P0 | `estimateTokenCount(JSON.stringify(apiMessages))` | `src/extension.ts` | Conservative prompt size estimate for output budget |
-| P1 | `[sse-stats]` gated behind `debugReasoning` | `src/streaming.ts` | Output channel cleaner during normal usage |
-| D1 | CHANGELOG entries | `CHANGELOG.md` | SQLite accuracy, DeepSeek fix, SSE gating documented |
+| #   | Change                                              | Files                   | Impact                                                  |
+| --- | --------------------------------------------------- | ----------------------- | ------------------------------------------------------- |
+| P0  | SQLite-backed cost accuracy for subscription totals | `src/goUsageTracker.ts` | Usage percentages reflect actual billing, not estimates |
+| P0  | `buildSqliteEnrichedSummary()` — new method         | `src/goUsageTracker.ts` | Combines SQLite costs with tracked token counts         |
+| P0  | `sqliteAvailable` field on `UsageSummary`           | `src/goUsageTracker.ts` | Downstream consumers know data source                   |
+| P0  | `promptTokens` param on `modelLimits()`             | `src/extension.ts`      | Prevents context window overflow for all providers      |
+| P0  | `estimateTokenCount(JSON.stringify(apiMessages))`   | `src/extension.ts`      | Conservative prompt size estimate for output budget     |
+| P1  | `[sse-stats]` gated behind `debugReasoning`         | `src/streaming.ts`      | Output channel cleaner during normal usage              |
+| D1  | CHANGELOG entries                                   | `CHANGELOG.md`          | SQLite accuracy, DeepSeek fix, SSE gating documented    |
 
 ---
 
@@ -139,6 +139,7 @@ npm test           # 75/75 pass
 ```
 
 Manual testing:
+
 - SQLite path: reads `opencode.db`, enriches tokens, applies baselines
 - No SQLite: falls back to tracked estimate (no regression)
 - DeepSeek: `max_tokens` now capped to prevent context overflow

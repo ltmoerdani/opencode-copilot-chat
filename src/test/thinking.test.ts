@@ -108,7 +108,7 @@ describe("buildFamilyThinkingSchema — kimi-k2.7-code picker", () => {
     const descriptions = reasoningEffort.enumDescriptions as string[];
     assert.ok(
       descriptions.some((d) => d.includes("Moonshot API constraint")),
-      "expected description to mention the Moonshot API constraint"
+      "expected description to mention the Moonshot API constraint",
     );
   });
 });

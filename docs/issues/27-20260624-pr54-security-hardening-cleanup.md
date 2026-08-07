@@ -61,7 +61,7 @@ This `number` field on `ProviderDefinition` was a remnant of the old `category: 
 
 ### Fix 1: Remove picker debug log
 
-The `this.log(\`[picker] options=${JSON.stringify(options)}\`)` line in `provideLanguageModelChatInformation` was removed entirely. The line served only as a temporary diagnostic during the 1.125/1.126 investigation and is no longer needed. The BYOK configuration variable was also properly typed:
+The `this.log(\`[picker] options=${JSON.stringify(options)}\`)`line in`provideLanguageModelChatInformation` was removed entirely. The line served only as a temporary diagnostic during the 1.125/1.126 investigation and is no longer needed. The BYOK configuration variable was also properly typed:
 
 ```ts
 const opts = options as ConfiguredLanguageModelInfoOptions & { group?: string };
@@ -72,9 +72,7 @@ const opts = options as ConfiguredLanguageModelInfoOptions & { group?: string };
 The info message was updated from a generic "key cleared" to a message that warns the user about BYOK re-persistence:
 
 ```ts
-vscode.window.showInformationMessage(
-  "OpenCode Go API key cleared. If you also set it via Manage Models, remove it there too."
-);
+vscode.window.showInformationMessage("OpenCode Go API key cleared. If you also set it via Manage Models, remove it there too.");
 ```
 
 A comment was added explaining the BYOK → SecretStorage re-persistence chain for future maintainers.
@@ -117,10 +115,10 @@ Removed the field from the interface, the parameter from `providerVariant()`, an
 
 ## Files Changed
 
-| File | Change |
-|---|---|
+| File               | Change                                                                                                                                                                                                                                                                                                                                               |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `src/extension.ts` | Removed debug log (1 line), typed picker options, updated Clear API Key message, added `storeReasoningContent()` helper with cap, replaced 3 inline `set()` calls, removed `triggerChange()` method, removed `agentProvidersByBaseVendor` map, removed `categoryOrder` from interface + `providerVariant` + `PROVIDERS`. **Net: +30 −39 = −9 lines** |
-| `CHANGELOG.md` | `[Unreleased]` section: 2 Changed entries (agent resolution, categoryOrder), 2 Fixed entries (security: debug log + clear warning), 1 Performance entry (reasoning cap), 1 Optimization entry (dead map removal). |
+| `CHANGELOG.md`     | `[Unreleased]` section: 2 Changed entries (agent resolution, categoryOrder), 2 Fixed entries (security: debug log + clear warning), 1 Performance entry (reasoning cap), 1 Optimization entry (dead map removal).                                                                                                                                    |
 
 ---
 

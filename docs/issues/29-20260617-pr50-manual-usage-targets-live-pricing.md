@@ -61,13 +61,13 @@ vscode.commands.registerCommand("opencodego.setUsageTargets", async () => {
 
 5 sequential `showInputBox` calls, each pre-filled with current value:
 
-| Step | Title | Pre-fill | Validation |
-|------|-------|----------|------------|
-| 1 | Session Spent (5h rolling) | `summary.session.spent` | `0 ≤ n ≤ 12` |
-| 2 | Weekly Spent (Mon–Mon UTC) | `summary.weekly.spent` | `0 ≤ n ≤ 30` |
-| 3 | Monthly Spent | `summary.monthly.spent` | `0 ≤ n ≤ 60` |
-| 4 | Monthly Reset Day | `resetsAt.getUTCDate()` | `1–31` |
-| 5 | Monthly Reset Hour | `resetsAt.getUTCHours()` | `0–23` |
+| Step | Title                      | Pre-fill                 | Validation   |
+| ---- | -------------------------- | ------------------------ | ------------ |
+| 1    | Session Spent (5h rolling) | `summary.session.spent`  | `0 ≤ n ≤ 12` |
+| 2    | Weekly Spent (Mon–Mon UTC) | `summary.weekly.spent`   | `0 ≤ n ≤ 30` |
+| 3    | Monthly Spent              | `summary.monthly.spent`  | `0 ≤ n ≤ 60` |
+| 4    | Monthly Reset Day          | `resetsAt.getUTCDate()`  | `1–31`       |
+| 5    | Monthly Reset Hour         | `resetsAt.getUTCHours()` | `0–23`       |
 
 Enter keeps current value; Escape cancels entire flow. Returns `UsageBaselineTargets` (now exported) with optional `monthlyAnchorDay` and `monthlyAnchorHour`.
 
@@ -76,9 +76,7 @@ Enter keeps current value; Escape cancels entire flow. Returns `UsageBaselineTar
 Both `buildSummaryFromRows` and `buildSummaryFromTracked` now use the same pattern:
 
 ```ts
-const monthlyResetsAt = this.baseline.monthly
-  ? new Date(this.baseline.monthly.expiresAt)
-  : new Date(monthEndMs);
+const monthlyResetsAt = this.baseline.monthly ? new Date(this.baseline.monthly.expiresAt) : new Date(monthEndMs);
 ```
 
 This ensures the "resets in Xd Yh" text reflects the user-configured anchor regardless of which data source is active.
@@ -96,7 +94,10 @@ if (targets.monthlyAnchorDay && targets.monthlyAnchorDay >= 1 && targets.monthly
   let candidate = Date.UTC(year, month, targets.monthlyAnchorDay, hour, 0, 0, 0);
   if (candidate <= nowMs) {
     month++;
-    if (month > 11) { year++; month = 0; }
+    if (month > 11) {
+      year++;
+      month = 0;
+    }
     candidate = Date.UTC(year, month, targets.monthlyAnchorDay, hour, 0, 0, 0);
   }
   this.baseline.monthly.expiresAt = candidate;
@@ -114,11 +115,15 @@ export type CostResolver = (modelId: string) => ModelCost | undefined;
 Injected via constructor from `extension.ts`:
 
 ```ts
-goUsageTracker = new GoUsageTracker(context, (msg) => {
-  goUsageLogChannel.appendLine(`[${new Date().toISOString()}] ${msg}`);
-}, (modelId) => {
-  return modelMetadataSnapshot?.providers[GO_VENDOR]?.[modelId]?.cost;
-});
+goUsageTracker = new GoUsageTracker(
+  context,
+  (msg) => {
+    goUsageLogChannel.appendLine(`[${new Date().toISOString()}] ${msg}`);
+  },
+  (modelId) => {
+    return modelMetadataSnapshot?.providers[GO_VENDOR]?.[modelId]?.cost;
+  },
+);
 ```
 
 `estimateCost()` priority chain:
@@ -127,11 +132,11 @@ goUsageTracker = new GoUsageTracker(context, (msg) => {
 const pricing = externalCost ?? liveCostResolver?.(modelId) ?? GO_MODEL_PRICING[modelId];
 ```
 
-| Priority | Source | When it wins |
-|----------|--------|--------------|
-| 1 | `externalCost` (`metadata.cost` passed to `record()`) | Model present in snapshot — the common case |
-| 2 | `liveCostResolver` | Snapshot miss but resolver still has entry |
-| 3 | `GO_MODEL_PRICING` | Both miss — bundled fallback so extension stays functional |
+| Priority | Source                                                | When it wins                                               |
+| -------- | ----------------------------------------------------- | ---------------------------------------------------------- |
+| 1        | `externalCost` (`metadata.cost` passed to `record()`) | Model present in snapshot — the common case                |
+| 2        | `liveCostResolver`                                    | Snapshot miss but resolver still has entry                 |
+| 3        | `GO_MODEL_PRICING`                                    | Both miss — bundled fallback so extension stays functional |
 
 > **Invariant preserved:** `GO_MODEL_PRICING` is never removed. It is the last-resort fallback required by the repo's "extension must keep working when live fetch fails" rule.
 
@@ -157,17 +162,17 @@ None are merge blockers. All noted for future follow-up.
 
 ## Verification
 
-| Check | Result |
-|-------|--------|
-| CI (`CI/build`, GitGuardian) | ✅ Passing |
-| Mergeable status | `MERGEABLE` / `CLEAN` |
-| Both summary builders honour `baseline.monthly.expiresAt` | ✅ Verified (two `monthlyResetsAt` blocks in diff) |
-| `GO_MODEL_PRICING` retained as fallback | ✅ Verified — comment updated to "bundled snapshot fallback" |
-| Monthly anchor rollover correct | ✅ Handles "next month if already passed" edge case |
-| Compile after merge | ✅ Pass |
-| Install locally | ✅ v0.3.3 installed via VSIX |
-| Feature doc | ✅ `docs/features/08-20260617-manual-usage-targets.md` |
-| CHANGELOG | ✅ `## [0.3.3] — 2026-06-17` |
+| Check                                                     | Result                                                       |
+| --------------------------------------------------------- | ------------------------------------------------------------ |
+| CI (`CI/build`, GitGuardian)                              | ✅ Passing                                                   |
+| Mergeable status                                          | `MERGEABLE` / `CLEAN`                                        |
+| Both summary builders honour `baseline.monthly.expiresAt` | ✅ Verified (two `monthlyResetsAt` blocks in diff)           |
+| `GO_MODEL_PRICING` retained as fallback                   | ✅ Verified — comment updated to "bundled snapshot fallback" |
+| Monthly anchor rollover correct                           | ✅ Handles "next month if already passed" edge case          |
+| Compile after merge                                       | ✅ Pass                                                      |
+| Install locally                                           | ✅ v0.3.3 installed via VSIX                                 |
+| Feature doc                                               | ✅ `docs/features/08-20260617-manual-usage-targets.md`       |
+| CHANGELOG                                                 | ✅ `## [0.3.3] — 2026-06-17`                                 |
 
 ---
 

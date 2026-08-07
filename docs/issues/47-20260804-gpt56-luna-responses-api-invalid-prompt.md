@@ -76,7 +76,7 @@ return {
   max_output_tokens: limits.maxOutputTokens,
   ...(metadata.temperature !== false ? { temperature: settings.temperature } : {}),
   stream: true,
-  truncation: "auto",  // ← add
+  truncation: "auto", // ← add
   ...thinkingPayload,
   ...(tools.length ? { tools, tool_choice: toolChoice(options.toolMode) } : {}),
   text: { verbosity: modelId === "gpt-5-codex" ? "medium" : "low" },
@@ -94,8 +94,8 @@ OpenAI explicitly recommends `"auto"` for stateless multi-turn usage. This alone
 const inputByteLength = JSON.stringify(input).length;
 const estimatedInputTokens = Math.ceil(inputByteLength / 4);
 const safeMaxOutput = Math.max(
-  1024,  // floor
-  Math.min(limits.maxOutputTokens, limits.contextWindow - estimatedInputTokens - 1024)
+  1024, // floor
+  Math.min(limits.maxOutputTokens, limits.contextWindow - estimatedInputTokens - 1024),
 );
 ```
 
@@ -119,11 +119,11 @@ Drop the `text` field from the body entirely. The field is non-essential, and th
 
 ## Risk assessment
 
-| Fix | Risk | Mitigation |
-|-----|------|------------|
-| `truncation: "auto"` | Drops early conversation turns, possibly including the system message, when overflow occurs | Surface a user-facing warning when truncation triggers. Dropping context is still better than a hard 400. |
-| Cap `max_output_tokens` | Output may come back shorter than expected | Floor of 1024 tokens. Users can still override via thinking config if they need more. |
-| Remove `text.verbosity` | Output becomes slightly more verbose by default | Negligible. |
+| Fix                     | Risk                                                                                        | Mitigation                                                                                                |
+| ----------------------- | ------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `truncation: "auto"`    | Drops early conversation turns, possibly including the system message, when overflow occurs | Surface a user-facing warning when truncation triggers. Dropping context is still better than a hard 400. |
+| Cap `max_output_tokens` | Output may come back shorter than expected                                                  | Floor of 1024 tokens. Users can still override via thinking config if they need more.                     |
+| Remove `text.verbosity` | Output becomes slightly more verbose by default                                             | Negligible.                                                                                               |
 
 ## Scope note
 

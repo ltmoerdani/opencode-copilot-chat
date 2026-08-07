@@ -1,14 +1,9 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { PhotonImage } from "@silvia-odwyer/photon-node";
-import {
-  getImageDataUrlBase64Bytes,
-  MAX_IMAGE_BASE64_BYTES,
-  normalizeImageDataUrl,
-} from "../imageNormalizer.js";
+import { getImageDataUrlBase64Bytes, MAX_IMAGE_BASE64_BYTES, normalizeImageDataUrl } from "../imageNormalizer.js";
 
-const ONE_PIXEL_PNG =
-  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=";
+const ONE_PIXEL_PNG = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=";
 
 describe("normalizeImageDataUrl", () => {
   it("keeps a small image unchanged", async () => {

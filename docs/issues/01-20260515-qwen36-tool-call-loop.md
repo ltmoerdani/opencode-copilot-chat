@@ -21,16 +21,16 @@ This document is backdated to the original investigation session on **2026-05-15
 
 ## Current Status
 
-| Field | Value |
-|---|---|
-| Status | ✅ Solved (all code-level issues fixed) |
-| Original session | 2026-05-15 |
-| Last codebase verification | 2026-06-13 |
-| Affected model | `qwen3.6-plus-free` |
-| Provider | OpenCode Zen |
-| Current route in code | `/messages` via `resolveModelRouting()` |
-| Current parser | `AnthropicResponseExtractor` |
-| Main unresolved issue | Long agent runs can continue tool-calling instead of producing a final answer |
+| Field                      | Value                                                                         |
+| -------------------------- | ----------------------------------------------------------------------------- |
+| Status                     | ✅ Solved (all code-level issues fixed)                                       |
+| Original session           | 2026-05-15                                                                    |
+| Last codebase verification | 2026-06-13                                                                    |
+| Affected model             | `qwen3.6-plus-free`                                                           |
+| Provider                   | OpenCode Zen                                                                  |
+| Current route in code      | `/messages` via `resolveModelRouting()`                                       |
+| Current parser             | `AnthropicResponseExtractor`                                                  |
+| Main unresolved issue      | Long agent runs can continue tool-calling instead of producing a final answer |
 
 ## Codebase Verification
 
@@ -47,8 +47,7 @@ Current routing in `src/routing.ts`:
 
 ```ts
 function isMessagesQwenModel(modelId: string): boolean {
-  return /^qwen3\.(?:5|6)-plus(?:-free)?$/i.test(modelId)
-    || /^qwen3\.7-max$/i.test(modelId);
+  return /^qwen3\.(?:5|6)-plus(?:-free)?$/i.test(modelId) || /^qwen3\.7-max$/i.test(modelId);
 }
 ```
 
@@ -134,7 +133,7 @@ This made the context display larger than the real provider context.
 **Problem:** The extension initially expected OpenAI-style chat-completions stream chunks:
 
 ```json
-{"choices":[{"delta":{"content":"..."}}]}
+{ "choices": [{ "delta": { "content": "..." } }] }
 ```
 
 But the gateway returned Anthropic-style SSE for Qwen:
@@ -177,22 +176,22 @@ messages=120 → 123 → 126 → 130 → 133 → 138
 
 **Root Cause Candidates:**
 
-| Candidate | Current Assessment |
-|---|---|
-| Parser drops tool calls | Unlikely after Anthropic parser fix; logs show tool calls emitted |
-| Tool results are missing from history | Possible in some earlier request-shape experiments |
-| Model ignores results and keeps exploring | Likely for broad tasks with many files |
-| Gateway reintroduces tool access from history | Possible when history contains many prior tool calls |
-| User prompt is too broad for the free tier | Likely contributes |
+| Candidate                                     | Current Assessment                                                |
+| --------------------------------------------- | ----------------------------------------------------------------- |
+| Parser drops tool calls                       | Unlikely after Anthropic parser fix; logs show tool calls emitted |
+| Tool results are missing from history         | Possible in some earlier request-shape experiments                |
+| Model ignores results and keeps exploring     | Likely for broad tasks with many files                            |
+| Gateway reintroduces tool access from history | Possible when history contains many prior tool calls              |
+| User prompt is too broad for the free tier    | Likely contributes                                                |
 
 **Actions Tried:**
 
-| Attempt | Result |
-|---|---|
-| Buffer pre-tool text | Prevented repeated narration but did not stop structural loop |
-| Dedupe repeated exact tool calls | Stops identical calls only; does not stop distinct path exploration |
-| Anti-loop system instruction | Helps but cannot guarantee model compliance |
-| Hard cap by total tool results | Too aggressive because old chat history can contain many tool results |
+| Attempt                                   | Result                                                                                                |
+| ----------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| Buffer pre-tool text                      | Prevented repeated narration but did not stop structural loop                                         |
+| Dedupe repeated exact tool calls          | Stops identical calls only; does not stop distinct path exploration                                   |
+| Anti-loop system instruction              | Helps but cannot guarantee model compliance                                                           |
+| Hard cap by total tool results            | Too aggressive because old chat history can contain many tool results                                 |
 | OpenAI-shaped history on chat-completions | Tried in earlier single-file implementation, but current codebase now routes Qwen through `/messages` |
 
 **Status:** ✅ Solved — model behavior limitation documented
@@ -221,22 +220,22 @@ graph TD
 
 ### Relevant Files
 
-| File | Responsibility |
-|---|---|
-| `src/routing.ts` | Chooses `/messages`, `/chat/completions`, `/responses`, or Google transport |
-| `src/extension.ts` | Converts VS Code messages, builds request bodies, applies model metadata/thinking settings |
-| `src/streaming.ts` | Parses OpenAI, Anthropic, Responses, and Google streams into VS Code response parts |
-| `src/openCodeAuth.ts` | Builds endpoint-specific auth headers |
-| `src/metadata.ts` | Provides per-provider model metadata and fallback limits |
+| File                  | Responsibility                                                                             |
+| --------------------- | ------------------------------------------------------------------------------------------ |
+| `src/routing.ts`      | Chooses `/messages`, `/chat/completions`, `/responses`, or Google transport                |
+| `src/extension.ts`    | Converts VS Code messages, builds request bodies, applies model metadata/thinking settings |
+| `src/streaming.ts`    | Parses OpenAI, Anthropic, Responses, and Google streams into VS Code response parts        |
+| `src/openCodeAuth.ts` | Builds endpoint-specific auth headers                                                      |
+| `src/metadata.ts`     | Provides per-provider model metadata and fallback limits                                   |
 
 ### Current Qwen Route
 
-| Model | Provider | Current endpoint | Parser |
-|---|---|---|---|
-| `qwen3.5-plus` | Go / Zen | `/messages` | Anthropic |
-| `qwen3.6-plus` | Go / Zen | `/messages` | Anthropic |
-| `qwen3.6-plus-free` | Zen | `/messages` | Anthropic |
-| `qwen3.7-max` | Go | `/messages` | Anthropic |
+| Model               | Provider | Current endpoint | Parser    |
+| ------------------- | -------- | ---------------- | --------- |
+| `qwen3.5-plus`      | Go / Zen | `/messages`      | Anthropic |
+| `qwen3.6-plus`      | Go / Zen | `/messages`      | Anthropic |
+| `qwen3.6-plus-free` | Zen      | `/messages`      | Anthropic |
+| `qwen3.7-max`       | Go       | `/messages`      | Anthropic |
 
 ---
 
@@ -332,11 +331,11 @@ It removes the structured evidence that allows the gateway/model to continue the
 
 ### Open Implementation Questions
 
-| Question | Notes |
-|---|---|
-| Where to detect active loop? | Prefer request-local loop state over total historical count |
-| Should this be configurable? | A setting like `opencodego.qwenToolBudget` may be useful |
-| How much tool result text to keep? | 1500-3000 chars per result is probably enough |
+| Question                                  | Notes                                                                                          |
+| ----------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| Where to detect active loop?              | Prefer request-local loop state over total historical count                                    |
+| Should this be configurable?              | A setting like `opencodego.qwenToolBudget` may be useful                                       |
+| How much tool result text to keep?        | 1500-3000 chars per result is probably enough                                                  |
 | Should edits be allowed after flattening? | For edit tasks, flattening may prevent tool-based edits; use only when repeated reads dominate |
 
 ---
@@ -392,13 +391,13 @@ message_delta stop_reason=end_turn
 
 ## Files Changed Historically
 
-| Date | File | Purpose |
-|---|---|---|
-| 2026-05-15 | `src/extension.ts` | Initial single-file parser/request experiments |
-| 2026-05-15 | `CHANGELOG.md` | Recorded Qwen free/context/tool-call findings |
-| 2026-06-04 | `src/routing.ts` | Qwen routing work across chat-completions/messages |
-| 2026-06-05 | `src/streaming.ts` | Anthropic SSE parser improvements |
-| 2026-06-13 | `docs/issues/01-20260515-qwen36-tool-call-loop.md` | Consolidated issue history and active fix plan |
+| Date       | File                                               | Purpose                                            |
+| ---------- | -------------------------------------------------- | -------------------------------------------------- |
+| 2026-05-15 | `src/extension.ts`                                 | Initial single-file parser/request experiments     |
+| 2026-05-15 | `CHANGELOG.md`                                     | Recorded Qwen free/context/tool-call findings      |
+| 2026-06-04 | `src/routing.ts`                                   | Qwen routing work across chat-completions/messages |
+| 2026-06-05 | `src/streaming.ts`                                 | Anthropic SSE parser improvements                  |
+| 2026-06-13 | `docs/issues/01-20260515-qwen36-tool-call-loop.md` | Consolidated issue history and active fix plan     |
 
 ---
 

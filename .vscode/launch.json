@@ -5,13 +5,8 @@
       "name": "Run Extension with Copilot",
       "type": "extensionHost",
       "request": "launch",
-      "args": [
-        "--extensionDevelopmentPath=${workspaceFolder}",
-        "--user-data-dir=${workspaceFolder}/.vscode-test/copilot-user-data"
-      ],
-      "outFiles": [
-        "${workspaceFolder}/out/**/*.js"
-      ],
+      "args": ["--extensionDevelopmentPath=${workspaceFolder}", "--user-data-dir=${workspaceFolder}/.vscode-test/copilot-user-data"],
+      "outFiles": ["${workspaceFolder}/out/**/*.js"],
       "preLaunchTask": "npm: compile"
     },
     {
@@ -23,9 +18,7 @@
         "--disable-extensions",
         "--user-data-dir=${workspaceFolder}/.vscode-test/isolated-user-data"
       ],
-      "outFiles": [
-        "${workspaceFolder}/out/**/*.js"
-      ],
+      "outFiles": ["${workspaceFolder}/out/**/*.js"],
       "preLaunchTask": "npm: compile"
     }
   ]

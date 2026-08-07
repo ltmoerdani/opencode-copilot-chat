@@ -1,10 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import {
-  fallbackModelMetadata,
-  getContextSizeOptionsForModel,
-  VISION_CAPABLE_MODELS,
-} from "../metadata.js";
+import { fallbackModelMetadata, getContextSizeOptionsForModel, VISION_CAPABLE_MODELS } from "../metadata.js";
 import { GO_VENDOR, ZEN_VENDOR } from "../providerTypes.js";
 
 /**
@@ -101,27 +97,26 @@ describe("VISION_CAPABLE_MODELS", () => {
 
 describe("getContextSizeOptionsForModel — Kimi context tiers (issue #87)", () => {
   it("offers 256K and the full window when Kimi has a larger context", () => {
-    const options = getContextSizeOptionsForModel(
-      "kimi-k3",
-      { input: 3, output: 15 },
-      1_048_576,
-    );
+    const options = getContextSizeOptionsForModel("kimi-k3", { input: 3, output: 15 }, 1_048_576);
 
-    assert.deepEqual(options?.map((option) => option.value), [256_000, 1_048_576]);
+    assert.deepEqual(
+      options?.map((option) => option.value),
+      [256_000, 1_048_576],
+    );
     assert.equal(options?.[0].isDefault, true);
     assert.equal(options?.[1].description, "Higher pricing");
   });
 
   it("recognizes the official short K3 model id", () => {
     const options = getContextSizeOptionsForModel("k3", undefined, 1_000_000);
-    assert.deepEqual(options?.map((option) => option.value), [256_000, 1_000_000]);
+    assert.deepEqual(
+      options?.map((option) => option.value),
+      [256_000, 1_000_000],
+    );
   });
 
   it("does not add a redundant tier to a 256K Kimi model", () => {
-    assert.equal(
-      getContextSizeOptionsForModel("kimi-k2.6", { input: 0.95, output: 4 }, 262_144),
-      undefined,
-    );
+    assert.equal(getContextSizeOptionsForModel("kimi-k2.6", { input: 0.95, output: 4 }, 262_144), undefined);
   });
 
   it("prefers explicit models.dev pricing tiers", () => {
@@ -135,6 +130,9 @@ describe("getContextSizeOptionsForModel — Kimi context tiers (issue #87)", () 
       1_048_576,
     );
 
-    assert.deepEqual(options?.map((option) => option.value), [200_000, 1_048_576]);
+    assert.deepEqual(
+      options?.map((option) => option.value),
+      [200_000, 1_048_576],
+    );
   });
 });

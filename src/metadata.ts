@@ -33,7 +33,7 @@ export interface ModelCost {
   /** Context-size-based pricing tiers (from models.dev). */
   tiers?: ModelCostTier[];
   /** Pricing for contexts exceeding 200K tokens (shorthand). */
-  context_over_200k?: Omit<ModelCost, 'tiers' | 'context_over_200k'>;
+  context_over_200k?: Omit<ModelCost, "tiers" | "context_over_200k">;
 }
 
 export interface ModelMetadataFields {
@@ -285,16 +285,11 @@ export const VISION_CAPABLE_MODELS = new Set([
   "gpt-5.6-luna",
 ]);
 
-export function isFreshModelMetadata(
-  snapshot: CachedModelMetadataSnapshot,
-): boolean {
+export function isFreshModelMetadata(snapshot: CachedModelMetadataSnapshot): boolean {
   return Date.now() - snapshot.fetchedAt < MODEL_METADATA_CACHE_TTL_MS;
 }
 
-export function toEffectiveModelId(
-  modelId: string,
-  vendor: AllProviderVendor,
-): string {
+export function toEffectiveModelId(modelId: string, vendor: AllProviderVendor): string {
   return `${vendor}:${modelId}::${MODEL_METADATA_REVISION}`;
 }
 
@@ -308,16 +303,10 @@ export function bundledModelMetadataSnapshot(): CachedModelMetadataSnapshot {
   };
 }
 
-export function fallbackModelMetadata(
-  modelId: string,
-  vendor: ProviderVendor,
-): ModelMetadataFields | undefined {
+export function fallbackModelMetadata(modelId: string, vendor: ProviderVendor): ModelMetadataFields | undefined {
   const limits = MODEL_LIMITS_BY_PROVIDER[vendor][modelId];
   const supportsVision = VISION_CAPABLE_MODELS.has(modelId);
-  const status =
-    vendor === ZEN_VENDOR && modelId === "minimax-m2.5-free"
-      ? "deprecated"
-      : undefined;
+  const status = vendor === ZEN_VENDOR && modelId === "minimax-m2.5-free" ? "deprecated" : undefined;
 
   if (!limits && !supportsVision && !status && !supportsReasoning(modelId)) {
     return undefined;
@@ -336,48 +325,28 @@ export function fallbackModelMetadata(
   };
 }
 
-export function normalizeModelsDevSnapshot(
-  data: ModelsDevResponse,
-): CachedModelMetadataSnapshot {
+export function normalizeModelsDevSnapshot(data: ModelsDevResponse): CachedModelMetadataSnapshot {
   return {
     fetchedAt: Date.now(),
     providers: {
-      [GO_VENDOR]: normalizeModelsDevProvider(
-        data[MODELS_DEV_PROVIDER_BY_VENDOR[GO_VENDOR]]?.models ?? {},
-      ),
-      [ZEN_VENDOR]: normalizeModelsDevProvider(
-        data[MODELS_DEV_PROVIDER_BY_VENDOR[ZEN_VENDOR]]?.models ?? {},
-      ),
+      [GO_VENDOR]: normalizeModelsDevProvider(data[MODELS_DEV_PROVIDER_BY_VENDOR[GO_VENDOR]]?.models ?? {}),
+      [ZEN_VENDOR]: normalizeModelsDevProvider(data[MODELS_DEV_PROVIDER_BY_VENDOR[ZEN_VENDOR]]?.models ?? {}),
     },
   };
 }
 
-export function normalizeLiveModelMetadata(
-  model: ModelListEntry,
-): ModelMetadataFields | undefined {
-  const modalities = detectModalityFlags(
-    model.modalities,
-    model.imageInput ?? model.image_input ?? model.attachment,
-  );
+export function normalizeLiveModelMetadata(model: ModelListEntry): ModelMetadataFields | undefined {
+  const modalities = detectModalityFlags(model.modalities, model.imageInput ?? model.image_input ?? model.attachment);
 
   return normalizeModelMetadataFields({
-    contextWindow: positiveNumber(
-      model.contextWindow ?? model.context_window ?? model.limit?.context,
-    ),
-    maxOutputTokens: positiveNumber(
-      model.maxOutputTokens ?? model.max_output_tokens ?? model.limit?.output,
-    ),
+    contextWindow: positiveNumber(model.contextWindow ?? model.context_window ?? model.limit?.context),
+    maxOutputTokens: positiveNumber(model.maxOutputTokens ?? model.max_output_tokens ?? model.limit?.output),
     supportsVision: modalities.supportsVision,
     supportsAudio: modalities.supportsAudio,
     supportsVideo: modalities.supportsVideo,
     supportsPdf: modalities.supportsPdf,
-    reasoning:
-      typeof model.reasoning === "boolean" ? model.reasoning : undefined,
-    status: model.deprecated
-      ? "deprecated"
-      : typeof model.status === "string"
-        ? model.status
-        : undefined,
+    reasoning: typeof model.reasoning === "boolean" ? model.reasoning : undefined,
+    status: model.deprecated ? "deprecated" : typeof model.status === "string" ? model.status : undefined,
   });
 }
 
@@ -393,71 +362,30 @@ export function resolveModelMetadata(
 
   return {
     contextWindow:
-      liveMetadata?.contextWindow ??
-      cachedMetadata?.contextWindow ??
-      fallbackMetadata?.contextWindow ??
-      DEFAULT_MODEL_LIMITS.contextWindow,
+      liveMetadata?.contextWindow ?? cachedMetadata?.contextWindow ?? fallbackMetadata?.contextWindow ?? DEFAULT_MODEL_LIMITS.contextWindow,
     maxOutputTokens:
       liveMetadata?.maxOutputTokens ??
       cachedMetadata?.maxOutputTokens ??
       fallbackMetadata?.maxOutputTokens ??
       DEFAULT_MODEL_LIMITS.maxOutputTokens,
-    supportsVision:
-      liveMetadata?.supportsVision ??
-      cachedMetadata?.supportsVision ??
-      fallbackMetadata?.supportsVision ??
-      false,
-    supportsAudio:
-      liveMetadata?.supportsAudio ??
-      cachedMetadata?.supportsAudio ??
-      false,
-    supportsVideo:
-      liveMetadata?.supportsVideo ??
-      cachedMetadata?.supportsVideo ??
-      false,
-    supportsPdf:
-      liveMetadata?.supportsPdf ??
-      cachedMetadata?.supportsPdf ??
-      false,
-    reasoning:
-      liveMetadata?.reasoning ??
-      cachedMetadata?.reasoning ??
-      fallbackMetadata?.reasoning ??
-      supportsReasoning(modelId),
-    status:
-      liveMetadata?.status ??
-      cachedMetadata?.status ??
-      fallbackMetadata?.status,
-    source: liveMetadata
-      ? "live"
-      : cachedMetadata
-        ? "models.dev"
-        : fallbackMetadata
-          ? "fallback"
-          : "default",
-    cost:
-      liveMetadata?.cost ??
-      cachedMetadata?.cost ??
-      fallbackMetadata?.cost,
-    reasoningOptions:
-      liveMetadata?.reasoningOptions ??
-      cachedMetadata?.reasoningOptions,
-    temperature:
-      liveMetadata?.temperature ??
-      cachedMetadata?.temperature,
+    supportsVision: liveMetadata?.supportsVision ?? cachedMetadata?.supportsVision ?? fallbackMetadata?.supportsVision ?? false,
+    supportsAudio: liveMetadata?.supportsAudio ?? cachedMetadata?.supportsAudio ?? false,
+    supportsVideo: liveMetadata?.supportsVideo ?? cachedMetadata?.supportsVideo ?? false,
+    supportsPdf: liveMetadata?.supportsPdf ?? cachedMetadata?.supportsPdf ?? false,
+    reasoning: liveMetadata?.reasoning ?? cachedMetadata?.reasoning ?? fallbackMetadata?.reasoning ?? supportsReasoning(modelId),
+    status: liveMetadata?.status ?? cachedMetadata?.status ?? fallbackMetadata?.status,
+    source: liveMetadata ? "live" : cachedMetadata ? "models.dev" : fallbackMetadata ? "fallback" : "default",
+    cost: liveMetadata?.cost ?? cachedMetadata?.cost ?? fallbackMetadata?.cost,
+    reasoningOptions: liveMetadata?.reasoningOptions ?? cachedMetadata?.reasoningOptions,
+    temperature: liveMetadata?.temperature ?? cachedMetadata?.temperature,
   };
 }
 
-export function hasExplicitModelLimits(
-  modelId: string,
-  vendor: ProviderVendor,
-): boolean {
+export function hasExplicitModelLimits(modelId: string, vendor: ProviderVendor): boolean {
   return Boolean(fallbackModelMetadata(modelId, vendor));
 }
 
-function bundledModelMetadataForProvider(
-  vendor: ProviderVendor,
-): Record<string, ModelMetadataFields> {
+function bundledModelMetadataForProvider(vendor: ProviderVendor): Record<string, ModelMetadataFields> {
   return Object.fromEntries(
     Object.keys(MODEL_LIMITS_BY_PROVIDER[vendor]).flatMap((modelId) => {
       const metadata = fallbackModelMetadata(modelId, vendor);
@@ -466,9 +394,7 @@ function bundledModelMetadataForProvider(
   );
 }
 
-function normalizeModelsDevProvider(
-  models: Record<string, ModelsDevModelRecord>,
-): Record<string, ModelMetadataFields> {
+function normalizeModelsDevProvider(models: Record<string, ModelsDevModelRecord>): Record<string, ModelMetadataFields> {
   const normalized: Record<string, ModelMetadataFields> = {};
 
   for (const [modelId, model] of Object.entries(models)) {
@@ -482,13 +408,15 @@ function normalizeModelsDevProvider(
             ...(typeof rawCost.cache_read === "number" ? { cache_read: rawCost.cache_read } : {}),
             ...(typeof rawCost.cache_write === "number" ? { cache_write: rawCost.cache_write } : {}),
             ...(Array.isArray(rawCost.tiers) && rawCost.tiers.length > 0
-              ? { tiers: rawCost.tiers.map(t => ({
-                  input: t.input,
-                  output: t.output,
-                  ...(typeof t.cache_read === "number" ? { cache_read: t.cache_read } : {}),
-                  ...(typeof t.cache_write === "number" ? { cache_write: t.cache_write } : {}),
-                  tier: { type: t.tier.type, size: t.tier.size },
-                }))}
+              ? {
+                  tiers: rawCost.tiers.map((t) => ({
+                    input: t.input,
+                    output: t.output,
+                    ...(typeof t.cache_read === "number" ? { cache_read: t.cache_read } : {}),
+                    ...(typeof t.cache_write === "number" ? { cache_write: t.cache_write } : {}),
+                    tier: { type: t.tier.type, size: t.tier.size },
+                  })),
+                }
               : {}),
             ...(rawCost.context_over_200k
               ? { context_over_200k: { input: rawCost.context_over_200k.input ?? 0, output: rawCost.context_over_200k.output ?? 0 } }
@@ -503,14 +431,9 @@ function normalizeModelsDevProvider(
       supportsAudio: modalities.supportsAudio,
       supportsVideo: modalities.supportsVideo,
       supportsPdf: modalities.supportsPdf,
-      reasoning:
-        typeof model.reasoning === "boolean" ? model.reasoning : undefined,
-      reasoningOptions:
-        Array.isArray(model.reasoning_options) && model.reasoning_options.length > 0
-          ? model.reasoning_options
-          : undefined,
-      temperature:
-        typeof model.temperature === "boolean" ? model.temperature : undefined,
+      reasoning: typeof model.reasoning === "boolean" ? model.reasoning : undefined,
+      reasoningOptions: Array.isArray(model.reasoning_options) && model.reasoning_options.length > 0 ? model.reasoning_options : undefined,
+      temperature: typeof model.temperature === "boolean" ? model.temperature : undefined,
       status: typeof model.status === "string" ? model.status : undefined,
       cost,
     });
@@ -523,9 +446,7 @@ function normalizeModelsDevProvider(
   return normalized;
 }
 
-function normalizeModelMetadataFields(
-  metadata: ModelMetadataFields,
-): ModelMetadataFields | undefined {
+function normalizeModelMetadataFields(metadata: ModelMetadataFields): ModelMetadataFields | undefined {
   if (
     metadata.contextWindow === undefined &&
     metadata.maxOutputTokens === undefined &&
@@ -555,9 +476,7 @@ function detectModalityFlags(
   modalities: { input?: string[]; output?: string[] } | undefined,
   attachmentHint: boolean | undefined,
 ): ModalityFlags {
-  const inputModalities = Array.isArray(modalities?.input)
-    ? modalities.input
-    : undefined;
+  const inputModalities = Array.isArray(modalities?.input) ? modalities.input : undefined;
 
   if (inputModalities?.length) {
     return {
@@ -578,9 +497,7 @@ function detectModalityFlags(
 }
 
 function positiveNumber(value: unknown): number | undefined {
-  return typeof value === "number" && Number.isFinite(value) && value > 0
-    ? Math.floor(value)
-    : undefined;
+  return typeof value === "number" && Number.isFinite(value) && value > 0 ? Math.floor(value) : undefined;
 }
 
 function supportsReasoning(modelId: string): boolean {
@@ -610,10 +527,7 @@ export interface ContextSizeOption {
  * The options are derived from `cost.tiers[]` (each tier has a `tier.size`
  * threshold) and/or `cost.context_over_200k` (pricing beyond the base tier).
  */
-export function getContextSizeOptions(
-  cost: ModelCost | undefined,
-  fullContextWindow: number,
-): ContextSizeOption[] | undefined {
+export function getContextSizeOptions(cost: ModelCost | undefined, fullContextWindow: number): ContextSizeOption[] | undefined {
   if (!cost) return undefined;
 
   const tiers = cost.tiers;
@@ -621,8 +535,8 @@ export function getContextSizeOptions(
 
   // Collect all distinct context thresholds from explicit tiers
   const thresholds = (tiers ?? [])
-    .filter(t => t.tier?.type === "context" && typeof t.tier.size === "number" && t.tier.size > 0)
-    .map(t => t.tier.size)
+    .filter((t) => t.tier?.type === "context" && typeof t.tier.size === "number" && t.tier.size > 0)
+    .map((t) => t.tier.size)
     .sort((a, b) => a - b);
 
   // If no explicit tiers but context_over_200k exists, use 200_000 as the threshold
@@ -637,7 +551,7 @@ export function getContextSizeOptions(
   const baseThreshold = thresholds[0];
 
   // Base/default tier
-  const hasBaseSurcharge = tiers?.some(t => t.tier.size === baseThreshold && (t.input > cost.input || t.output > cost.output));
+  const hasBaseSurcharge = tiers?.some((t) => t.tier.size === baseThreshold && (t.input > cost.input || t.output > cost.output));
   options.push({
     value: baseThreshold,
     label: formatContextSize(baseThreshold),
@@ -648,7 +562,8 @@ export function getContextSizeOptions(
   // Intermediate tiers (thresholds beyond base)
   for (const threshold of thresholds) {
     if (threshold === baseThreshold) continue;
-    const hasSurcharge = tiers?.some(t => t.tier.size === threshold && (t.input > cost.input || t.output > cost.output)) ?? hasContextOver200k;
+    const hasSurcharge =
+      tiers?.some((t) => t.tier.size === threshold && (t.input > cost.input || t.output > cost.output)) ?? hasContextOver200k;
     options.push({
       value: threshold,
       label: formatContextSize(threshold),
@@ -659,7 +574,7 @@ export function getContextSizeOptions(
 
   // Full context window (if larger than the largest threshold)
   if (fullContextWindow > thresholds[thresholds.length - 1]) {
-    const hasSurcharge = hasContextOver200k || tiers?.some(t => t.input > cost.input || t.output > cost.output);
+    const hasSurcharge = hasContextOver200k || tiers?.some((t) => t.input > cost.input || t.output > cost.output);
     options.push({
       value: fullContextWindow,
       label: formatContextSize(fullContextWindow),

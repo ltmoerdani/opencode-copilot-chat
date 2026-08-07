@@ -20,11 +20,11 @@
 
 VS Code's built-in setting `chat.agent.thinkingStyle` controls how reasoning/thinking passages are rendered in Copilot Chat. It has three options:
 
-| Option | Expected Behavior |
-|--------|-------------------|
-| `collapsed` | All thinking hidden, surfaced as gray clickable text that expands on click |
+| Option             | Expected Behavior                                                                 |
+| ------------------ | --------------------------------------------------------------------------------- |
+| `collapsed`        | All thinking hidden, surfaced as gray clickable text that expands on click        |
 | `collapsedPreview` | Thinking visible initially, auto-collapses as the agent moves to the next passage |
-| `fixedScrolling` | Thinking rendered inside a fixed-height scrollable area |
+| `fixedScrolling`   | Thinking rendered inside a fixed-height scrollable area                           |
 
 **Observed bug:** Reasoning content from OpenCode models (DeepSeek, Qwen, GLM, Kimi, MiniMax, MiMo) is **always shown fully expanded as plain text**, regardless of the `chat.agent.thinkingStyle` setting.
 
@@ -36,11 +36,11 @@ This is **NOT** the same problem addressed by `opencodego.stripThinkTags`. That 
 
 ### Environment
 
-| Item | Value |
-|------|-------|
-| VS Code host | **1.124.2** (stable) |
+| Item             | Value                             |
+| ---------------- | --------------------------------- |
+| VS Code host     | **1.124.2** (stable)              |
 | VS Code Insiders | Not installed on the test machine |
-| `code` CLI | Not on PATH |
+| `code` CLI       | Not on PATH                       |
 
 ### Root Cause — Codebase Side
 
@@ -50,7 +50,7 @@ In `src/streaming.ts`, the `StreamPartExtractor` class extracts reasoning deltas
 // src/streaming.ts — extractStreamParts (around line 792-798)
 const reasoning = extractReasoningFromDelta(delta);
 if (reasoning) {
-  this.reasoningContent += reasoning;   // ← stored, NOT reported to progress
+  this.reasoningContent += reasoning; // ← stored, NOT reported to progress
 }
 ```
 
@@ -67,31 +67,25 @@ To surface reasoning so that `chat.agent.thinkingStyle` applies, the extension w
 
 ```typescript
 // src/vscode.proposed.chatProvider.d.ts (line 119)
-export type LanguageModelResponsePart2 =
-  | LanguageModelResponsePart
-  | LanguageModelDataPart
-  | LanguageModelThinkingPart;
+export type LanguageModelResponsePart2 = LanguageModelResponsePart | LanguageModelDataPart | LanguageModelThinkingPart;
 ```
 
 However, verification against the running VS Code 1.124.2 stable bundle shows the API is **not available**:
 
-| Check | Result |
-|-------|--------|
-| `LanguageModelThinkingPart` in stable `vscode.d.ts` (1.124.2) | ❌ **Not present** |
-| `LanguageModelTextPart` (stable) `thought` field | ❌ **Not present** (only `value: string`) |
-| `chatProvider.d.ts` proposed file shipped in `vscode-dts/` bundle | ❌ **Not shipped** |
-| `LanguageModelThinkingPart` declared in local `src/vscode.proposed.chatProvider.d.ts` | ⚠️ **Referenced only** (line 119) — no `class`/`interface` definition anywhere |
-| `LanguageModelThinkingPart` instantiated anywhere in `src/*.ts` | ❌ **Never** (confirmed via `grep` + `npx tsc --noEmit` clean exit 0) |
-| `enabledApiProposalNames` / `enabledApiProposals` in `package.json` | ❌ **Empty** — proposed API is activated implicitly via `activationEvents: onLanguageModelChatProvider:opencodego` (lines 59-60), not via an explicit proposal declaration |
+| Check                                                                                 | Result                                                                                                                                                                     |
+| ------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `LanguageModelThinkingPart` in stable `vscode.d.ts` (1.124.2)                         | ❌ **Not present**                                                                                                                                                         |
+| `LanguageModelTextPart` (stable) `thought` field                                      | ❌ **Not present** (only `value: string`)                                                                                                                                  |
+| `chatProvider.d.ts` proposed file shipped in `vscode-dts/` bundle                     | ❌ **Not shipped**                                                                                                                                                         |
+| `LanguageModelThinkingPart` declared in local `src/vscode.proposed.chatProvider.d.ts` | ⚠️ **Referenced only** (line 119) — no `class`/`interface` definition anywhere                                                                                             |
+| `LanguageModelThinkingPart` instantiated anywhere in `src/*.ts`                       | ❌ **Never** (confirmed via `grep` + `npx tsc --noEmit` clean exit 0)                                                                                                      |
+| `enabledApiProposalNames` / `enabledApiProposals` in `package.json`                   | ❌ **Empty** — proposed API is activated implicitly via `activationEvents: onLanguageModelChatProvider:opencodego` (lines 59-60), not via an explicit proposal declaration |
 
 Stable `LanguageModelResponsePart` type union (vscode.d.ts line 20672):
 
 ```typescript
 export type LanguageModelResponsePart =
-  | LanguageModelTextPart
-  | LanguageModelToolResultPart
-  | LanguageModelToolCallPart
-  | LanguageModelDataPart;
+  LanguageModelTextPart | LanguageModelToolResultPart | LanguageModelToolCallPart | LanguageModelDataPart;
 ```
 
 There is **no thinking-capable part** in the stable API surface.

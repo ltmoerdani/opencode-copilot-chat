@@ -39,7 +39,9 @@ export function thinkingFamily(modelId: string): ThinkingFamily {
   if (/^deepseek-/i.test(modelId)) return "deepseek";
   if (/^glm-/i.test(modelId)) return "glm";
   if (/^kimi-/i.test(modelId)) return "kimi";
-  if (/^minimax-/i.test(modelId)) return "minimax";  if (/^gpt-/i.test(modelId)) return "openai";  if (/^qwen3(?:\.|-)/i.test(modelId)) return "qwen";
+  if (/^minimax-/i.test(modelId)) return "minimax";
+  if (/^gpt-/i.test(modelId)) return "openai";
+  if (/^qwen3(?:\.|-)/i.test(modelId)) return "qwen";
   if (/^mimo-/i.test(modelId)) return "mimo";
   return null;
 }
@@ -63,12 +65,12 @@ export function buildFamilyThinkingSchema(
   if (opts && opts.length > 0) {
     // Collect unique effort values across all effort-type options
     const effortValues = opts
-      .filter(o => o.type === "effort" && Array.isArray(o.values) && o.values.length > 0)
-      .flatMap(o => o.values!)
+      .filter((o) => o.type === "effort" && Array.isArray(o.values) && o.values.length > 0)
+      .flatMap((o) => o.values!)
       .filter((v, i, a) => a.indexOf(v) === i);
 
     // Check if a toggle-type option exists
-    const hasToggle = opts.some(o => o.type === "toggle");
+    const hasToggle = opts.some((o) => o.type === "toggle");
 
     // Build the enum options:
     // - If toggle exists, "off" is the default (user can toggle off)
@@ -98,12 +100,23 @@ export function buildFamilyThinkingSchema(
         enumLabels.push(v.charAt(0).toUpperCase() + v.slice(1));
         // Generate description
         switch (v) {
-          case "low": enumDescriptions.push("Faster responses with less reasoning"); break;
-          case "medium": enumDescriptions.push("Balanced reasoning and speed"); break;
-          case "high": enumDescriptions.push("Greater reasoning depth but slower"); break;
-          case "xhigh": enumDescriptions.push("Maximum reasoning depth"); break;
-          case "max": enumDescriptions.push("Maximum reasoning effort"); break;
-          default: enumDescriptions.push(`Effort: ${v}`);
+          case "low":
+            enumDescriptions.push("Faster responses with less reasoning");
+            break;
+          case "medium":
+            enumDescriptions.push("Balanced reasoning and speed");
+            break;
+          case "high":
+            enumDescriptions.push("Greater reasoning depth but slower");
+            break;
+          case "xhigh":
+            enumDescriptions.push("Maximum reasoning depth");
+            break;
+          case "max":
+            enumDescriptions.push("Maximum reasoning effort");
+            break;
+          default:
+            enumDescriptions.push(`Effort: ${v}`);
         }
       }
 
@@ -115,7 +128,7 @@ export function buildFamilyThinkingSchema(
           enumItemLabels: enumLabels,
           enumDescriptions,
           default: "off",
-          group: "navigation"
+          group: "navigation",
         };
 
         return { properties: { reasoningEffort: schema } };
@@ -135,17 +148,11 @@ export function buildFamilyThinkingSchema(
           title: "Thinking Effort",
           enum: ["off", "low", "medium", "high", "max"],
           enumItemLabels: ["Off", "Low", "Medium", "High", "Max"],
-          enumDescriptions: [
-            "Fastest responses",
-            "Minimal reasoning",
-            "Balanced reasoning",
-            "More reasoning",
-            "Maximum reasoning"
-          ],
+          enumDescriptions: ["Fastest responses", "Minimal reasoning", "Balanced reasoning", "More reasoning", "Maximum reasoning"],
           default: "off",
-          group: "navigation"
-        }
-      }
+          group: "navigation",
+        },
+      },
     };
   }
 
@@ -157,16 +164,11 @@ export function buildFamilyThinkingSchema(
           title: "Thinking Effort",
           enum: ["off", "low", "medium", "high"],
           enumItemLabels: ["Off", "Low", "Medium", "High"],
-          enumDescriptions: [
-            "Fastest responses",
-            "Minimal reasoning",
-            "Balanced reasoning",
-            "Enable reasoning"
-          ],
+          enumDescriptions: ["Fastest responses", "Minimal reasoning", "Balanced reasoning", "Enable reasoning"],
           default: "off",
-          group: "navigation"
-        }
-      }
+          group: "navigation",
+        },
+      },
     };
   }
 
@@ -181,13 +183,11 @@ export function buildFamilyThinkingSchema(
           title: "Thinking Effort",
           enum: ["on"],
           enumItemLabels: ["Always On (K2.7)"],
-          enumDescriptions: [
-            "Kimi K2.7-code requires thinking enabled (Moonshot API constraint)"
-          ],
+          enumDescriptions: ["Kimi K2.7-code requires thinking enabled (Moonshot API constraint)"],
           default: "on",
-          group: "navigation"
-        }
-      }
+          group: "navigation",
+        },
+      },
     };
   }
 
@@ -199,15 +199,11 @@ export function buildFamilyThinkingSchema(
           title: "Thinking Effort",
           enum: ["off", "high", "max"],
           enumItemLabels: ["Off", "High", "Max"],
-          enumDescriptions: [
-            "Fastest responses",
-            "Greater reasoning depth",
-            "Maximum reasoning effort"
-          ],
+          enumDescriptions: ["Fastest responses", "Greater reasoning depth", "Maximum reasoning effort"],
           default: "off",
-          group: "navigation"
-        }
-      }
+          group: "navigation",
+        },
+      },
     };
   }
 
@@ -224,12 +220,12 @@ export function buildFamilyThinkingSchema(
             "Faster responses with less reasoning",
             "Balanced reasoning and speed",
             "Greater reasoning depth",
-            "Maximum reasoning depth"
+            "Maximum reasoning depth",
           ],
           default: "off",
-          group: "navigation"
-        }
-      }
+          group: "navigation",
+        },
+      },
     };
   }
 
@@ -241,14 +237,11 @@ export function buildFamilyThinkingSchema(
           title: "Thinking Effort",
           enum: ["off", "on"],
           enumItemLabels: ["Off", "On"],
-          enumDescriptions: [
-            "Fastest responses",
-            "Enable thinking"
-          ],
+          enumDescriptions: ["Fastest responses", "Enable thinking"],
           default: "off",
-          group: "navigation"
-        }
-      }
+          group: "navigation",
+        },
+      },
     };
   }
 
@@ -262,14 +255,11 @@ export function buildFamilyThinkingSchema(
           title: "Thinking Effort",
           enum: ["off", "on"],
           enumItemLabels: ["Off", "On"],
-          enumDescriptions: [
-            "Fastest responses",
-            "Enable thinking"
-          ],
+          enumDescriptions: ["Fastest responses", "Enable thinking"],
           default: "off",
-          group: "navigation"
-        }
-      }
+          group: "navigation",
+        },
+      },
     };
   }
 
@@ -281,29 +271,19 @@ export function buildFamilyThinkingSchema(
           title: "Thinking Effort",
           enum: ["off", "auto", "on"],
           enumItemLabels: ["Off", "Auto", "On"],
-          enumDescriptions: [
-            "Fastest responses",
-            "Model decides",
-            "Enable thinking"
-          ],
+          enumDescriptions: ["Fastest responses", "Model decides", "Enable thinking"],
           default: "off",
-          group: "navigation"
+          group: "navigation",
         },
         thinkingBudget: {
           type: "string",
           title: "Thinking Budget",
           enum: ["auto", "4096", "16384", "32768", "81920"],
           enumItemLabels: ["Auto", "4K", "16K", "32K", "80K"],
-          enumDescriptions: [
-            "Provider default",
-            "Small budget",
-            "Medium budget",
-            "Large budget",
-            "Maximum budget"
-          ],
-          default: "auto"
-        }
-      }
+          enumDescriptions: ["Provider default", "Small budget", "Medium budget", "Large budget", "Maximum budget"],
+          default: "auto",
+        },
+      },
     };
   }
 
@@ -316,14 +296,11 @@ export function buildFamilyThinkingSchema(
           title: "Thinking Effort",
           enum: ["off", "on"],
           enumItemLabels: ["Off", "On"],
-          enumDescriptions: [
-            "Fastest responses",
-            "Enable reasoning"
-          ],
+          enumDescriptions: ["Fastest responses", "Enable reasoning"],
           default: "off",
-          group: "navigation"
-        }
-      }
+          group: "navigation",
+        },
+      },
     };
   }
 
@@ -338,7 +315,7 @@ export function buildFamilyThinkingSchema(
 export function applyRequestThinkingOverride(
   modelId: string,
   base: ThinkingSettings,
-  override: Record<string, unknown> | undefined
+  override: Record<string, unknown> | undefined,
 ): ThinkingSettings {
   if (!override) return base;
   const family = thinkingFamily(modelId);
@@ -469,9 +446,7 @@ export function buildThinkingPayload(modelId: string, thinking: ThinkingSettings
       if (hasImageInput) {
         return {};
       }
-      return thinking.qwenBudget === "auto"
-        ? {}
-        : { thinking_budget: Number(thinking.qwenBudget) };
+      return thinking.qwenBudget === "auto" ? {} : { thinking_budget: Number(thinking.qwenBudget) };
     }
     if (thinking.qwen === "on") {
       return thinking.qwenBudget === "auto"

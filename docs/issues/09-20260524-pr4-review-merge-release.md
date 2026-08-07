@@ -20,6 +20,7 @@ External contributor Wallacy submitted PR #4 adding native Zen GPT/Gemini/Claude
 ### 1. 2026-05-23 — Initial PR Analysis
 
 **Problem:** PR #4 arrived with +1,815 / -206 lines across 5 files, bumping `extension.ts` from ~1,960 to ~3,527 lines. Three major changes needed evaluation:
+
 - Native transport routing for Zen GPT (`/responses`), Gemini (Google-style), Claude (`/messages`), and Go MiniMax (`/messages`)
 - TTL-cached `models.dev` metadata merged with live `/models` and bundled fallback
 - Request timeouts, sticky session headers, and rate-limit error handling
@@ -32,12 +33,12 @@ External contributor Wallacy submitted PR #4 adding native Zen GPT/Gemini/Claude
 
 **Problem:** Four risks identified before merge:
 
-| # | Risk | Severity |
-|---|------|----------|
-| 1 | `extension.ts` doubled in size (1,960 → 3,527 lines, single monolitic file) | High |
-| 2 | Zero test coverage on 3 new streaming parsers (Responses, Google, hybrid) | High |
-| 3 | Breaking model limit reductions (deepseek-v4-flash-free: 1M→200K ctx, glm-5 output: 131K→32K) | Medium |
-| 4 | No timeout on `models.dev` fetch — could block model registration | Low |
+| #   | Risk                                                                                          | Severity |
+| --- | --------------------------------------------------------------------------------------------- | -------- |
+| 1   | `extension.ts` doubled in size (1,960 → 3,527 lines, single monolitic file)                   | High     |
+| 2   | Zero test coverage on 3 new streaming parsers (Responses, Google, hybrid)                     | High     |
+| 3   | Breaking model limit reductions (deepseek-v4-flash-free: 1M→200K ctx, glm-5 output: 131K→32K) | Medium   |
+| 4   | No timeout on `models.dev` fetch — could block model registration                             | Low      |
 
 **Action:** Compiled risk assessment with mitigation strategies for each risk.
 
@@ -48,6 +49,7 @@ External contributor Wallacy submitted PR #4 adding native Zen GPT/Gemini/Claude
 **Problem:** Needed to communicate concerns before merge.
 
 **Action:** Posted a conversational review comment on PR #4 requesting:
+
 1. Document limit reductions in CHANGELOG `### Changed` section
 2. Add `AbortSignal.timeout(10_000)` on `models.dev` fetch
 3. Consider splitting `extension.ts` into modules (routing, metadata, errors)
@@ -60,17 +62,18 @@ External contributor Wallacy submitted PR #4 adding native Zen GPT/Gemini/Claude
 **Problem:** Wallacy pushed updates and needed verification.
 
 **Action:** Fetched latest PR branch. Found 2 new commits:
+
 - `83621b9` — fix: restore command activation and harden routed auth
 - `a854ff6` — refactor: split provider metadata and add routing tests
 
 Verified all 4 recommendations addressed:
 
-| # | Recommendation | Result |
-|---|----------------|--------|
-| 1 | Document breaking changes | ✅ CHANGELOG `### Changed` section added with specific model limit reductions |
-| 2 | Fetch timeout | ✅ `signal: AbortSignal.timeout(10_000)` added |
-| 3 | Split into modules | ✅ `routing.ts` (533 lines), `metadata.ts` (345 lines), `errors.ts` (311 lines), `providerTypes.ts` (12 lines) |
-| 4 | Unit tests | ✅ `test/routing.test.js` with 5 tests covering all normalizers and routing families |
+| #   | Recommendation            | Result                                                                                                         |
+| --- | ------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| 1   | Document breaking changes | ✅ CHANGELOG `### Changed` section added with specific model limit reductions                                  |
+| 2   | Fetch timeout             | ✅ `signal: AbortSignal.timeout(10_000)` added                                                                 |
+| 3   | Split into modules        | ✅ `routing.ts` (533 lines), `metadata.ts` (345 lines), `errors.ts` (311 lines), `providerTypes.ts` (12 lines) |
+| 4   | Unit tests                | ✅ `test/routing.test.js` with 5 tests covering all normalizers and routing families                           |
 
 Compiled and ran tests: 5/5 pass in 58ms.
 
@@ -89,6 +92,7 @@ Compiled and ran tests: 5/5 pass in 58ms.
 ### 6. 2026-05-24 — Missing 0.1.5 Code Fixes
 
 **Problem:** Discovered that PR #4 did NOT include the 0.1.5 vision fixes from `develop`:
+
 - `btoa(String.fromCodePoint(...part.data))` stack overflow still present in `extension.ts` line 1830
 - `dataPartToBase64()` helper missing
 - `messagesHaveImages()` helper missing
@@ -104,14 +108,16 @@ Compiled and ran tests: 5/5 pass in 58ms.
 **Problem:** User preferred a clean no-ff merge from `develop` instead of a cherry-pick commit on `main`.
 
 **Action:**
+
 1. Reset main to PR #4 merge commit (`a0d327d`)
 2. Merged `main` into `develop` (resolved 3 conflicts, applied 0.1.5 vision fixes on top of PR #4 code)
 3. Merged `develop` back into `main` with `--no-ff`
 
 Final git history:
+
 ```
 *   d3efa2f  Merge branch 'develop' into main (0.1.5 vision fixes + 0.1.6)
-|\  
+|\
 | *   1a1be0a  Merge main (PR #4: 0.1.6) into develop
 | * d0032ed  feat: update version to 0.1.5; fix vision request handling
 * | a0d327d  Merge pull request #4 from Wallacy
@@ -122,6 +128,7 @@ Final git history:
 ### 8. 2026-05-24 — Marketplace Release
 
 **Action:** Compiled, ran tests (5/5 pass), packaged VSIX:
+
 ```
 opencode-copilot-chat-0.1.6.vsix (62.41 KB, 18 files)
 ```
@@ -134,17 +141,17 @@ Pushed `main` and `develop` to remote. User uploaded VSIX to marketplace manuall
 
 ## Files Changed
 
-| File | Change |
-|------|--------|
-| `src/routing.ts` | New — routing logic, streaming normalizers (533 lines) |
-| `src/metadata.ts` | New — models.dev cache, metadata resolution (345 lines) |
-| `src/errors.ts` | New — error handling, rate-limit parsing (311 lines) |
-| `src/providerTypes.ts` | New — shared type definitions (12 lines) |
+| File                   | Change                                                     |
+| ---------------------- | ---------------------------------------------------------- |
+| `src/routing.ts`       | New — routing logic, streaming normalizers (533 lines)     |
+| `src/metadata.ts`      | New — models.dev cache, metadata resolution (345 lines)    |
+| `src/errors.ts`        | New — error handling, rate-limit parsing (311 lines)       |
+| `src/providerTypes.ts` | New — shared type definitions (12 lines)                   |
 | `test/routing.test.js` | New — 5 unit tests for routing and normalizers (263 lines) |
-| `src/extension.ts` | Major refactor — modularized, vision fixes applied |
-| `CHANGELOG.md` | Added 0.1.6 + restored 0.1.5 entries |
-| `README.md` | Updated model limits, routing docs, new settings |
-| `package.json` | Version 0.1.6, new settings, new activation event |
+| `src/extension.ts`     | Major refactor — modularized, vision fixes applied         |
+| `CHANGELOG.md`         | Added 0.1.6 + restored 0.1.5 entries                       |
+| `README.md`            | Updated model limits, routing docs, new settings           |
+| `package.json`         | Version 0.1.6, new settings, new activation event          |
 
 ---
 

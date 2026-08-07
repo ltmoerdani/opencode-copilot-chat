@@ -42,11 +42,11 @@ by [@yinhx3](https://github.com/yinhx3):
 
 ### Observed behavior
 
-| Path | Worked? |
-|------|---------|
-| Paste/drag image into chat input (top-level `LanguageModelDataPart`) | ✅ Yes |
+| Path                                                                                             | Worked?                               |
+| ------------------------------------------------------------------------------------------------ | ------------------------------------- |
+| Paste/drag image into chat input (top-level `LanguageModelDataPart`)                             | ✅ Yes                                |
 | MCP tool returns image (`LanguageModelDataPart` nested in `LanguageModelToolResultPart.content`) | ❌ No — model said "no image visible" |
-| Built-in Copilot model + same MCP tool | ✅ Yes |
+| Built-in Copilot model + same MCP tool                                                           | ✅ Yes                                |
 
 ### Confirmation that Kimi K2.7 is vision-capable
 
@@ -87,7 +87,7 @@ if (part instanceof vscode.LanguageModelToolResultPart) {
   toolResults.push({
     role: "tool",
     tool_call_id: part.callId,
-    content: part.content.map(partToText).filter(Boolean).join("\n")
+    content: part.content.map(partToText).filter(Boolean).join("\n"),
     //           ^^^^^^^^^^^^^^^^
     //           partToText() only handles TextPart / ToolCallPart /
     //           internal DataPart / string. Image DataPart fell through to
@@ -102,11 +102,11 @@ And `partToText()`:
 ```ts
 function partToText(part: vscode.LanguageModelInputPart | unknown): string {
   if (part instanceof vscode.LanguageModelTextPart) return part.value;
-  if (part instanceof vscode.LanguageModelToolResultPart) return /* recurse */;
-  if (part instanceof vscode.LanguageModelToolCallPart) return /* … */;
+  if (part instanceof vscode.LanguageModelToolResultPart) return; /* recurse */
+  if (part instanceof vscode.LanguageModelToolCallPart) return; /* … */
   if (part instanceof vscode.LanguageModelDataPart && isInternalDataPart(part)) return "";
   if (typeof part === "string") return part;
-  return "";  // ← image DataPart in a tool result landed here → DROPPED
+  return ""; // ← image DataPart in a tool result landed here → DROPPED
 }
 ```
 
@@ -138,9 +138,7 @@ behavior.
 const toolTextParts: string[] = [];
 const toolImageParts: OpenAiContentPart[] = [];
 for (const resultPart of part.content) {
-  if (resultPart instanceof vscode.LanguageModelDataPart
-    && resultPart.mimeType.startsWith("image/")
-    && !isInternalDataPart(resultPart)) {
+  if (resultPart instanceof vscode.LanguageModelDataPart && resultPart.mimeType.startsWith("image/") && !isInternalDataPart(resultPart)) {
     const base64 = dataPartToBase64(resultPart.data);
     toolImageParts.push({
       type: "image_url",
@@ -169,12 +167,12 @@ if (toolImageParts.length > 0) {
 Each transport builder was updated so the multimodal tool content survives into
 the final request body:
 
-| Transport | Change |
-|-----------|--------|
-| **Anthropic messages** | `AnthropicToolResultBlock.content` type widened from `string` to `string \| AnthropicContentBlock[]`. New helper `anthropicToolResultContent()` returns the string form when there are no images (byte-identical to the old behavior) and the array form (text + image blocks) only when an image is present. |
-| **OpenAI Responses API** | `function_call_output.output` is spec'd as a plain string and does not accept image content blocks. New helper `responsesToolOutput()` joins the text parts and appends a short note when an image was omitted. No image is forwarded on this transport. |
-| **Google Gemini** | New helper `googleFunctionResponseContent()` emits the legacy `{ name, content }` shape for text-only tool results and extends it with `parts: [{text}, {inlineData}]` when an image is present. |
-| **OpenAI chat-completions** | No builder change required — the multimodal `content` array produced by `convertMessage` flows straight into the request body. |
+| Transport                   | Change                                                                                                                                                                                                                                                                                                        |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Anthropic messages**      | `AnthropicToolResultBlock.content` type widened from `string` to `string \| AnthropicContentBlock[]`. New helper `anthropicToolResultContent()` returns the string form when there are no images (byte-identical to the old behavior) and the array form (text + image blocks) only when an image is present. |
+| **OpenAI Responses API**    | `function_call_output.output` is spec'd as a plain string and does not accept image content blocks. New helper `responsesToolOutput()` joins the text parts and appends a short note when an image was omitted. No image is forwarded on this transport.                                                      |
+| **Google Gemini**           | New helper `googleFunctionResponseContent()` emits the legacy `{ name, content }` shape for text-only tool results and extends it with `parts: [{text}, {inlineData}]` when an image is present.                                                                                                              |
+| **OpenAI chat-completions** | No builder change required — the multimodal `content` array produced by `convertMessage` flows straight into the request body.                                                                                                                                                                                |
 
 ### 3. Size guard for oversized images
 
@@ -187,9 +185,9 @@ const MAX_TOOL_RESULT_IMAGE_BYTES = 1_000_000; // 1 MB raw bytes
 
 if (resultPart.data.byteLength > MAX_TOOL_RESULT_IMAGE_BYTES) {
   toolTextParts.push(
-    `[Image attachment omitted: ${resultPart.data.byteLength} bytes exceeds the `
-    + `${MAX_TOOL_RESULT_IMAGE_BYTES}-byte limit for tool results. Ask the tool `
-    + `to produce a smaller screenshot or save it to a file.]`
+    `[Image attachment omitted: ${resultPart.data.byteLength} bytes exceeds the ` +
+      `${MAX_TOOL_RESULT_IMAGE_BYTES}-byte limit for tool results. Ask the tool ` +
+      `to produce a smaller screenshot or save it to a file.]`,
   );
   continue;
 }
@@ -215,15 +213,15 @@ made manual testing of the image fix very hard to follow:
 
 ## Files Changed
 
-| File | Change |
-|------|--------|
-| `src/extension.ts` | `convertMessage()`: serialize nested image DataParts into multimodal `OpenAiContentPart[]` on tool messages; enforce `MAX_TOOL_RESULT_IMAGE_BYTES` cap. |
-| `src/extension.ts` | `AnthropicToolResultBlock.content` type widened to `string \| AnthropicContentBlock[]`; new `anthropicToolResultContent()`. |
+| File               | Change                                                                                                                                                                                |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/extension.ts` | `convertMessage()`: serialize nested image DataParts into multimodal `OpenAiContentPart[]` on tool messages; enforce `MAX_TOOL_RESULT_IMAGE_BYTES` cap.                               |
+| `src/extension.ts` | `AnthropicToolResultBlock.content` type widened to `string \| AnthropicContentBlock[]`; new `anthropicToolResultContent()`.                                                           |
 | `src/extension.ts` | `responsesInputItemsFromMessage()` tool branch: new `responsesToolOutput()` helper that degrades images to a placeholder note (Responses API does not support images in tool output). |
-| `src/extension.ts` | `googleContentsFromMessages()` tool branch: new `googleFunctionResponseContent()` that emits `parts: [{text}, {inlineData}]` when an image is present. |
-| `src/extension.ts` | `provideLanguageModelChatInformation()`: replaced per-model log spam with one summary line per invocation. |
-| `src/extension.ts` | `fetchModels()`: replaced `showWarningMessage` with Output-channel log on transient upstream failures. |
-| `src/extension.ts` | Added `MAX_TOOL_RESULT_IMAGE_BYTES = 1_000_000` constant. |
+| `src/extension.ts` | `googleContentsFromMessages()` tool branch: new `googleFunctionResponseContent()` that emits `parts: [{text}, {inlineData}]` when an image is present.                                |
+| `src/extension.ts` | `provideLanguageModelChatInformation()`: replaced per-model log spam with one summary line per invocation.                                                                            |
+| `src/extension.ts` | `fetchModels()`: replaced `showWarningMessage` with Output-channel log on transient upstream failures.                                                                                |
+| `src/extension.ts` | Added `MAX_TOOL_RESULT_IMAGE_BYTES = 1_000_000` constant.                                                                                                                             |
 
 **Total:** 1 file, +180 / −45 lines (approx).
 
@@ -306,7 +304,7 @@ node --test out/test/**/*.test.js
 2. Launched Extension Development Host (`F5` → "Run Extension with Copilot").
 3. Picked an OpenCode Go model in Copilot Chat.
 4. Prompt: `Take a screenshot of https://example.com using chrome-devtools,
-   then describe what you see.`
+then describe what you see.`
 5. ✅ The model read and described the screenshot.
 6. No `400 Upstream request failed` for normal-sized screenshots.
 

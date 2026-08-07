@@ -22,9 +22,11 @@ OpenCode Go API proxy returns HTTP 500 "Internal server error" when the JSON req
 ### 1. (2026-06-09) Initial Error Report
 
 **Problem:** User reported HTTP 500 errors after long chat sessions with `deepseek-v4-pro`:
+
 ```
 payloadBytes=393980: Internal server error
 ```
+
 Error repeated 3x with retry — VS Code kept retrying the same oversized payload.
 
 **Root Cause:** OpenCode Go API proxy has an internal HTTP body size limit of ~400 KB. No guard existed in the extension.
@@ -38,6 +40,7 @@ Error repeated 3x with retry — VS Code kept retrying the same oversized payloa
 **Problem:** User correctly pointed out that the model's context window (1M tokens) was far from full (~10% used). Forcing new sessions was the wrong approach.
 
 **Solution (Phase 2 — Message Trimming):** Created `src/messageTrimmer.ts` with byte-aware conversation-turn trimming:
+
 - Generic function `<T extends TrimmableMessage>` compatible with all endpoint body builders
 - Dropped oldest complete conversation turns (user → assistant → tool results kept atomic)
 - System prompt always preserved
@@ -46,6 +49,7 @@ Error repeated 3x with retry — VS Code kept retrying the same oversized payloa
 - User notification when >30% messages trimmed
 
 **Files:**
+
 - `src/messageTrimmer.ts` (NEW) — `trimApiMessages()`, `MESSAGE_BYTE_BUDGET`, `MAX_PAYLOAD_BYTES`
 - `src/extension.ts` — integrated `trimApiMessages()` before body builders
 - `src/streaming.ts` — safety net updated to reference trimmer
@@ -61,6 +65,7 @@ Error repeated 3x with retry — VS Code kept retrying the same oversized payloa
 **Problem:** User correctly identified that the issue is the **proxy byte limit**, not the model's context window. Trimming sacrifices context unnecessarily.
 
 **Solution (Phase 3 — Gzip Compression, CORRECT FIX):**
+
 - Added `gzipSync` from `node:zlib` in `src/streaming.ts`
 - Payloads >50 KB get gzip-compressed before sending
 - `Content-Encoding: gzip` header set
@@ -70,16 +75,17 @@ Error repeated 3x with retry — VS Code kept retrying the same oversized payloa
 
 **Changes:**
 
-| # | Fix | Files | Impact |
-|---|-----|-------|--------|
-| P0 | Gzip compression for payloads >50 KB | `src/streaming.ts` | Primary fix — reduces payload 5-10x |
-| P1 | Import `MAX_PAYLOAD_BYTES` from trimmer | `src/streaming.ts` | Deduplicated constant |
-| P2 | Message trimmer with generous 800 KB budgets | `src/messageTrimmer.ts` | Soft fallback, almost never triggers |
-| P3 | Trim integration in request flow | `src/extension.ts` | `trimApiMessages()` called before body builders |
-| P4 | User notification when >30% trimmed | `src/extension.ts` | Informational, not error |
-| P5 | Hard safety net on compressed size | `src/streaming.ts` | Last resort check |
+| #   | Fix                                          | Files                   | Impact                                          |
+| --- | -------------------------------------------- | ----------------------- | ----------------------------------------------- |
+| P0  | Gzip compression for payloads >50 KB         | `src/streaming.ts`      | Primary fix — reduces payload 5-10x             |
+| P1  | Import `MAX_PAYLOAD_BYTES` from trimmer      | `src/streaming.ts`      | Deduplicated constant                           |
+| P2  | Message trimmer with generous 800 KB budgets | `src/messageTrimmer.ts` | Soft fallback, almost never triggers            |
+| P3  | Trim integration in request flow             | `src/extension.ts`      | `trimApiMessages()` called before body builders |
+| P4  | User notification when >30% trimmed          | `src/extension.ts`      | Informational, not error                        |
+| P5  | Hard safety net on compressed size           | `src/streaming.ts`      | Last resort check                               |
 
 **Verification:**
+
 ```bash
 npx tsc --noEmit  # 0 errors
 npm run compile   # clean build
@@ -92,6 +98,7 @@ npm run compile   # clean build
 **Action:** Stashed feature changes, attempted to merge `main` → `develop`, then apply stash as feature commit on top.
 
 **Issues encountered:**
+
 1. Multiple `git reset --hard` to `a5e4c0f` (main HEAD) **lost develop's original history** — develop had its own commits predating main
 2. Created fake merge commits with identical parents via `git hash-object` — graph showed "jump" instead of proper divergence
 3. Failed to check `git reflog develop` for original develop HEAD before resetting
@@ -99,6 +106,7 @@ npm run compile   # clean build
 **Recovery:** Found original develop HEAD via `git reflog develop@{19}` = `22700e4`. Properly restored develop history, merged `main --no-ff` (2 different parents), then applied feature patch on top.
 
 **Final commit on develop:**
+
 ```
 * 64be1ad feat: gzip compression + message trimming fallback for proxy payload limit
 *   80c635b Merge branch 'main' into develop
@@ -108,6 +116,7 @@ npm run compile   # clean build
 ```
 
 **Lessons Learned:**
+
 1. **ALWAYS** check `git reflog develop` and `git log --oneline develop -10` before any `reset --hard` — never assume branch history
 2. `git merge main --no-ff` only creates a merge commit if the branches have diverged — if develop is an ancestor of main or vice versa, it says "Already up to date"
 3. Fake merge commits with identical parents (via `git hash-object`) look wrong in the graph — the `|\` converges immediately

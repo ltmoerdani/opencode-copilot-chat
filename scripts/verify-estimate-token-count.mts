@@ -15,8 +15,7 @@ function estimateTokenCount(value: string): number {
   const normalized = value.replace(/\s+/g, " ").trim();
   if (!normalized) return 0;
 
-  const cjkCharacters =
-    normalized.match(/[\u3040-\u30ff\u3400-\u9fff\uf900-\ufaff]/gu)?.length ?? 0;
+  const cjkCharacters = normalized.match(/[\u3040-\u30ff\u3400-\u9fff\uf900-\ufaff]/gu)?.length ?? 0;
   const charEstimate = Math.ceil(normalized.length / 4);
   const codeBuffer = Math.ceil(charEstimate * 0.1);
 
@@ -31,10 +30,8 @@ function oldEstimateTokenCount(value: string): number {
   const normalized = value.replace(/\s+/g, " ").trim();
   if (!normalized) return 0;
 
-  const cjkCharacters =
-    normalized.match(/[\u3040-\u30ff\u3400-\u9fff\uf900-\ufaff]/gu)?.length ?? 0;
-  const words =
-    normalized.match(/[A-Za-z0-9_]+|[^\sA-Za-z0-9_]/gu)?.length ?? 0;
+  const cjkCharacters = normalized.match(/[\u3040-\u30ff\u3400-\u9fff\uf900-\ufaff]/gu)?.length ?? 0;
+  const words = normalized.match(/[A-Za-z0-9_]+|[^\sA-Za-z0-9_]/gu)?.length ?? 0;
   const charEstimate = Math.ceil(normalized.length / 4);
 
   return Math.max(1, Math.ceil(Math.max(words * 1.15, charEstimate, cjkCharacters)));
@@ -64,10 +61,7 @@ interface TestCase {
  * actualTokens. The OLD heuristic (words * 1.15) should dramatically overestimate
  * for JSON-heavy payloads because structural characters inflate the word count.
  */
-function generateChatPayload(
-  targetTokens: number,
-  hasToolCalls: boolean,
-): string {
+function generateChatPayload(targetTokens: number, hasToolCalls: boolean): string {
   // At 1 token ≈ 4 chars for English, targetChars ≈ targetTokens * 4
   // But JSON structure adds overhead (brackets, quotes, commas), so we need
   // more characters. Actual ratio for JSON chat: ~5-6 chars/token
@@ -80,7 +74,7 @@ function generateChatPayload(
       role: "system",
       content:
         "You are OpenCode Go BYOK Provider, an expert programming assistant integrated with VS Code Copilot Chat. You help users with coding questions, debugging, code review, architecture design, and general software engineering tasks across multiple programming languages and frameworks. You have access to workspace files and tools.",
-    })
+    }),
   );
 
   let currentLen = JSON.stringify(messages).length;
@@ -338,24 +332,14 @@ const testCases: TestCase[] = [
 const MIN_OUTPUT_BUDGET = 4096;
 const TOKEN_ESTIMATE_SAFETY_MARGIN = 64;
 
-function computeMaxTokens(
-  promptTokens: number | undefined,
-  contextWindow: number,
-  maxOutputTokens: number
-): number {
-  const promptReserve =
-    (promptTokens ?? Math.floor(contextWindow * 0.8)) + TOKEN_ESTIMATE_SAFETY_MARGIN;
+function computeMaxTokens(promptTokens: number | undefined, contextWindow: number, maxOutputTokens: number): number {
+  const promptReserve = (promptTokens ?? Math.floor(contextWindow * 0.8)) + TOKEN_ESTIMATE_SAFETY_MARGIN;
   const safeOutputBudget = Math.max(MIN_OUTPUT_BUDGET, contextWindow - promptReserve);
   return Math.min(maxOutputTokens, safeOutputBudget);
 }
 
-function computeMaxTokensOld(
-  promptTokens: number | undefined,
-  contextWindow: number,
-  maxOutputTokens: number
-): number {
-  const promptReserve =
-    (promptTokens ?? Math.floor(contextWindow * 0.8)) + TOKEN_ESTIMATE_SAFETY_MARGIN;
+function computeMaxTokensOld(promptTokens: number | undefined, contextWindow: number, maxOutputTokens: number): number {
+  const promptReserve = (promptTokens ?? Math.floor(contextWindow * 0.8)) + TOKEN_ESTIMATE_SAFETY_MARGIN;
   const safeOutputBudget = Math.max(1, contextWindow - promptReserve);
   return Math.min(maxOutputTokens, safeOutputBudget);
 }
@@ -410,12 +394,10 @@ for (const tc of testCases) {
   const totalTokens = tc.actualTokens + newMaxTokens;
   if (totalTokens > tc.contextWindow) {
     console.log(
-      `   ⚠️  WARNING: actual + new max_tokens (${totalTokens.toLocaleString()}) exceeds context window (${tc.contextWindow.toLocaleString()}) — possible 400 error`
+      `   ⚠️  WARNING: actual + new max_tokens (${totalTokens.toLocaleString()}) exceeds context window (${tc.contextWindow.toLocaleString()}) — possible 400 error`,
     );
   } else {
-    console.log(
-      `   ✅ Context budget: ${(totalTokens / tc.contextWindow * 100).toFixed(1)}% used (safe)`
-    );
+    console.log(`   ✅ Context budget: ${((totalTokens / tc.contextWindow) * 100).toFixed(1)}% used (safe)`);
   }
 }
 

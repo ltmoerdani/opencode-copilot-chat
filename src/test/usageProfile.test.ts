@@ -12,8 +12,7 @@ function createMockContext(initial: Record<string, unknown> = {}): ExtensionCont
   const store = new Map(Object.entries(initial));
   return {
     globalState: {
-      get: <T>(key: string, defaultVal?: T): T | undefined =>
-        store.has(key) ? (store.get(key) as T) : defaultVal,
+      get: <T>(key: string, defaultVal?: T): T | undefined => (store.has(key) ? (store.get(key) as T) : defaultVal),
       update: (key: string, value: unknown): Promise<void> => {
         if (value === undefined) store.delete(key);
         else store.set(key, value);
@@ -24,10 +23,7 @@ function createMockContext(initial: Record<string, unknown> = {}): ExtensionCont
   } as unknown as ExtensionContext;
 }
 
-const vscodeMockPath = path.join(
-  fs.mkdtempSync(path.join(os.tmpdir(), "vscode-mock-usageprofile-")),
-  "index.js",
-);
+const vscodeMockPath = path.join(fs.mkdtempSync(path.join(os.tmpdir(), "vscode-mock-usageprofile-")), "index.js");
 fs.mkdirSync(path.dirname(vscodeMockPath), { recursive: true });
 fs.writeFileSync(
   vscodeMockPath,
@@ -36,11 +32,7 @@ fs.writeFileSync(
 );
 
 const originalResolveFilename = (Module as any)._resolveFilename;
-(Module as any)._resolveFilename = function (
-  request: string,
-  parent: unknown,
-  ...args: unknown[]
-): string {
+(Module as any)._resolveFilename = function (request: string, parent: unknown, ...args: unknown[]): string {
   if (request === "vscode") return vscodeMockPath;
   return originalResolveFilename.call(this, request, parent, ...args);
 };

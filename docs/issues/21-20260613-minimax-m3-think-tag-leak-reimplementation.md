@@ -25,13 +25,13 @@ User reported that MiniMax M3's `<think>` reasoning blocks were appearing verbat
 
 ### Investigation
 
-| Component | File | Finding |
-|-----------|------|---------|
-| Setting declaration | `package.json` | `opencodego.stripThinkTags` with `"never"` / `"auto"` / `"always"` enum, default `"auto"` — ✅ present |
-| Config reader | `src/extension.ts` | `stripThinkTags` in `ApiSettings` interface + `config.get()` call — ✅ present |
-| Type mismatch | `src/extension.ts` | `ApiSettings.stripThinkTags` typed as `"auto" \| "on" \| "off"` — ❌ **wrong**, doesn't match `package.json` enum |
-| **Stripping logic** | `src/streaming.ts` | **❌ MISSING** — no `ThinkTagFilter`, `processThinkTagsStream`, or any tag-stripping code existed |
-| Extractors | `src/streaming.ts` | `OpenAiResponseExtractor` and `AnthropicResponseExtractor` emitted text verbatim — no filtering applied |
+| Component           | File               | Finding                                                                                                           |
+| ------------------- | ------------------ | ----------------------------------------------------------------------------------------------------------------- |
+| Setting declaration | `package.json`     | `opencodego.stripThinkTags` with `"never"` / `"auto"` / `"always"` enum, default `"auto"` — ✅ present            |
+| Config reader       | `src/extension.ts` | `stripThinkTags` in `ApiSettings` interface + `config.get()` call — ✅ present                                    |
+| Type mismatch       | `src/extension.ts` | `ApiSettings.stripThinkTags` typed as `"auto" \| "on" \| "off"` — ❌ **wrong**, doesn't match `package.json` enum |
+| **Stripping logic** | `src/streaming.ts` | **❌ MISSING** — no `ThinkTagFilter`, `processThinkTagsStream`, or any tag-stripping code existed                 |
+| Extractors          | `src/streaming.ts` | `OpenAiResponseExtractor` and `AnthropicResponseExtractor` emitted text verbatim — no filtering applied           |
 
 **Root cause:** The setting was wired through the config layer but the runtime implementation was absent. The `OpenAiResponseExtractor` constructor only accepted `onReasoningContent` and `onReasoningDebug` callbacks — no think-tag filter. All text from `delta.content` / `delta.text` was emitted directly to the chat UI.
 
@@ -66,16 +66,16 @@ OpenAiResponseExtractor.extractStreamParts()
 
 ### Components
 
-| Component | Location | Purpose |
-|-----------|----------|---------|
-| `ThinkTagFilter` class | `src/streaming.ts` | Streaming state machine — processes text chunk-by-chunk, handles tags split across SSE boundaries |
-| `shouldStripThinkTags()` | `src/streaming.ts` | Config resolution: `"auto"` → only `/^minimax-m/i` models, `"always"` → all, `"never"` → none |
-| `createThinkTagFilter()` | `src/streaming.ts` | Factory: returns `ThinkTagFilter \| undefined` based on mode + modelId |
-| `filterText()` method | Both extractor classes | Private helper: passes text through filter if active, passthrough otherwise |
-| `flushReasoningFallback()` update | Both extractor classes | Calls `thinkFilter.finish()` to flush remaining buffer at stream end |
-| `stripThinkTags` in `StreamRequestOptions` | `src/streaming.ts` | New optional field on the streaming options interface |
-| `stripThinkTags` threaded to all 4 stream calls | `src/extension.ts` | `settings.stripThinkTags` passed to messages, responses, google, and chat-completions |
-| `ApiSettings.stripThinkTags` type fix | `src/extension.ts` | `"auto" \| "on" \| "off"` → `"never" \| "auto" \| "always"` to match `package.json` |
+| Component                                       | Location               | Purpose                                                                                           |
+| ----------------------------------------------- | ---------------------- | ------------------------------------------------------------------------------------------------- |
+| `ThinkTagFilter` class                          | `src/streaming.ts`     | Streaming state machine — processes text chunk-by-chunk, handles tags split across SSE boundaries |
+| `shouldStripThinkTags()`                        | `src/streaming.ts`     | Config resolution: `"auto"` → only `/^minimax-m/i` models, `"always"` → all, `"never"` → none     |
+| `createThinkTagFilter()`                        | `src/streaming.ts`     | Factory: returns `ThinkTagFilter \| undefined` based on mode + modelId                            |
+| `filterText()` method                           | Both extractor classes | Private helper: passes text through filter if active, passthrough otherwise                       |
+| `flushReasoningFallback()` update               | Both extractor classes | Calls `thinkFilter.finish()` to flush remaining buffer at stream end                              |
+| `stripThinkTags` in `StreamRequestOptions`      | `src/streaming.ts`     | New optional field on the streaming options interface                                             |
+| `stripThinkTags` threaded to all 4 stream calls | `src/extension.ts`     | `settings.stripThinkTags` passed to messages, responses, google, and chat-completions             |
+| `ApiSettings.stripThinkTags` type fix           | `src/extension.ts`     | `"auto" \| "on" \| "off"` → `"never" \| "auto" \| "always"` to match `package.json`               |
 
 ### ThinkTagFilter Design
 
@@ -87,40 +87,40 @@ The filter maintains two pieces of state:
 
 **Edge cases handled:**
 
-| Case | Behavior |
-|------|----------|
-| `<think>` split across chunks | `carry` buffer preserves partial tag, matched on next chunk |
-| `</think>` split across chunks | Same carry mechanism |
-| Unclosed `<think>` at end of stream | `finish()` flushes remaining carry as thinking content |
-| Leading whitespace after `<think>` | Single `\n` or `\r\n` skipped for cleaner reasoning capture |
-| Leading whitespace after `</think>` | Single `\n` or `\r\n` skipped for cleaner visible output |
-| No think tags in content | Passthrough — zero overhead |
+| Case                                | Behavior                                                    |
+| ----------------------------------- | ----------------------------------------------------------- |
+| `<think>` split across chunks       | `carry` buffer preserves partial tag, matched on next chunk |
+| `</think>` split across chunks      | Same carry mechanism                                        |
+| Unclosed `<think>` at end of stream | `finish()` flushes remaining carry as thinking content      |
+| Leading whitespace after `<think>`  | Single `\n` or `\r\n` skipped for cleaner reasoning capture |
+| Leading whitespace after `</think>` | Single `\n` or `\r\n` skipped for cleaner visible output    |
+| No think tags in content            | Passthrough — zero overhead                                 |
 
 ### Differences from PR #13 (v0.2.2)
 
-| Aspect | PR #13 (v0.2.2) | This Fix (v0.2.8) |
-|--------|-----------------|-------------------|
-| Class name | `processThinkTagsStream()` function | `ThinkTagFilter` class with `process()` + `finish()` |
-| Known-model regex | `/^minimax-/i` (all MiniMax) | `/^minimax-m/i` (M-series only) |
-| State management | `thinkOpenBuffer` string in extractor | Dedicated `carry` + `insideThink` in filter class |
-| Extraction | Inner think content discarded | Inner think content accumulated into `reasoningContent` |
-| Config type | Correct (`"never" \| "auto" \| "always"`) | Fixed (was wrong in `ApiSettings`, now matches) |
+| Aspect            | PR #13 (v0.2.2)                           | This Fix (v0.2.8)                                       |
+| ----------------- | ----------------------------------------- | ------------------------------------------------------- |
+| Class name        | `processThinkTagsStream()` function       | `ThinkTagFilter` class with `process()` + `finish()`    |
+| Known-model regex | `/^minimax-/i` (all MiniMax)              | `/^minimax-m/i` (M-series only)                         |
+| State management  | `thinkOpenBuffer` string in extractor     | Dedicated `carry` + `insideThink` in filter class       |
+| Extraction        | Inner think content discarded             | Inner think content accumulated into `reasoningContent` |
+| Config type       | Correct (`"never" \| "auto" \| "always"`) | Fixed (was wrong in `ApiSettings`, now matches)         |
 
 ---
 
 ## Changes
 
-| # | Change | Files | Impact |
-|---|--------|-------|--------|
-| P0 | New `ThinkTagFilter` class | `src/streaming.ts` | Streaming-safe `<think>` tag parser with carry buffer |
-| P1 | `shouldStripThinkTags()` + `createThinkTagFilter()` | `src/streaming.ts` | Config-gated model detection (auto/always/never) |
-| P2 | `thinkFilter` in `OpenAiResponseExtractor` | `src/streaming.ts` | Constructor param + `filterText()` method + wired into delta/message text extraction |
-| P3 | `thinkFilter` in `AnthropicResponseExtractor` | `src/streaming.ts` | Constructor param + `filterText()` method + wired into `content_block_start`, `content_block_delta`, and fallback paths |
-| P4 | `flushReasoningFallback()` flush | Both extractors | Calls `thinkFilter.finish()` at stream end to emit remaining visible text |
-| P5 | `stripThinkTags` in `StreamRequestOptions` | `src/streaming.ts` | New optional field on streaming interface |
-| P6 | All 4 stream entry points create filter | `src/streaming.ts` | `streamChatCompletions`, `streamAnthropicMessages`, `streamResponsesApi`, `streamGoogleGenerateContent` |
-| P7 | Thread `stripThinkTags` to all 4 calls | `src/extension.ts` | `settings.stripThinkTags` passed through |
-| P8 | Fix `ApiSettings.stripThinkTags` type | `src/extension.ts` | `"auto" \| "on" \| "off"` → `"never" \| "auto" \| "always"` |
+| #   | Change                                              | Files              | Impact                                                                                                                  |
+| --- | --------------------------------------------------- | ------------------ | ----------------------------------------------------------------------------------------------------------------------- |
+| P0  | New `ThinkTagFilter` class                          | `src/streaming.ts` | Streaming-safe `<think>` tag parser with carry buffer                                                                   |
+| P1  | `shouldStripThinkTags()` + `createThinkTagFilter()` | `src/streaming.ts` | Config-gated model detection (auto/always/never)                                                                        |
+| P2  | `thinkFilter` in `OpenAiResponseExtractor`          | `src/streaming.ts` | Constructor param + `filterText()` method + wired into delta/message text extraction                                    |
+| P3  | `thinkFilter` in `AnthropicResponseExtractor`       | `src/streaming.ts` | Constructor param + `filterText()` method + wired into `content_block_start`, `content_block_delta`, and fallback paths |
+| P4  | `flushReasoningFallback()` flush                    | Both extractors    | Calls `thinkFilter.finish()` at stream end to emit remaining visible text                                               |
+| P5  | `stripThinkTags` in `StreamRequestOptions`          | `src/streaming.ts` | New optional field on streaming interface                                                                               |
+| P6  | All 4 stream entry points create filter             | `src/streaming.ts` | `streamChatCompletions`, `streamAnthropicMessages`, `streamResponsesApi`, `streamGoogleGenerateContent`                 |
+| P7  | Thread `stripThinkTags` to all 4 calls              | `src/extension.ts` | `settings.stripThinkTags` passed through                                                                                |
+| P8  | Fix `ApiSettings.stripThinkTags` type               | `src/extension.ts` | `"auto" \| "on" \| "off"` → `"never" \| "auto" \| "always"`                                                             |
 
 ---
 

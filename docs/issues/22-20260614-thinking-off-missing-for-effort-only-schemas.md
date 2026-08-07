@@ -47,12 +47,14 @@ if (hasToggle) {                    // ← gated by hasToggle
 ```
 
 When a model from `models.dev` only has `{ type: "effort" }` without `{ type: "toggle" }`:
+
 - `hasToggle = false`
 - `effortValues = ["high", "max"]`
 - The `if (hasToggle)` block was **skipped** → "off" was never added
 - Result: picker showed only `High`, `Max` — no way to disable reasoning
 
 This did **not** affect:
+
 - Models using **family-based hardcoded** schemas (Priority 2) — those always include "off"
 - Models with **toggle + effort** — those had `hasToggle = true` so "off" was added
 - Models without reasoning support — no picker at all
@@ -61,19 +63,19 @@ This did **not** affect:
 
 Two changes to `buildFamilyThinkingSchema()` in `src/extension.ts`:
 
-| # | Change | Detail |
-|---|--------|--------|
-| 1 | Move "off" outside `hasToggle` guard | `enumOptions.push("off")` now runs **unconditionally** when `hasToggle || effortValues.length > 0` |
-| 2 | Add "on" for toggle-only models | New condition: `if (hasToggle && effortValues.length === 0)` adds `on` so toggle-only models get an `off`/`on` choice |
+| #   | Change                               | Detail                                                                                                                |
+| --- | ------------------------------------ | --------------------------------------------------------------------------------------------------------------------- |
+| 1   | Move "off" outside `hasToggle` guard | `enumOptions.push("off")` now runs **unconditionally** when `hasToggle                                                |     | effortValues.length > 0` |
+| 2   | Add "on" for toggle-only models      | New condition: `if (hasToggle && effortValues.length === 0)` adds `on` so toggle-only models get an `off`/`on` choice |
 
 ### Scenario matrix (before vs after)
 
-| Scenario | Before PR #38 | After PR #38 |
-|---|---|---|
+| Scenario                                       | Before PR #38                    | After PR #38            |
+| ---------------------------------------------- | -------------------------------- | ----------------------- |
 | Effort-only (DeepSeek V4 Flash: `high`, `max`) | ❌ `high`, `max` only — no "off" | ✅ `off`, `high`, `max` |
-| Toggle-only (toggle but no effort values) | ❌ `off` only — no "on" | ✅ `off`, `on` |
-| Toggle + effort | ✅ `off`, `low`, `med`, `high` | ✅ Unchanged |
-| Family hardcoded (DeepSeek family fallback) | ✅ `off`→`max` | ✅ Unchanged |
+| Toggle-only (toggle but no effort values)      | ❌ `off` only — no "on"          | ✅ `off`, `on`          |
+| Toggle + effort                                | ✅ `off`, `low`, `med`, `high`   | ✅ Unchanged            |
+| Family hardcoded (DeepSeek family fallback)    | ✅ `off`→`max`                   | ✅ Unchanged            |
 
 ## Files Changed
 

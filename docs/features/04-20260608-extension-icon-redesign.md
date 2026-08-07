@@ -17,6 +17,7 @@ Replaced the generic `</>` code-bracket extension icon with a creative, brand-al
 ## Problem
 
 The original extension icon was a generic code-editor design:
+
 - Navy background (#0F172A) with a hexagon shape
 - Blue/purple `</>` code brackets with a slash
 - Did not represent the OpenCode brand or identity
@@ -32,28 +33,31 @@ This was not representative of OpenCode as a product, making the extension indis
 
 Investigated the official OpenCode brand assets:
 
-| Source | Finding |
-|--------|---------|
-| `opencode.ai/brand` | Official brand page with logo/wordmark downloads |
-| `anomalyco/opencode` repo | Source code contains SVG logo components |
-| `packages/ui/src/components/logo.tsx` | **Mark** component — outer frame "O" shape + inner fill |
-| `packages/web/src/components/icons/custom.tsx` | `IconOpencode` — 70×70 viewBox, dual-path shape |
+| Source                                          | Finding                                                  |
+| ----------------------------------------------- | -------------------------------------------------------- |
+| `opencode.ai/brand`                             | Official brand page with logo/wordmark downloads         |
+| `anomalyco/opencode` repo                       | Source code contains SVG logo components                 |
+| `packages/ui/src/components/logo.tsx`           | **Mark** component — outer frame "O" shape + inner fill  |
+| `packages/web/src/components/icons/custom.tsx`  | `IconOpencode` — 70×70 viewBox, dual-path shape          |
 | `packages/stats/app/src/routes/stats-shell.tsx` | `OpenCodeMark` — 40×40 viewBox with 3-layer construction |
-| `packages/tui/src/logo.ts` | ASCII art logo for terminal UI |
+| `packages/tui/src/logo.ts`                      | ASCII art logo for terminal UI                           |
 
 ### Logo Mark Construction (from source)
 
 The official OpenCode Mark is built from two overlapping rectangles:
+
 1. **Outer frame** — large rectangle with a rectangular hole (forms "O" shape)
 2. **Inner fill** — smaller solid rectangle (creates depth/layering)
 
 From `packages/ui/src/components/logo.tsx`:
+
 ```tsx
 <path d="M12 16H4V8H12V16Z" fill="var(--icon-weak-base)" />  // shadow
 <path d="M12 4H4V16H12V4ZM16 20H0V0H16V20Z" fill="var(--icon-strong-base)" />  // main
 ```
 
 From `packages/stats/app/src/routes/stats-shell.tsx`:
+
 ```tsx
 <path d="M26 29H14V17H26V29Z" fill="var(--stats-logo-fill)" />  // inner
 <path d="M26 11H14V29H26V11ZM32 35H8V5H32V35Z" fill="var(--stats-logo-stroke)" />  // outer
@@ -66,6 +70,7 @@ From `packages/stats/app/src/routes/stats-shell.tsx`:
 ### Iteration 1: Exact Brand Match
 
 First attempt replaced the `</>` bracket with the official OpenCode Mark on a plain black (#0A0A0A) background:
+
 - Outer frame path: `M82 90H46V38H82V90ZM94 102H34V26H94V102Z` (white)
 - Inner fill: `<rect>` with 25% opacity white
 - Plain dark background with subtle gray border
@@ -78,18 +83,19 @@ Redesigned with multiple visual layers for a futuristic, AI-themed aesthetic whi
 
 **Design elements:**
 
-| Layer | Detail | Purpose |
-|-------|--------|---------|
-| Background gradient | Navy (#0F172A) → Indigo (#1E1B4B) diagonal | Depth, modern feel |
-| Grid pattern | 6×6 grid at 4% opacity (clipped to rounded rect) | "Terminal/code" atmosphere |
-| Glow ring | Gradient border (indigo) with 30% opacity | Frame accent |
-| OpenCode Mark | Glow-filtered gradient fill (#818CF8 → #4F46E5) | Brand identity with glow |
-| Inner accent | Cyan (#38BDF8) rect at 35% opacity | Depth, tech feel |
-| Sparkle top-right | Blue (#38BDF8) crosshair | "AI/magic" accent |
-| Sparkle bottom-left | Purple (#C084FC) crosshair at 60% opacity | Balance, flair |
-| Bottom reflection | Gradient line (cyan→purple) at 15% opacity | Futuristic polish |
+| Layer               | Detail                                           | Purpose                    |
+| ------------------- | ------------------------------------------------ | -------------------------- |
+| Background gradient | Navy (#0F172A) → Indigo (#1E1B4B) diagonal       | Depth, modern feel         |
+| Grid pattern        | 6×6 grid at 4% opacity (clipped to rounded rect) | "Terminal/code" atmosphere |
+| Glow ring           | Gradient border (indigo) with 30% opacity        | Frame accent               |
+| OpenCode Mark       | Glow-filtered gradient fill (#818CF8 → #4F46E5)  | Brand identity with glow   |
+| Inner accent        | Cyan (#38BDF8) rect at 35% opacity               | Depth, tech feel           |
+| Sparkle top-right   | Blue (#38BDF8) crosshair                         | "AI/magic" accent          |
+| Sparkle bottom-left | Purple (#C084FC) crosshair at 60% opacity        | Balance, flair             |
+| Bottom reflection   | Gradient line (cyan→purple) at 15% opacity       | Futuristic polish          |
 
 **SVG definitions used:**
+
 - `linearGradient` (3): background, glow, accent
 - `filter` (1): Gaussian blur glow effect
 - `clipPath` (1): rounded rect for grid clipping
@@ -98,17 +104,17 @@ Redesigned with multiple visual layers for a futuristic, AI-themed aesthetic whi
 
 ## Files Changed
 
-| # | File | Change | Size |
-|---|------|--------|------|
-| 1 | `media/opencodego.svg` | Complete redesign — old `</>` bracket → OpenCode Mark with creative effects | ~2.5 KB |
-| 2 | `media/opencodego.png` | Regenerated from SVG via `rsvg-convert -w 512 -h 512` | 30.9 KB |
+| #   | File                   | Change                                                                      | Size    |
+| --- | ---------------------- | --------------------------------------------------------------------------- | ------- |
+| 1   | `media/opencodego.svg` | Complete redesign — old `</>` bracket → OpenCode Mark with creative effects | ~2.5 KB |
+| 2   | `media/opencodego.png` | Regenerated from SVG via `rsvg-convert -w 512 -h 512`                       | 30.9 KB |
 
 ### File Size Comparison
 
-| File | Before | After | Delta |
-|------|--------|-------|-------|
+| File             | Before  | After   | Delta                                   |
+| ---------------- | ------- | ------- | --------------------------------------- |
 | `opencodego.png` | 10.5 KB | 30.9 KB | +20.4 KB (gradients/effects add detail) |
-| `opencodego.svg` | ~1.2 KB | ~2.5 KB | +1.3 KB (defs, gradients, filters) |
+| `opencodego.svg` | ~1.2 KB | ~2.5 KB | +1.3 KB (defs, gradients, filters)      |
 
 ---
 

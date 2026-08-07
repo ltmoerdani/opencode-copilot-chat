@@ -36,17 +36,17 @@ VS Code internally does `Math.ceil(tokens / 1_000_000)` for display, so the infl
 
 Several models had incorrect hardcoded context/output values:
 
-| Model | Old Context | Old Output | Correct Context | Correct Output | Source |
-|---|---:|---:|---:|---:|---|
-| `qwen3.6-plus-free` | 1,000,000 | ? | **262,144** | **65,536** | models.dev |
-| `glm-5.1` / `glm-5` | 202,752 | **32,768** | 202,752 | **131,072** | models.dev |
-| `minimax-m2.5` (Go) | 204,800 | **65,536** | 204,800 | **131,072** | models.dev |
-| `mimo-v2-omni` | 262,144 | **65,536** | 262,144 | **128,000** | models.dev |
-| `hy3-preview` | **262,144** | **128,000** | **256,000** | **64,000** | models.dev |
-| `ring-2.6-1t-free` | 262,144 | 65,536 | **262,000** | **66,000** | models.dev |
-| `nemotron-3-super-free` | **262,144** | **65,536** | **204,800** | **128,000** | models.dev |
-| `trinity-large-preview-free` | 262,144 | 65,536 | **131,072** | **131,072** | models.dev |
-| `big-pickle` | **262,144** | **65,536** | **200,000** | **128,000** | models.dev |
+| Model                        | Old Context |  Old Output | Correct Context | Correct Output | Source     |
+| ---------------------------- | ----------: | ----------: | --------------: | -------------: | ---------- |
+| `qwen3.6-plus-free`          |   1,000,000 |           ? |     **262,144** |     **65,536** | models.dev |
+| `glm-5.1` / `glm-5`          |     202,752 |  **32,768** |         202,752 |    **131,072** | models.dev |
+| `minimax-m2.5` (Go)          |     204,800 |  **65,536** |         204,800 |    **131,072** | models.dev |
+| `mimo-v2-omni`               |     262,144 |  **65,536** |         262,144 |    **128,000** | models.dev |
+| `hy3-preview`                | **262,144** | **128,000** |     **256,000** |     **64,000** | models.dev |
+| `ring-2.6-1t-free`           |     262,144 |      65,536 |     **262,000** |     **66,000** | models.dev |
+| `nemotron-3-super-free`      | **262,144** |  **65,536** |     **204,800** |    **128,000** | models.dev |
+| `trinity-large-preview-free` |     262,144 |      65,536 |     **131,072** |    **131,072** | models.dev |
+| `big-pickle`                 | **262,144** |  **65,536** |     **200,000** |    **128,000** | models.dev |
 
 ### Symptom 3 — Cross-Provider Contamination
 
@@ -160,12 +160,12 @@ const rawModelId = model.rawModelId ?? resolveRawModelId(model.id);
 
 ## Files Changed
 
-| File | Change |
-|------|--------|
-| `src/extension.ts` | `CAPACITY_LIMITED_MODEL_NOTES` rename, `advertisedContextWindow = contextWindow`, `rawModelId` for API calls |
-| `src/metadata.ts` | `MODEL_LIMITS_BY_PROVIDER` (per-vendor), `MODEL_METADATA_REVISION`, `toEffectiveModelId()`, `resolveRawModelId()`, `hasExplicitModelLimits()` |
-| `CHANGELOG.md` | `[0.1.3]` entry with all fixes |
-| `README.md` | Per-provider model limits tables, corrected values, updated advertisedContextWindow description |
+| File               | Change                                                                                                                                        |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/extension.ts` | `CAPACITY_LIMITED_MODEL_NOTES` rename, `advertisedContextWindow = contextWindow`, `rawModelId` for API calls                                  |
+| `src/metadata.ts`  | `MODEL_LIMITS_BY_PROVIDER` (per-vendor), `MODEL_METADATA_REVISION`, `toEffectiveModelId()`, `resolveRawModelId()`, `hasExplicitModelLimits()` |
+| `CHANGELOG.md`     | `[0.1.3]` entry with all fixes                                                                                                                |
+| `README.md`        | Per-provider model limits tables, corrected values, updated advertisedContextWindow description                                               |
 
 ---
 

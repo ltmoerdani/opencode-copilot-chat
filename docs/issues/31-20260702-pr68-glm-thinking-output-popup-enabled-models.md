@@ -50,14 +50,15 @@ Three calls to `this.getOutputChannel().show(true)` in `testConnection()` (succe
 
 The GLM family has **two generations** with different reasoning interfaces:
 
-| Model | Reasoning Interface | Accepted Values |
-|-------|-------------------|-----------------|
-| GLM 5, 5.1 | `thinking: { type: "enabled" \| "disabled" }` | Toggle |
-| GLM 5.2 | `reasoning_effort: "high" \| "max"` | Effort-based |
+| Model      | Reasoning Interface                           | Accepted Values |
+| ---------- | --------------------------------------------- | --------------- |
+| GLM 5, 5.1 | `thinking: { type: "enabled" \| "disabled" }` | Toggle          |
+| GLM 5.2    | `reasoning_effort: "high" \| "max"`           | Effort-based    |
 
 Before this fix, a single code path treated all GLM models identically. The setting enum `["on", "off"]` and `buildThinkingPayload` logic had no awareness of the model-generation split.
 
 **Evidence from models.dev (GLM 5.2):**
+
 ```json
 {
   "reasoning": true,
@@ -79,15 +80,16 @@ Before this fix, a single code path treated all GLM models identically. The sett
 
 ### #61 — GLM thinking with effort values
 
-| Change | Detail |
-|--------|--------|
-| `package.json` enum | `["on", "off"]` → `["off", "high", "max"]` |
-| `buildThinkingPayload` | GLM now sends `reasoning_effort: "high"\|"max"` instead of `thinking: { type: "enabled" }`. Only `"off"` maps to `thinking: { type: "disabled" }`. |
-| `buildFamilyThinkingSchema` | Split GLM and Kimi into separate blocks (were combined). GLM schema now exposes `off`/`high`/`max` with correct `enumItemLabels`. |
-| `showThinkingEffortPicker` | GLM label updated to include `glm-5.2`; options changed to `["off", "high", "max"]`. |
-| `validate-models.mts` | GLM tests now use `high`/`max` instead of `on`. |
+| Change                      | Detail                                                                                                                                             |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `package.json` enum         | `["on", "off"]` → `["off", "high", "max"]`                                                                                                         |
+| `buildThinkingPayload`      | GLM now sends `reasoning_effort: "high"\|"max"` instead of `thinking: { type: "enabled" }`. Only `"off"` maps to `thinking: { type: "disabled" }`. |
+| `buildFamilyThinkingSchema` | Split GLM and Kimi into separate blocks (were combined). GLM schema now exposes `off`/`high`/`max` with correct `enumItemLabels`.                  |
+| `showThinkingEffortPicker`  | GLM label updated to include `glm-5.2`; options changed to `["off", "high", "max"]`.                                                               |
+| `validate-models.mts`       | GLM tests now use `high`/`max` instead of `on`.                                                                                                    |
 
 **Behavioral mapping:**
+
 ```
 GLM 5.2 + glm="high"  → { reasoning_effort: "high" }
 GLM 5.2 + glm="max"   → { reasoning_effort: "max" }
@@ -116,32 +118,32 @@ const models = await this.fetchModels(apiKey);
 
 ## Files Changed
 
-| # | Change | Files | Impact |
-|---|--------|-------|--------|
-| P0 | GLM enum `on/off` → `off/high/max` | `package.json` | Setting now accepts valid GLM 5.2 effort values |
-| P0 | `buildThinkingPayload` GLM effort path | `src/thinking.ts` | GLM 5.2 gets `reasoning_effort`, older GLM gets same (gateway resolves) |
-| P0 | `buildFamilyThinkingSchema` GLM/Kimi split | `src/thinking.ts` | Per-model picker shows correct options per model generation |
-| P0 | `fetchModels` Authorization header | `src/extension.ts` | Model list now returns correct authorized models |
-| P0 | Remove 3x `show(true)` | `src/extension.ts` | Output panel no longer forces open on errors/tests |
-| P1 | Thinking effort picker GLM label | `src/extension.ts` | Options updated to `["off", "high", "max"]` |
-| P1 | `validate-models.mts` GLM tests | `scripts/validate-models.mts` | GLM validation uses `high`/`max` instead of `on` |
-| T1 | 105 lines of GLM thinking tests | `src/test/thinking.test.ts` | Covers `buildThinkingPayload`, `buildFamilyThinkingSchema`, `applyRequestThinkingOverride` for GLM effort values |
-| D1 | Issue doc | `docs/issues/31-20260702-pr68-...` | This document |
-| D2 | Thinking controls feature doc update | `docs/features/02-20260517-per-model-thinking-controls.md` | GLM row updated to reflect effort-based values |
-| D3 | Devlog entry | `docs/devlog.md` | This entry |
+| #   | Change                                     | Files                                                      | Impact                                                                                                           |
+| --- | ------------------------------------------ | ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| P0  | GLM enum `on/off` → `off/high/max`         | `package.json`                                             | Setting now accepts valid GLM 5.2 effort values                                                                  |
+| P0  | `buildThinkingPayload` GLM effort path     | `src/thinking.ts`                                          | GLM 5.2 gets `reasoning_effort`, older GLM gets same (gateway resolves)                                          |
+| P0  | `buildFamilyThinkingSchema` GLM/Kimi split | `src/thinking.ts`                                          | Per-model picker shows correct options per model generation                                                      |
+| P0  | `fetchModels` Authorization header         | `src/extension.ts`                                         | Model list now returns correct authorized models                                                                 |
+| P0  | Remove 3x `show(true)`                     | `src/extension.ts`                                         | Output panel no longer forces open on errors/tests                                                               |
+| P1  | Thinking effort picker GLM label           | `src/extension.ts`                                         | Options updated to `["off", "high", "max"]`                                                                      |
+| P1  | `validate-models.mts` GLM tests            | `scripts/validate-models.mts`                              | GLM validation uses `high`/`max` instead of `on`                                                                 |
+| T1  | 105 lines of GLM thinking tests            | `src/test/thinking.test.ts`                                | Covers `buildThinkingPayload`, `buildFamilyThinkingSchema`, `applyRequestThinkingOverride` for GLM effort values |
+| D1  | Issue doc                                  | `docs/issues/31-20260702-pr68-...`                         | This document                                                                                                    |
+| D2  | Thinking controls feature doc update       | `docs/features/02-20260517-per-model-thinking-controls.md` | GLM row updated to reflect effort-based values                                                                   |
+| D3  | Devlog entry                               | `docs/devlog.md`                                           | This entry                                                                                                       |
 
 ---
 
 ## Verification
 
-| Check | Result |
-|-------|--------|
-| `npm run compile` | ✅ 0 errors |
-| `npm test` (thinking.test.ts) | ✅ All GLM effort tests pass (payload, schema, override) |
+| Check                                   | Result                                                                            |
+| --------------------------------------- | --------------------------------------------------------------------------------- |
+| `npm run compile`                       | ✅ 0 errors                                                                       |
+| `npm test` (thinking.test.ts)           | ✅ All GLM effort tests pass (payload, schema, override)                          |
 | `validate-models.mts --dry-run` GLM 5.2 | ✅ `high` → `{ reasoning_effort: "high" }`, `max` → `{ reasoning_effort: "max" }` |
-| `validate-models.mts --dry-run` GLM 5.1 | ✅ `high` → `{ reasoning_effort: "high" }` (gateway resolves to toggle) |
-| Output panel popup | ✅ No longer forces open on connection test or request error |
-| Model list with auth header | ✅ Returns correct authorized model set |
+| `validate-models.mts --dry-run` GLM 5.1 | ✅ `high` → `{ reasoning_effort: "high" }` (gateway resolves to toggle)           |
+| Output panel popup                      | ✅ No longer forces open on connection test or request error                      |
+| Model list with auth header             | ✅ Returns correct authorized model set                                           |
 
 ---
 

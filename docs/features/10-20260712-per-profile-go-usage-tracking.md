@@ -55,19 +55,20 @@ Profile-based multi-account tracking. Each API key gets a named profile ("Profil
 
 Profile registry module. Core types and functions:
 
-| Export | Purpose |
-|--------|---------|
-| `UsageProfile` | Interface: `{ fingerprint, label, lastSeenAt }` |
-| `keyFingerprint(apiKey)` | Deterministic 8+8 char fingerprint from API key |
-| `readProfiles(ctx)` / `writeProfiles(ctx, profiles)` | CRUD for profile list in `globalState` |
-| `readActiveProfile(ctx)` / `writeActiveProfile(ctx, fp)` | Track which profile is active |
-| `findProfile(profiles, fp)` | Lookup by fingerprint |
-| `renameProfile(ctx, fp, newLabel)` | Rename a profile |
-| `getOrCreateProfile(ctx, fp)` | Auto-create on first request |
-| `readActiveProfiles(ctx)` | Filter out legacy singleton |
-| `nonLegacyCount(profiles)` | Count real (non-legacy) profiles |
+| Export                                                   | Purpose                                         |
+| -------------------------------------------------------- | ----------------------------------------------- |
+| `UsageProfile`                                           | Interface: `{ fingerprint, label, lastSeenAt }` |
+| `keyFingerprint(apiKey)`                                 | Deterministic 8+8 char fingerprint from API key |
+| `readProfiles(ctx)` / `writeProfiles(ctx, profiles)`     | CRUD for profile list in `globalState`          |
+| `readActiveProfile(ctx)` / `writeActiveProfile(ctx, fp)` | Track which profile is active                   |
+| `findProfile(profiles, fp)`                              | Lookup by fingerprint                           |
+| `renameProfile(ctx, fp, newLabel)`                       | Rename a profile                                |
+| `getOrCreateProfile(ctx, fp)`                            | Auto-create on first request                    |
+| `readActiveProfiles(ctx)`                                | Filter out legacy singleton                     |
+| `nonLegacyCount(profiles)`                               | Count real (non-legacy) profiles                |
 
 Storage keys:
+
 - `opencodego.profiles.v1` — profile registry array
 - `opencodego.activeProfile.v1` — active profile fingerprint
 - `opencodego.migratedTo.v1` — one-time migration flag
@@ -75,6 +76,7 @@ Storage keys:
 ### Modified: `src/goUsageTracker.ts`
 
 **Constructor change:**
+
 ```typescript
 constructor(
   private readonly context: vscode.ExtensionContext,
@@ -85,10 +87,12 @@ constructor(
 ```
 
 **Key additions:**
+
 - `storageKey(base)` — appends `.${suffix}` to storage keys for namespace isolation
 - `migrateFromSingleton()` — copies legacy singleton data (entries, baseline, session costs) into the new profile's namespaced storage. Called once during first multi-profile activation.
 
 **SQLite skip (the fix for issue #63's 5h bug):**
+
 ```typescript
 getSummary(): UsageSummary {
   const isPerProfile = this.storageKeySuffix.length > 0;
@@ -112,6 +116,7 @@ Same skip applied in `setManualSpentTargets()` for consistency.
 ### Modified: `src/extension.ts`
 
 **Profile lifecycle:**
+
 - `goUsageTrackers: Map<string, GoUsageTracker>` — per-profile tracker instances
 - `getOrCreateTracker(fingerprint)` — lazy-create tracker with namespaced storage
 - `activeGoUsageTracker()` — returns tracker for currently active profile
@@ -119,25 +124,30 @@ Same skip applied in `setManualSpentTargets()` for consistency.
 - `setActiveProfile(fingerprint)` — switch active profile + refresh UI
 
 **Model ID namespacing:**
+
 ```typescript
 const fp = keyFingerprint(apiKey);
 const fpEffectiveModelId = `${effectiveModelId}::${fp}`;
 ```
+
 Two Manage Language Models entries with the same vendor now produce distinct model IDs, preventing the `apiKeysByModelId` map from overwriting keys.
 
 **UI updates:**
+
 - Status bar: shows `[Profile 1]` suffix when2+ profiles exist
 - SVG hover card: title includes profile name
 - QuickPick: profile switching section when2+ profiles (active marked with ✓, others are clickable)
 - Webview: profile-aware title and content
 
 **New commands:**
+
 - `opencodego.renameActiveProfile` — rename via input box
 - `opencodego.deleteProfile` — select from list, confirm, then delete with cleanup
 
 ### New file: `src/test/usageProfile.test.ts`
 
 Unit tests covering:
+
 - `keyFingerprint`: empty input, 8+8 extraction, stability
 - Profile registry: empty state, round-trip, find, rename
 - Active profile: default to legacy, round-trip

@@ -40,12 +40,12 @@ The fix is to set `chat.byokUtilityModelDefault = "mainAgent"` in VS Code global
 
 ## 2. Environment
 
-| Component | Version |
-|---|---|
-| VS Code | **1.128.0** (stable, July 8, 2026) |
-| OS | macOS (Darwin arm64) |
-| Extension | `ltmoerdani.opencode-copilot-chat` — affected on any version ≤0.3.5 without this patch |
-| GitHub Copilot | Signed in (but BYOK model selected as main agent) |
+| Component      | Version                                                                                |
+| -------------- | -------------------------------------------------------------------------------------- |
+| VS Code        | **1.128.0** (stable, July 8, 2026)                                                     |
+| OS             | macOS (Darwin arm64)                                                                   |
+| Extension      | `ltmoerdani.opencode-copilot-chat` — affected on any version ≤0.3.5 without this patch |
+| GitHub Copilot | Signed in (but BYOK model selected as main agent)                                      |
 
 ---
 
@@ -55,11 +55,11 @@ The fix is to set `chat.byokUtilityModelDefault = "mainAgent"` in VS Code global
 
 VS Code 1.128 introduced a new setting ([release notes](https://code.visualstudio.com/updates/v1_128#_configure-the-default-utility-model-for-byok)):
 
-| Property | Value |
-|---|---|
-| **Key** | `chat.byokUtilityModelDefault` |
-| **Type** | `string` |
-| **Default** | `"none"` |
+| Property         | Value                                  |
+| ---------------- | -------------------------------------- |
+| **Key**          | `chat.byokUtilityModelDefault`         |
+| **Type**         | `string`                               |
+| **Default**      | `"none"`                               |
 | **Valid values** | `"none"` · `"mainAgent"` · `"copilot"` |
 
 **Before 1.128:** When a BYOK model was the main agent, VS Code silently fell back to `copilot-utility-small` for utility tasks (title generation, commit messages, etc.).
@@ -68,9 +68,9 @@ VS Code 1.128 introduced a new setting ([release notes](https://code.visualstudi
 
 ### Two other related settings (unchanged since earlier VS Code versions)
 
-| Setting | Purpose |
-|---|---|
-| `chat.utilityModel` | Override the model for general utility flows (titles, summaries, Git review). Takes precedence over `byokUtilityModelDefault`. |
+| Setting                  | Purpose                                                                                                                                                 |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `chat.utilityModel`      | Override the model for general utility flows (titles, summaries, Git review). Takes precedence over `byokUtilityModelDefault`.                          |
 | `chat.utilitySmallModel` | Override the model for fast lightweight flows (commit messages, rename suggestions, intent detection). Takes precedence over `byokUtilityModelDefault`. |
 
 `chat.byokUtilityModelDefault` is a **blanket fallback** — it activates only when neither of the two explicit settings above is configured.
@@ -90,6 +90,7 @@ This confirmed the error is a **platform behavior change**, not a bug in the ext
 ### Choosing the correct remedy
 
 Three possible remedies:
+
 1. Set `chat.utilitySmallModel` to a specific OpenCode model ID → requires knowing the VS Code-internal model ID format, fragile if the user changes their default model.
 2. Set `chat.utilityModel` to a specific OpenCode model ID → same problem.
 3. Set `chat.byokUtilityModelDefault = "mainAgent"` → VS Code reuses whatever BYOK model is currently selected as the main agent. **No model ID needed. Robust.**
@@ -144,6 +145,7 @@ Error resolved. Background tasks (chat title generation, commit messages, intent
 **Setting:** `chat.byokUtilityModelDefault = "mainAgent"` written to `ConfigurationTarget.Global` (user `settings.json`).
 
 **Behavior:**
+
 - On VS Code 1.128+, the extension checks if any utility model is already explicitly configured (`byokUtilityModelDefault`, `utilitySmallModel`, `utilityModel`).
 - If none is configured (or if `byokUtilityModelDefault` is still `"none"`, the default), the extension automatically writes `"mainAgent"`.
 - After the write, a one-time toast notification confirms what was changed.
@@ -157,9 +159,10 @@ Error resolved. Background tasks (chat title generation, commit messages, intent
 
 ### Why `"mainAgent"` works
 
-`chat.byokUtilityModelDefault = "mainAgent"` tells VS Code's Copilot Chat extension: *"when a BYOK model is selected as main agent and a utility task needs a model, reuse the main agent model."*
+`chat.byokUtilityModelDefault = "mainAgent"` tells VS Code's Copilot Chat extension: _"when a BYOK model is selected as main agent and a utility task needs a model, reuse the main agent model."_
 
 This is the correct behavior for a BYOK-only extension like opencode-copilot-chat because:
+
 - The user has already selected an OpenCode model as their main agent.
 - Utility tasks (commit messages, etc.) are low-token, fast operations any model handles well.
 - No separate model ID needs to be specified — VS Code resolves the model at call time from the current main agent selection.
@@ -167,6 +170,7 @@ This is the correct behavior for a BYOK-only extension like opencode-copilot-cha
 ### Why `"mainModel"` silently fails
 
 VS Code processes configuration settings through a schema validator. When a `string` setting has an `enum` array and the provided value is not in the enum, VS Code:
+
 1. Writes the value to `settings.json` as-is (no write error).
 2. At runtime, reads the value and checks it against the enum.
 3. If the value is not in the enum, falls back to `default` (`"none"`).
@@ -213,8 +217,8 @@ function checkUtilityModelConfiguration(context: vscode.ExtensionContext): void 
   if (major < 1 || (major === 1 && minor < 128)) return;
 
   const chat = vscode.workspace.getConfiguration("chat");
-  const byokDefault    = chat.get<string>("byokUtilityModelDefault", "");
-  const utilitySmall   = chat.get<string>("utilitySmallModel", "");
+  const byokDefault = chat.get<string>("byokUtilityModelDefault", "");
+  const utilitySmall = chat.get<string>("utilitySmallModel", "");
   const utilityGeneral = chat.get<string>("utilityModel", "");
 
   // Treat VS Code's schema default values as "not configured"
@@ -224,17 +228,15 @@ function checkUtilityModelConfiguration(context: vscode.ExtensionContext): void 
     (utilityGeneral !== "" && utilityGeneral !== undefined && utilityGeneral !== "Default");
   if (isConfigured) return;
 
-  void chat
-    .update("byokUtilityModelDefault", "mainAgent", vscode.ConfigurationTarget.Global)
-    .then(() => {
-      const NOTICE_KEY = "opencode.utilityModelAutoFixed.v1128";
-      if (context.globalState.get<boolean>(NOTICE_KEY)) return;
-      void context.globalState.update(NOTICE_KEY, true);
-      void vscode.window.showInformationMessage(
-        "OpenCode: Automatically fixed VS Code 1.128 utility model setting. " +
-          "Background tasks (chat titles, commit messages) now use your OpenCode model.",
-      );
-    });
+  void chat.update("byokUtilityModelDefault", "mainAgent", vscode.ConfigurationTarget.Global).then(() => {
+    const NOTICE_KEY = "opencode.utilityModelAutoFixed.v1128";
+    if (context.globalState.get<boolean>(NOTICE_KEY)) return;
+    void context.globalState.update(NOTICE_KEY, true);
+    void vscode.window.showInformationMessage(
+      "OpenCode: Automatically fixed VS Code 1.128 utility model setting. " +
+        "Background tasks (chat titles, commit messages) now use your OpenCode model.",
+    );
+  });
 }
 ```
 
@@ -264,6 +266,7 @@ void warmModelPickerMetadata();
 ### For extension developers targeting BYOK / Language Model Provider API
 
 1. **Never guess enum values from prose documentation.** Always extract them from VS Code source or the installed binary:
+
    ```bash
    python3 -c "
    import re
@@ -282,11 +285,13 @@ void warmModelPickerMetadata();
 ### For users
 
 If you see `"No utility model is configured for 'copilot-utility-small'"` after updating VS Code to 1.128:
+
 1. Ensure the latest extension version is installed.
 2. Reload VS Code window (`Cmd+Shift+P` → **Reload Window**).
 3. The extension will auto-apply `chat.byokUtilityModelDefault = "mainAgent"` and show a brief toast.
 
 If the error persists, check `settings.json` manually:
+
 ```bash
 python3 -c "
 import json, os
@@ -295,4 +300,5 @@ data = json.loads(open(path).read())
 print(data.get('chat.byokUtilityModelDefault', '(not set)'))
 "
 ```
+
 Expected output: `mainAgent`. If it shows anything else, set it manually in VS Code Settings UI (search `chat.byokUtilityModelDefault`, select **Use main agent model**).

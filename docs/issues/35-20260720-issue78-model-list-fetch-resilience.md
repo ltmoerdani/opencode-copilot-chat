@@ -46,13 +46,13 @@ The fix adds a 15s per-attempt timeout, exponential retry (3 attempts) for trans
 
 ## 2. Reporter Environment
 
-| Component | Value |
-|---|---|
-| VS Code | **1.129.0** |
-| OS | (not specified in report) |
-| Extension | `ltmoerdani.opencode-copilot-chat` 0.4.1 |
-| Symptom | Both `opencodego` and `opencodezen` providers fail to fetch; Zen list briefly flashes then vanishes |
-| Comparison | `opencode zen list` (CLI) returns the full list correctly |
+| Component  | Value                                                                                               |
+| ---------- | --------------------------------------------------------------------------------------------------- |
+| VS Code    | **1.129.0**                                                                                         |
+| OS         | (not specified in report)                                                                           |
+| Extension  | `ltmoerdani.opencode-copilot-chat` 0.4.1                                                            |
+| Symptom    | Both `opencodego` and `opencodezen` providers fail to fetch; Zen list briefly flashes then vanishes |
+| Comparison | `opencode zen list` (CLI) returns the full list correctly                                           |
 
 ---
 
@@ -62,11 +62,11 @@ The fix adds a 15s per-attempt timeout, exponential retry (3 attempts) for trans
 
 Node's global `fetch` is backed by [undici](https://github.com/nodejs/undici). The default `Dispatcher` ships with:
 
-| Option | Default | Effect |
-|---|---|---|
+| Option           | Default   | Effect                                                    |
+| ---------------- | --------- | --------------------------------------------------------- |
 | `headersTimeout` | **300 s** | Wait up to 5 minutes for response headers before throwing |
-| `bodyTimeout` | **300 s** | Wait up to 5 minutes between body chunks |
-| connect timeout | **none** | A TCP connect that never returns can hang indefinitely |
+| `bodyTimeout`    | **300 s** | Wait up to 5 minutes between body chunks                  |
+| connect timeout  | **none**  | A TCP connect that never returns can hang indefinitely    |
 
 `TypeError: fetch failed` is undici's generic wrapper. The real cause is always attached as `error.cause` and is one of `ECONNRESET`, `ECONNREFUSED`, `EAI_AGAIN`, `UND_ERR_CONNECT_TIMEOUT`, etc.
 
@@ -140,8 +140,8 @@ Six coordinated changes in `src/extension.ts`:
 
 ### 6.1 File map
 
-| File | Change |
-|---|---|
+| File               | Change                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `src/extension.ts` | Replace hardcoded `OPEN_CODE_USER_AGENT` with `getUserAgent()`; add `FALLBACK_USER_AGENT`, `MODEL_LIST_FETCH_TIMEOUT_MS`, `MODEL_LIST_FETCH_MAX_RETRIES`, `MODEL_LIST_FETCH_RETRY_BASE_MS`, `MODEL_LIST_CACHE_TTL_MS`, `MODEL_LIST_CACHE_KEY_PREFIX`; add helpers `getUserAgent()`, `isTransientFetchError()`, `sleep()`. Rewrite `OpenCodeProvider.fetchModels()`; add `cachedModelList` field + `modelListCacheKey` getter + `signalFromToken()`, `errMsg()`, `fallbackModelList()`, `loadCachedModelList()` helpers. Thread `token` from `provideLanguageModelChatInformation`. Pass stored API key in `refreshMetadataAndModels()`. |
 
 ### 6.2 Key new constant
@@ -149,8 +149,8 @@ Six coordinated changes in `src/extension.ts`:
 ```ts
 const MODEL_LIST_FETCH_TIMEOUT_MS = 15_000;
 const MODEL_LIST_FETCH_MAX_RETRIES = 3;
-const MODEL_LIST_FETCH_RETRY_BASE_MS = 500;        // 500ms, 1s, 2s
-const MODEL_LIST_CACHE_TTL_MS = 60 * 60 * 1000;    // 1 hour
+const MODEL_LIST_FETCH_RETRY_BASE_MS = 500; // 500ms, 1s, 2s
+const MODEL_LIST_CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
 ```
 
 ### 6.3 Retry classification
@@ -186,16 +186,16 @@ function isTransientFetchError(error: unknown): boolean {
 
 ## 7. Behavior Matrix
 
-| Scenario | Pre-fix | Post-fix |
-|---|---|---|
-| Healthy network | Live list | Live list (cached) |
-| Slow DNS (`EAI_AGAIN`) at startup | Bundled list (after up to 5 min hang) | Live list after 1–2 retries (≤1.5 s extra) |
-| Stale keep-alive socket (`ECONNRESET`) | Bundled list | Live list after 1 retry (500 ms) |
-| Gateway 503 burst | Bundled list | Live list after retry, or cached if 503s persist |
-| Gateway 401/403 (bad key) | Bundled list (silent) | Cached if available, else bundled; no retry on 4xx |
-| VS Code cancels resolution mid-fetch | In-flight fetch keeps running | Aborted via `AbortSignal.any`, returns cached/bundled |
-| Sustained outage >1h | Bundled list | Bundled list (cache TTL expired) |
-| VS Code 1.129 agent-host concurrent calls | Flash/disappear race | Each call hits cache after first success; picker stable |
+| Scenario                                  | Pre-fix                               | Post-fix                                                |
+| ----------------------------------------- | ------------------------------------- | ------------------------------------------------------- |
+| Healthy network                           | Live list                             | Live list (cached)                                      |
+| Slow DNS (`EAI_AGAIN`) at startup         | Bundled list (after up to 5 min hang) | Live list after 1–2 retries (≤1.5 s extra)              |
+| Stale keep-alive socket (`ECONNRESET`)    | Bundled list                          | Live list after 1 retry (500 ms)                        |
+| Gateway 503 burst                         | Bundled list                          | Live list after retry, or cached if 503s persist        |
+| Gateway 401/403 (bad key)                 | Bundled list (silent)                 | Cached if available, else bundled; no retry on 4xx      |
+| VS Code cancels resolution mid-fetch      | In-flight fetch keeps running         | Aborted via `AbortSignal.any`, returns cached/bundled   |
+| Sustained outage >1h                      | Bundled list                          | Bundled list (cache TTL expired)                        |
+| VS Code 1.129 agent-host concurrent calls | Flash/disappear race                  | Each call hits cache after first success; picker stable |
 
 ---
 
@@ -235,11 +235,11 @@ The maintainer's first reply had told the reporter to "run `OpenCode Go: Refresh
 
 Three new top-level commands are registered in `activate()` and declared in `package.json` `contributes.commands`:
 
-| Command | Behavior |
-|---|---|
-| `OpenCode Go: Refresh Models` | Skips the Manage Provider QuickPick. Goes straight to a fresh model-list fetch + `changeEmitter.fire()` so VS Code re-resolves the picker. Falls back to `setApiKey()` if no key is stored. |
-| `OpenCode Zen: Manage Provider` | Parity with Go. Opens the same QuickPick (Set / Clear / Test / Refresh). |
-| `OpenCode Zen: Refresh Models` | Same as the Go refresh command, scoped to Zen. |
+| Command                         | Behavior                                                                                                                                                                                    |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `OpenCode Go: Refresh Models`   | Skips the Manage Provider QuickPick. Goes straight to a fresh model-list fetch + `changeEmitter.fire()` so VS Code re-resolves the picker. Falls back to `setApiKey()` if no key is stored. |
+| `OpenCode Zen: Manage Provider` | Parity with Go. Opens the same QuickPick (Set / Clear / Test / Refresh).                                                                                                                    |
+| `OpenCode Zen: Refresh Models`  | Same as the Go refresh command, scoped to Zen.                                                                                                                                              |
 
 Implementation: a new public `refreshModels()` method on `OpenCodeProvider` wraps the private `refreshMetadataAndModels()` + `changeEmitter.fire()` + toast. `manage()`'s "Refresh Models" action now delegates to this method (single source of truth). No change to existing `opencodego.manage` behavior — backward compatible.
 

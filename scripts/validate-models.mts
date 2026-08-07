@@ -62,9 +62,9 @@ const TIMEOUT_MS = Number(args.timeout) || 30000;
 const INCLUDE_GO = args.go !== false;
 const INCLUDE_ZEN_FREE = args["zen-free"] !== false;
 const INCLUDE_ZEN_PAID = args["zen-paid"] === true;
-const FAMILIES_FILTER = args.families?.split(",").map(f => f.trim().toLowerCase());
-const MODELS_FILTER = args.models?.split(",").map(m => m.trim());
-const SKIP_MODELS = new Set(args["skip-models"]?.split(",").map(m => m.trim()) ?? []);
+const FAMILIES_FILTER = args.families?.split(",").map((f) => f.trim().toLowerCase());
+const MODELS_FILTER = args.models?.split(",").map((m) => m.trim());
+const SKIP_MODELS = new Set(args["skip-models"]?.split(",").map((m) => m.trim()) ?? []);
 const DRY_RUN = args["dry-run"] === true;
 const OUTPUT_JSON = args.json === true;
 
@@ -202,9 +202,22 @@ function buildThinkingTests(model: ModelInfo): ParamTest[] {
 
 async function testParameter(model: ModelInfo, test: ParamTest): Promise<TestResult> {
   // Build the provider definition matching what the extension uses
-  const provider = model.vendor === "go"
-    ? { chatCompletionsUrl: `${GO_BASE}/chat/completions`, messagesUrl: `${GO_BASE}/messages`, responsesUrl: `${GO_BASE}/responses`, modelsUrl: `${GO_BASE}/models`, vendor: "opencodego" as const }
-    : { chatCompletionsUrl: `${ZEN_BASE}/chat/completions`, messagesUrl: `${ZEN_BASE}/messages`, responsesUrl: `${ZEN_BASE}/responses`, modelsUrl: `${ZEN_BASE}/models`, vendor: "opencodezen" as const };
+  const provider =
+    model.vendor === "go"
+      ? {
+          chatCompletionsUrl: `${GO_BASE}/chat/completions`,
+          messagesUrl: `${GO_BASE}/messages`,
+          responsesUrl: `${GO_BASE}/responses`,
+          modelsUrl: `${GO_BASE}/models`,
+          vendor: "opencodego" as const,
+        }
+      : {
+          chatCompletionsUrl: `${ZEN_BASE}/chat/completions`,
+          messagesUrl: `${ZEN_BASE}/messages`,
+          responsesUrl: `${ZEN_BASE}/responses`,
+          modelsUrl: `${ZEN_BASE}/models`,
+          vendor: "opencodezen" as const,
+        };
 
   // Use extension's routing to determine endpoint
   const routing = resolveModelRouting(model.id, provider);
@@ -258,9 +271,25 @@ async function testParameter(model: ModelInfo, test: ParamTest): Promise<TestRes
     };
   } catch (err) {
     if (err instanceof Error && err.name === "AbortError") {
-      return { model: model.id, vendor: model.vendor, family: model.family, param: test.name, status: "❌", httpStatus: 0, error: "Timeout" };
+      return {
+        model: model.id,
+        vendor: model.vendor,
+        family: model.family,
+        param: test.name,
+        status: "❌",
+        httpStatus: 0,
+        error: "Timeout",
+      };
     }
-    return { model: model.id, vendor: model.vendor, family: model.family, param: test.name, status: "❌", httpStatus: 0, error: err instanceof Error ? err.message : String(err) };
+    return {
+      model: model.id,
+      vendor: model.vendor,
+      family: model.family,
+      param: test.name,
+      status: "❌",
+      httpStatus: 0,
+      error: err instanceof Error ? err.message : String(err),
+    };
   }
 }
 
@@ -270,19 +299,22 @@ async function testParameter(model: ModelInfo, test: ParamTest): Promise<TestRes
 
 interface ModelsDevResponse {
   [provider: string]: {
-    models: Record<string, {
-      status?: string;
-      reasoning?: boolean;
-      reasoning_options?: Array<{ type?: string; values?: string[] }>;
-      temperature?: boolean;
-    }>;
+    models: Record<
+      string,
+      {
+        status?: string;
+        reasoning?: boolean;
+        reasoning_options?: Array<{ type?: string; values?: string[] }>;
+        temperature?: boolean;
+      }
+    >;
   };
 }
 
 async function fetchModels(): Promise<ModelInfo[]> {
   const response = await fetch(MODELS_DEV_URL);
   if (!response.ok) throw new Error(`models.dev: ${response.status}`);
-  const data = await response.json() as ModelsDevResponse;
+  const data = (await response.json()) as ModelsDevResponse;
   const models: ModelInfo[] = [];
 
   const goProvider = data["opencode-go"];
@@ -292,7 +324,14 @@ async function fetchModels(): Promise<ModelInfo[]> {
       if (MODELS_FILTER && !MODELS_FILTER.includes(id)) continue;
       const family = detectFamily(id);
       if (FAMILIES_FILTER && !FAMILIES_FILTER.includes(family)) continue;
-      models.push({ id, vendor: "go", family, reasoning: info.reasoning ?? false, reasoningOptions: info.reasoning_options, temperature: info.temperature !== false });
+      models.push({
+        id,
+        vendor: "go",
+        family,
+        reasoning: info.reasoning ?? false,
+        reasoningOptions: info.reasoning_options,
+        temperature: info.temperature !== false,
+      });
     }
   }
 
@@ -308,7 +347,14 @@ async function fetchModels(): Promise<ModelInfo[]> {
       if (!INCLUDE_ZEN_PAID && !isFree) continue;
       if (!INCLUDE_ZEN_FREE && isFree) continue;
       if (goModelIds.has(id)) continue;
-      models.push({ id, vendor: "zen", family, reasoning: info.reasoning ?? false, reasoningOptions: info.reasoning_options, temperature: info.temperature !== false });
+      models.push({
+        id,
+        vendor: "zen",
+        family,
+        reasoning: info.reasoning ?? false,
+        reasoningOptions: info.reasoning_options,
+        temperature: info.temperature !== false,
+      });
     }
   }
 
@@ -338,15 +384,17 @@ function formatReport(results: TestResult[], models: ModelInfo[]): string {
   lines.push("|--------|--------|-------|---------|---------|-------|");
 
   for (const [family, familyResults] of [...byFamily.entries()].sort()) {
-    const modelCount = new Set(familyResults.map(r => r.model)).size;
-    const pass = familyResults.filter(r => r.status === "✅").length;
-    const fail = familyResults.filter(r => r.status === "❌").length;
-    const failModels = [...new Set(familyResults.filter(r => r.status === "❌").map(r => r.model))];
-    lines.push(`| ${family} | ${modelCount} | ${familyResults.length} | ${pass} | ${fail} | ${failModels.length > 0 ? failModels.join(", ") : "—"} |`);
+    const modelCount = new Set(familyResults.map((r) => r.model)).size;
+    const pass = familyResults.filter((r) => r.status === "✅").length;
+    const fail = familyResults.filter((r) => r.status === "❌").length;
+    const failModels = [...new Set(familyResults.filter((r) => r.status === "❌").map((r) => r.model))];
+    lines.push(
+      `| ${family} | ${modelCount} | ${familyResults.length} | ${pass} | ${fail} | ${failModels.length > 0 ? failModels.join(", ") : "—"} |`,
+    );
   }
   lines.push("");
 
-  const failures = results.filter(r => r.status === "❌");
+  const failures = results.filter((r) => r.status === "❌");
   if (failures.length > 0) {
     lines.push("## ❌ Failures");
     lines.push("");
@@ -368,9 +416,9 @@ function formatReport(results: TestResult[], models: ModelInfo[]): string {
   }
 
   for (const [modelId, modelResults] of [...byModel.entries()].sort()) {
-    const model = models.find(m => m.id === modelId);
-    const pass = modelResults.filter(r => r.status === "✅").length;
-    const fail = modelResults.filter(r => r.status === "❌").length;
+    const model = models.find((m) => m.id === modelId);
+    const pass = modelResults.filter((r) => r.status === "✅").length;
+    const fail = modelResults.filter((r) => r.status === "❌").length;
     lines.push(`### ${modelId} (${model?.vendor}/${model?.family}) — ${pass}✅ ${fail}❌`);
     lines.push("");
     for (const r of modelResults) {
@@ -415,10 +463,10 @@ async function main() {
     process.stderr.write(`[${i + 1}/${models.length}] ${model.vendor}/${model.id} (${tests.length} params)… `);
 
     if (DRY_RUN) {
-      const summaries = tests.map(t => {
+      const summaries = tests.map((t) => {
         const thinking: ThinkingSettings = { ...DEFAULT_SETTINGS, ...t.settings };
         const payload = buildThinkingPayload(model.id, thinking, t.hasImageInput);
-        const fields = Object.keys(payload).filter(k => k !== "model");
+        const fields = Object.keys(payload).filter((k) => k !== "model");
         return `${t.name} → ${fields.length > 0 ? JSON.stringify(payload) : "(no thinking params)"}`;
       });
       console.log(`  ${model.id}:\n    ${summaries.join("\n    ")}`);
@@ -433,7 +481,7 @@ async function main() {
       testCount++;
       if (result.status === "✅") pass++;
       else fail++;
-      await new Promise(r => setTimeout(r, 300));
+      await new Promise((r) => setTimeout(r, 300));
     }
 
     console.error(fail === 0 ? `✅ ${pass}/${pass}` : `❌ ${fail} failed`);
@@ -447,7 +495,7 @@ async function main() {
     console.log(formatReport(results, models));
   }
 
-  const failures = results.filter(r => r.status === "❌");
+  const failures = results.filter((r) => r.status === "❌");
   console.error(`\n📊 Total: ${testCount} tests, ${testCount - failures.length} passed, ${failures.length} failed`);
 
   if (failures.length > 0) process.exit(1);

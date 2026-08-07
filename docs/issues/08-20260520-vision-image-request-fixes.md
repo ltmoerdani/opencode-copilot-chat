@@ -59,7 +59,7 @@ git status --short
 `convertMessage()` handled `vscode.LanguageModelDataPart` image input by converting bytes with:
 
 ```ts
-btoa(String.fromCodePoint(...part.data))
+btoa(String.fromCodePoint(...part.data));
 ```
 
 This spreads every image byte as a separate function argument. For sufficiently large image attachments, JavaScript exceeds the maximum call stack / argument limit before the request can be sent to OpenCode.
@@ -99,10 +99,10 @@ Only the encoding mechanism changed.
 
 **Files changed:**
 
-| File | Change |
-|---|---|
+| File               | Change                                                                              |
+| ------------------ | ----------------------------------------------------------------------------------- |
 | `src/extension.ts` | Added `dataPartToBase64()` and used it for image `LanguageModelDataPart` conversion |
-| `out/extension.js` | Rebuilt compiled extension output through TypeScript |
+| `out/extension.js` | Rebuilt compiled extension output through TypeScript                                |
 
 **Verification:**
 
@@ -208,14 +208,14 @@ The image encoding fix worked. The request now reached OpenCode and the Alibaba-
 
 **Observed request context:**
 
-| Field | Value |
-|---|---|
-| Model | `qwen3.5-plus` |
-| Endpoint | `/chat/completions` |
-| Image payload size | about 118-121 KB JSON payload |
-| Qwen thinking mode | `auto` |
-| Qwen thinking budget | `16384` |
-| Sent thinking payload | `{"thinking_budget":16384}` |
+| Field                 | Value                         |
+| --------------------- | ----------------------------- |
+| Model                 | `qwen3.5-plus`                |
+| Endpoint              | `/chat/completions`           |
+| Image payload size    | about 118-121 KB JSON payload |
+| Qwen thinking mode    | `auto`                        |
+| Qwen thinking budget  | `16384`                       |
+| Sent thinking payload | `{"thinking_budget":16384}`   |
 
 Some retries returned `200 OK` and streamed tool calls, while later image/tool-history turns returned `429`. This indicated provider capacity/quota pressure rather than a deterministic local serialization crash.
 
@@ -241,10 +241,7 @@ Add request-level image detection:
 
 ```ts
 function messagesHaveImages(messages: readonly ApiMessage[]): boolean {
-  return messages.some((message) =>
-    Array.isArray(message.content)
-    && message.content.some((part) => part.type === "image_url")
-  );
+  return messages.some((message) => Array.isArray(message.content) && message.content.some((part) => part.type === "image_url"));
 }
 ```
 
@@ -262,9 +259,7 @@ if (thinking.qwen === "auto") {
   if (hasImageInput) {
     return {};
   }
-  return thinking.qwenBudget === "auto"
-    ? {}
-    : { thinking_budget: Number(thinking.qwenBudget) };
+  return thinking.qwenBudget === "auto" ? {} : { thinking_budget: Number(thinking.qwenBudget) };
 }
 ```
 
@@ -423,27 +418,27 @@ A model should be advertised as image-capable only when the relevant OpenCode pr
 
 **Models kept as `Vision`:**
 
-| Model | Reason |
-|---|---|
-| `kimi-k2.5` | OpenCode Go metadata supports image attachment |
-| `kimi-k2.6` | OpenCode Go metadata supports image attachment |
-| `mimo-v2.5` | OpenCode Go metadata supports image attachment |
-| `mimo-v2-omni` | OpenCode Go metadata supports image attachment |
-| `qwen3.5-plus` | OpenCode Go metadata supports image attachment |
-| `qwen3.6-plus` | OpenCode Go/OpenCode Zen metadata supports image attachment |
-| `qwen3.6-plus-free` | OpenCode Zen metadata supports image attachment |
+| Model               | Reason                                                      |
+| ------------------- | ----------------------------------------------------------- |
+| `kimi-k2.5`         | OpenCode Go metadata supports image attachment              |
+| `kimi-k2.6`         | OpenCode Go metadata supports image attachment              |
+| `mimo-v2.5`         | OpenCode Go metadata supports image attachment              |
+| `mimo-v2-omni`      | OpenCode Go metadata supports image attachment              |
+| `qwen3.5-plus`      | OpenCode Go metadata supports image attachment              |
+| `qwen3.6-plus`      | OpenCode Go/OpenCode Zen metadata supports image attachment |
+| `qwen3.6-plus-free` | OpenCode Zen metadata supports image attachment             |
 
 **Models removed from `Vision`:**
 
-| Model | Metadata finding |
-|---|---|
-| `glm-5` | `attachment: false`, input only `text` |
-| `glm-5.1` | `attachment: false`, input only `text` |
-| `minimax-m2.5` | OpenCode metadata `attachment: false`, input only `text` |
-| `minimax-m2.7` | OpenCode metadata `attachment: false`, input only `text` |
-| `minimax-m2.5-free` | OpenCode Zen metadata `attachment: false`, input only `text` |
-| `mimo-v2-pro` | OpenCode Go reported `attachment: true` but input modality only `text`; not valid image input |
-| `mimo-v2.5-pro` | OpenCode Go reported `attachment: true` but input modality only `text`; not valid image input |
+| Model               | Metadata finding                                                                              |
+| ------------------- | --------------------------------------------------------------------------------------------- |
+| `glm-5`             | `attachment: false`, input only `text`                                                        |
+| `glm-5.1`           | `attachment: false`, input only `text`                                                        |
+| `minimax-m2.5`      | OpenCode metadata `attachment: false`, input only `text`                                      |
+| `minimax-m2.7`      | OpenCode metadata `attachment: false`, input only `text`                                      |
+| `minimax-m2.5-free` | OpenCode Zen metadata `attachment: false`, input only `text`                                  |
+| `mimo-v2-pro`       | OpenCode Go reported `attachment: true` but input modality only `text`; not valid image input |
+| `mimo-v2.5-pro`     | OpenCode Go reported `attachment: true` but input modality only `text`; not valid image input |
 
 **Final `VISION_CAPABLE_MODELS`:**
 
@@ -455,7 +450,7 @@ const VISION_CAPABLE_MODELS = new Set([
   "mimo-v2-omni",
   "qwen3.6-plus",
   "qwen3.6-plus-free",
-  "qwen3.5-plus"
+  "qwen3.5-plus",
 ]);
 ```
 
@@ -696,30 +691,30 @@ Merge commit:
 
 ## Root Cause Summary
 
-| Issue | Root Cause | Fix | Status |
-|---|---|---|---|
-| Local stack overflow before request upload | `String.fromCodePoint(...part.data)` spread all image bytes as function arguments | Use `Buffer.from(data).toString("base64")` | ✅ Solved |
-| Provider `429 insufficient_quota` after encoding fix | Vision payload plus forced Qwen `thinking_budget=16384` increased provider token/quota pressure | Suppress Qwen `thinking_budget` for image requests when Thinking mode is `auto` | ✅ Mitigated |
-| GLM accepted image payloads but could not inspect them | Extension advertised `glm-5` / `glm-5.1` as vision-capable despite OpenCode metadata `attachment: false` and input only `text` | Remove GLM from `VISION_CAPABLE_MODELS` | ✅ Solved |
-| Some MiniMax/MiMo Pro rows incorrectly showed `Vision` | Metadata either had `attachment: false` or no `"image"` input modality | Keep `Vision` only when OpenCode metadata supports image attachment and image input | ✅ Solved |
-| VS Code Language Models view still showed old badges after compile | Installed VSIX/extension host still used old provider registration | Package/install VSIX and reload VS Code; bump model metadata revision | ✅ Solved |
-| `vsce package` failed locally | Node `18.18.0` lacked `diagnostics_channel.tracingChannel` used by dependency chain | Package with newer local Homebrew Node `23.1.0` | ✅ Solved |
-| `code` CLI unavailable in shell PATH | VS Code CLI command was not installed into PATH | Invoke app-bundled CLI directly | ✅ Solved |
-| Temporary validation versions did not match desired marketplace line | Local testing used `0.1.6` and `0.1.7` while the user wanted the marketplace update as `0.1.5` | Consolidate package/lock/changelog back to `0.1.5` and recompile | ✅ Solved |
+| Issue                                                                | Root Cause                                                                                                                     | Fix                                                                                 | Status       |
+| -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------- | ------------ |
+| Local stack overflow before request upload                           | `String.fromCodePoint(...part.data)` spread all image bytes as function arguments                                              | Use `Buffer.from(data).toString("base64")`                                          | ✅ Solved    |
+| Provider `429 insufficient_quota` after encoding fix                 | Vision payload plus forced Qwen `thinking_budget=16384` increased provider token/quota pressure                                | Suppress Qwen `thinking_budget` for image requests when Thinking mode is `auto`     | ✅ Mitigated |
+| GLM accepted image payloads but could not inspect them               | Extension advertised `glm-5` / `glm-5.1` as vision-capable despite OpenCode metadata `attachment: false` and input only `text` | Remove GLM from `VISION_CAPABLE_MODELS`                                             | ✅ Solved    |
+| Some MiniMax/MiMo Pro rows incorrectly showed `Vision`               | Metadata either had `attachment: false` or no `"image"` input modality                                                         | Keep `Vision` only when OpenCode metadata supports image attachment and image input | ✅ Solved    |
+| VS Code Language Models view still showed old badges after compile   | Installed VSIX/extension host still used old provider registration                                                             | Package/install VSIX and reload VS Code; bump model metadata revision               | ✅ Solved    |
+| `vsce package` failed locally                                        | Node `18.18.0` lacked `diagnostics_channel.tracingChannel` used by dependency chain                                            | Package with newer local Homebrew Node `23.1.0`                                     | ✅ Solved    |
+| `code` CLI unavailable in shell PATH                                 | VS Code CLI command was not installed into PATH                                                                                | Invoke app-bundled CLI directly                                                     | ✅ Solved    |
+| Temporary validation versions did not match desired marketplace line | Local testing used `0.1.6` and `0.1.7` while the user wanted the marketplace update as `0.1.5`                                 | Consolidate package/lock/changelog back to `0.1.5` and recompile                    | ✅ Solved    |
 
 ---
 
 ## Files Changed
 
-| File | Purpose |
-|---|---|
-| `src/extension.ts` | Image byte encoding fix, image-input detection, Qwen vision auto-thinking budget mitigation, request log image marker, corrected `VISION_CAPABLE_MODELS`, metadata revision cache bust |
-| `package.json` | Final marketplace version consolidated to `0.1.5` |
-| `package-lock.json` | Final root lockfile version consolidated to `0.1.5` |
-| `CHANGELOG.md` | Final `0.1.5` release notes contain all image/vision fixes |
-| `out/extension.js` | Compiled bundle rebuilt for VSIX packaging |
-| `docs/issues/08-20260520-vision-image-request-fixes.md` | Backdated session record for the complete image/vision fix and release workflow |
-| `docs/devlog.md` | Work-context log updated with the final status |
+| File                                                    | Purpose                                                                                                                                                                                |
+| ------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/extension.ts`                                      | Image byte encoding fix, image-input detection, Qwen vision auto-thinking budget mitigation, request log image marker, corrected `VISION_CAPABLE_MODELS`, metadata revision cache bust |
+| `package.json`                                          | Final marketplace version consolidated to `0.1.5`                                                                                                                                      |
+| `package-lock.json`                                     | Final root lockfile version consolidated to `0.1.5`                                                                                                                                    |
+| `CHANGELOG.md`                                          | Final `0.1.5` release notes contain all image/vision fixes                                                                                                                             |
+| `out/extension.js`                                      | Compiled bundle rebuilt for VSIX packaging                                                                                                                                             |
+| `docs/issues/08-20260520-vision-image-request-fixes.md` | Backdated session record for the complete image/vision fix and release workflow                                                                                                        |
+| `docs/devlog.md`                                        | Work-context log updated with the final status                                                                                                                                         |
 
 The behavior remains visible in `src/extension.ts` through `dataPartToBase64()`, `messagesHaveImages()`, `buildThinkingPayload(..., hasImageInput)`, and the cleaned `VISION_CAPABLE_MODELS` set.
 
@@ -742,16 +737,16 @@ git merge --no-ff develop -m "Merge branch 'develop' into main"
 
 Expected results:
 
-| Check | Expected |
-|---|---|
-| Compile | Passes |
-| VSIX package | Local validation VSIX is created successfully with newer Node |
-| Installed extension | Local validation install shows the expected extension version |
-| Final release metadata | `package.json` and `package-lock.json` show `0.1.5` |
-| Stack overflow | No longer occurs for image byte conversion |
-| Qwen image + auto thinking | Logs `images=yes` and omits `thinking_budget` |
-| Vision capability list | Only Kimi K2.5/K2.6, MiMo V2.5/Omni, Qwen3.5/3.6 Plus, and Qwen3.6 Plus Free show image support |
-| Merge | `main` contains a no-fast-forward merge from `develop` and is ahead of `origin/main` until pushed |
+| Check                      | Expected                                                                                          |
+| -------------------------- | ------------------------------------------------------------------------------------------------- |
+| Compile                    | Passes                                                                                            |
+| VSIX package               | Local validation VSIX is created successfully with newer Node                                     |
+| Installed extension        | Local validation install shows the expected extension version                                     |
+| Final release metadata     | `package.json` and `package-lock.json` show `0.1.5`                                               |
+| Stack overflow             | No longer occurs for image byte conversion                                                        |
+| Qwen image + auto thinking | Logs `images=yes` and omits `thinking_budget`                                                     |
+| Vision capability list     | Only Kimi K2.5/K2.6, MiMo V2.5/Omni, Qwen3.5/3.6 Plus, and Qwen3.6 Plus Free show image support   |
+| Merge                      | `main` contains a no-fast-forward merge from `develop` and is ahead of `origin/main` until pushed |
 
 ---
 

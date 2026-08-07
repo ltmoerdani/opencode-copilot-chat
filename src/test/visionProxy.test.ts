@@ -81,10 +81,7 @@ describe("modelCapabilities vision proxy flag", () => {
   });
 });
 
-function simulateModelCapabilities(
-  metadataSupportsVision: boolean,
-  visionProxyEnabled: boolean,
-): { imageInput: boolean } {
+function simulateModelCapabilities(metadataSupportsVision: boolean, visionProxyEnabled: boolean): { imageInput: boolean } {
   const supportsVision = metadataSupportsVision || visionProxyEnabled;
   return { imageInput: supportsVision };
 }

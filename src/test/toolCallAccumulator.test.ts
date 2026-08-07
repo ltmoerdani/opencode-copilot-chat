@@ -1,9 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import {
-  parseToolInput,
-  ToolCallAccumulator,
-} from "../toolCallAccumulator.js";
+import { parseToolInput, ToolCallAccumulator } from "../toolCallAccumulator.js";
 
 /**
  * Unit tests for the pure tool-call accumulator (issues #93 / #98).
@@ -38,13 +35,9 @@ const nameChunk = deltaChunk([
   },
 ]);
 
-const argsChunk1 = deltaChunk([
-  { index: 0, function: { arguments: '{"query":' } },
-]);
+const argsChunk1 = deltaChunk([{ index: 0, function: { arguments: '{"query":' } }]);
 
-const argsChunk2 = deltaChunk([
-  { index: 0, function: { arguments: '"search"}' } },
-]);
+const argsChunk2 = deltaChunk([{ index: 0, function: { arguments: '"search"}' } }]);
 
 describe("ToolCallAccumulator — no premature flush on intermediate chunks (#98)", () => {
   it("does not flush while finish_reason is null, even with pending tool calls", () => {
@@ -57,14 +50,8 @@ describe("ToolCallAccumulator — no premature flush on intermediate chunks (#98
     assert.equal(acc.size, 1);
     // The chunk carrying the first tool-call delta has finish_reason: null —
     // it must NOT trigger a flush (this is the regression from #93).
-    assert.equal(
-      ToolCallAccumulator.shouldFlushOnFinishReason(null),
-      false,
-    );
-    assert.equal(
-      ToolCallAccumulator.shouldFlushOnFinishReason(undefined),
-      false,
-    );
+    assert.equal(ToolCallAccumulator.shouldFlushOnFinishReason(null), false);
+    assert.equal(ToolCallAccumulator.shouldFlushOnFinishReason(undefined), false);
   });
 
   it("flushes exactly ONE complete tool call when finish_reason is 'tool_calls'", () => {
@@ -133,9 +120,7 @@ describe("ToolCallAccumulator — delta handling edge cases", () => {
 
   it("filters out arguments-only deltas that never supplied a name", () => {
     const acc = new ToolCallAccumulator();
-    acc.collect([
-      { index: 0, function: { arguments: '{"a":1}' } },
-    ]);
+    acc.collect([{ index: 0, function: { arguments: '{"a":1}' } }]);
     assert.equal(acc.size, 1);
     const flushed = acc.flush();
     // The pending entry has an empty name → dropped.

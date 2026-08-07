@@ -35,12 +35,12 @@ Every request shows `completion=1` with `finishReason=length`. Some requests sho
 
 ### Commit history
 
-| Commit | Date | Author | Change |
-|--------|------|--------|--------|
-| `bca269f` | Early | — | Introduced `estimateTokenCount()` with word-count heuristic |
-| `d1a056c` | 29 Jun 2026 | Wallacy | Added `promptTokens` param to `modelLimits()` + `estimateTokenCount()` call in request handler. Fixed context overflow 400 errors. |
-| `8a0d813` | 14 Jul 2026 | Wallacy | Added `TOKEN_ESTIMATE_SAFETY_MARGIN = 64` for 0-2% underestimation |
-| **This fix** | **24 Jul 2026** | — | **Replaced word-count heuristic with charEstimate-based heuristic + MIN_OUTPUT_BUDGET** |
+| Commit       | Date            | Author  | Change                                                                                                                             |
+| ------------ | --------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `bca269f`    | Early           | —       | Introduced `estimateTokenCount()` with word-count heuristic                                                                        |
+| `d1a056c`    | 29 Jun 2026     | Wallacy | Added `promptTokens` param to `modelLimits()` + `estimateTokenCount()` call in request handler. Fixed context overflow 400 errors. |
+| `8a0d813`    | 14 Jul 2026     | Wallacy | Added `TOKEN_ESTIMATE_SAFETY_MARGIN = 64` for 0-2% underestimation                                                                 |
+| **This fix** | **24 Jul 2026** | —       | **Replaced word-count heuristic with charEstimate-based heuristic + MIN_OUTPUT_BUDGET**                                            |
 
 ### The bug: `words * 1.15` overestimates JSON by 3-5×
 
@@ -83,12 +83,14 @@ Two changes in `src/extension.ts`:
 ### 1. Fixed `estimateTokenCount()` heuristic
 
 **Before:**
+
 ```typescript
 const words = normalized.match(/[A-Za-z0-9_]+|[^\sA-Za-z0-9_]/gu)?.length ?? 0;
 return Math.max(1, Math.ceil(Math.max(words * 1.15, charEstimate, cjkCharacters)));
 ```
 
 **After:**
+
 ```typescript
 // Standard: 1 token ≈ 4 characters (OpenAI rule of thumb).
 // CJK characters get 1:1 addition (each ≈1-2 tokens).
@@ -131,11 +133,11 @@ Verified with automated test at `scripts/verify-estimate-token-count.mts` across
 
 ## Confirmed Not a Regression
 
-| Recent change | Files touched | Related to this bug? |
-|---------------|--------------|---------------------|
-| PR #82 — MiMo thinking loop fix (#36) | `src/thinking.ts`, `src/retry.ts`, `src/streaming.ts` | ❌ No |
-| PR #81 — Model list fetch resilience (#78) | `src/extension.ts` (model fetch only) | ❌ No |
-| PR #76 — Vision proxy + context overflow safety (#74) | `src/extension.ts` (added safety margin) | ⚠️ Indirect (safety margin was correct, but didn't fix the heuristic) |
-| PR #60 — DeepSeek context overflow | `src/extension.ts` (introduced `estimateTokenCount` call) | ✅ Root cause |
+| Recent change                                         | Files touched                                             | Related to this bug?                                                  |
+| ----------------------------------------------------- | --------------------------------------------------------- | --------------------------------------------------------------------- |
+| PR #82 — MiMo thinking loop fix (#36)                 | `src/thinking.ts`, `src/retry.ts`, `src/streaming.ts`     | ❌ No                                                                 |
+| PR #81 — Model list fetch resilience (#78)            | `src/extension.ts` (model fetch only)                     | ❌ No                                                                 |
+| PR #76 — Vision proxy + context overflow safety (#74) | `src/extension.ts` (added safety margin)                  | ⚠️ Indirect (safety margin was correct, but didn't fix the heuristic) |
+| PR #60 — DeepSeek context overflow                    | `src/extension.ts` (introduced `estimateTokenCount` call) | ✅ Root cause                                                         |
 
 The bug was introduced in `d1a056c` (PR #60) when `estimateTokenCount()` was first wired into the request path. The heuristic itself was unchanged since `bca269f`.

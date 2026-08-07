@@ -22,6 +22,7 @@ The "OpenCode" output channel was flooded with verbose debug and informational l
 **Problem:** The "OpenCode" output channel was producing an enormous volume of debug logs during normal operation. The primary culprit was the `Model registered:` log line in `provideLanguageModelChatInformation()` which fired for every model (17+ models) on every metadata refresh cycle. Each line included the full `configurationSchema` JSON blob (sometimes hundreds of characters). With metadata refreshes happening frequently, this produced thousands of lines.
 
 Additional verbose logs included:
+
 - `[go-usage] Recording:` and `[go-usage] After record:` on every request
 - `Request:` with verbose fields (initiator, rawModel, metadataSource, session, modelConfiguration, thinking, thinkingPayload)
 - `Request completed:` on every request
@@ -35,7 +36,8 @@ Additional verbose logs included:
 
 **Root Cause:** Every diagnostic data point was logged to the same output channel at the same level. No log-level filtering existed — everything was `info` level with no `debug` tier. The `this.log()` method wrote directly to the output channel unconditionally.
 
-**Solution:** 
+**Solution:**
+
 1. Replaced per-model `Model registered:` log with single summary: `Models registered: N models for displayName`
 2. Removed `Request:` verbose log entirely
 3. Removed `Request completed:` log entirely
@@ -65,7 +67,8 @@ Additional verbose logs included:
 
 **Problem:** Changes needed to be documented and versioned before release.
 
-**Solution:** 
+**Solution:**
+
 - Added `[0.2.3] — 2026-06-09` entry to `CHANGELOG.md` with Added/Changed/Fixed sections
 - Bumped version in `package.json` from `0.2.2` to `0.2.3`
 
@@ -75,7 +78,8 @@ Additional verbose logs included:
 
 **Problem:** Need to verify changes compile cleanly and install in local VS Code.
 
-**Solution:** 
+**Solution:**
+
 - `npm run compile` — clean, 0 errors
 - `npx @vscode/vsce package --no-dependencies` — VSIX packaged
 - Installed via `--install-extension` with `--force` flag
@@ -86,14 +90,14 @@ Additional verbose logs included:
 
 ## Files Changed
 
-| File | Change |
-|------|--------|
-| `src/extension.ts` | Removed 8+ `this.log()` calls, removed `goUsageLogChannel`, replaced `Buffer.from` with `TextDecoder`, removed `[metadata]` appendLine calls |
-| `src/streaming.ts` | Removed `[request]`, `[http]`, `[sse-stats]`, `[response-summary]`, `[usage]`, `[stream-summary]` logs; removed `formatUsageLogLine` import |
-| `package.json` | Version bump 0.2.2 → 0.2.3 |
-| `CHANGELOG.md` | Added `[0.2.3]` entry |
-| `media/opencodego.svg` | Refreshed icon (from commit `c8383735`) |
-| `media/opencodego.png` | Refreshed icon (from commit `c8383735`) |
+| File                   | Change                                                                                                                                       |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/extension.ts`     | Removed 8+ `this.log()` calls, removed `goUsageLogChannel`, replaced `Buffer.from` with `TextDecoder`, removed `[metadata]` appendLine calls |
+| `src/streaming.ts`     | Removed `[request]`, `[http]`, `[sse-stats]`, `[response-summary]`, `[usage]`, `[stream-summary]` logs; removed `formatUsageLogLine` import  |
+| `package.json`         | Version bump 0.2.2 → 0.2.3                                                                                                                   |
+| `CHANGELOG.md`         | Added `[0.2.3]` entry                                                                                                                        |
+| `media/opencodego.svg` | Refreshed icon (from commit `c8383735`)                                                                                                      |
+| `media/opencodego.png` | Refreshed icon (from commit `c8383735`)                                                                                                      |
 
 ---
 
@@ -101,13 +105,13 @@ Additional verbose logs included:
 
 After cleanup, only error/warning-level messages are logged:
 
-| Log | When |
-|-----|------|
-| `ERROR model=...` | On request failure |
+| Log                     | When                                |
+| ----------------------- | ----------------------------------- |
+| `ERROR model=...`       | On request failure                  |
 | `[warn] empty response` | Model returns no text or tool calls |
-| `[rate-limit]` | API rate limit hit |
-| `[http-error-body]` | Non-2xx HTTP response |
-| `[non-stream-body]` | Unexpected non-SSE response |
+| `[rate-limit]`          | API rate limit hit                  |
+| `[http-error-body]`     | Non-2xx HTTP response               |
+| `[non-stream-body]`     | Unexpected non-SSE response         |
 
 The "OpenCode Go Usage" output channel is also silenced (no callback passed to `GoUsageTracker`).
 

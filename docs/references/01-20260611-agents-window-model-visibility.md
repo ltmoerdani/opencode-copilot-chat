@@ -20,7 +20,7 @@ This document captures the full research findings, API constraints, and the mark
 
 ## Problem Statement
 
-GitHub Issue #11 requests: *"Show OpenCode models in the VS Code Agents window model picker."*
+GitHub Issue #11 requests: _"Show OpenCode models in the VS Code Agents window model picker."_
 
 The user wants OpenCode models to appear when selecting a model in the Agents tab, not just in the Chat view. Additionally, the user initially wanted a dedicated "OpenCode" tab in the Agents window (not appearing under "Copilot CLI").
 
@@ -32,9 +32,9 @@ The user wants OpenCode models to appear when selecting a model in the Agents ta
 
 VS Code has two main chat surfaces:
 
-| Surface | Session Type | Model Picker Behavior |
-|---------|-------------|----------------------|
-| **Chat View** | `local` | Shows all models WITHOUT `targetChatSessionType` |
+| Surface                             | Session Type | Model Picker Behavior                                        |
+| ----------------------------------- | ------------ | ------------------------------------------------------------ |
+| **Chat View**                       | `local`      | Shows all models WITHOUT `targetChatSessionType`             |
 | **Agents Window** (Copilot CLI tab) | `copilotcli` | Shows ONLY models WITH `targetChatSessionType: 'copilotcli'` |
 
 ### Key Properties
@@ -61,8 +61,8 @@ VS Code has two main chat surfaces:
 
 ```typescript
 // From VS Code source: chatSessions.contribution.ts
-if (!isProposedApiEnabled(ext.description, 'chatSessionsProvider')) {
-    continue;  // ← Contribution is SKIPPED without proposed API!
+if (!isProposedApiEnabled(ext.description, "chatSessionsProvider")) {
+  continue; // ← Contribution is SKIPPED without proposed API!
 }
 ```
 
@@ -82,23 +82,21 @@ From `chatModelSelectionLogic.ts` (VS Code source):
 
 ```typescript
 export function filterModelsForSession(
-    models: ILanguageModelChatMetadataAndIdentifier[],
-    sessionType: string | undefined,
-    currentModeKind: ChatModeKind,
-    location: ChatAgentLocation,
+  models: ILanguageModelChatMetadataAndIdentifier[],
+  sessionType: string | undefined,
+  currentModeKind: ChatModeKind,
+  location: ChatAgentLocation,
 ): ILanguageModelChatMetadataAndIdentifier[] {
-    if (sessionType && sessionType !== 'local' && hasModelsTargetingSession(models, sessionType)) {
-        return models.filter(entry =>
-            entry.metadata?.targetChatSessionType === sessionType &&
-            entry.metadata?.isUserSelectable !== false
-        );
-    }
-    return models.filter(entry =>
-        !entry.metadata?.targetChatSessionType &&
-        entry.metadata?.isUserSelectable !== false &&
-        isModelSupportedForMode(entry, currentModeKind) &&
-        isModelSupportedForInlineChat(entry, location)
-    );
+  if (sessionType && sessionType !== "local" && hasModelsTargetingSession(models, sessionType)) {
+    return models.filter((entry) => entry.metadata?.targetChatSessionType === sessionType && entry.metadata?.isUserSelectable !== false);
+  }
+  return models.filter(
+    (entry) =>
+      !entry.metadata?.targetChatSessionType &&
+      entry.metadata?.isUserSelectable !== false &&
+      isModelSupportedForMode(entry, currentModeKind) &&
+      isModelSupportedForInlineChat(entry, location),
+  );
 }
 ```
 
@@ -108,15 +106,15 @@ export function filterModelsForSession(
 
 From VS Code `SessionType` namespace:
 
-| Constant | Value | Description |
-|----------|-------|-------------|
-| `CopilotCLI` | `'copilotcli'` | Copilot CLI / Background agent tab |
-| `CopilotCloud` | `'copilot-cloud-agent'` | Cloud agent |
-| `Local` | `'local'` | Local chat sessions |
-| `ClaudeCode` | `'claude-code'` | Claude Code tab |
-| `Codex` | `'openai-codex'` | Codex tab |
-| `Growth` | `'copilot-growth'` | Growth |
-| `AgentHostCopilot` | `'agent-host-copilotcli'` | Agent Host |
+| Constant           | Value                     | Description                        |
+| ------------------ | ------------------------- | ---------------------------------- |
+| `CopilotCLI`       | `'copilotcli'`            | Copilot CLI / Background agent tab |
+| `CopilotCloud`     | `'copilot-cloud-agent'`   | Cloud agent                        |
+| `Local`            | `'local'`                 | Local chat sessions                |
+| `ClaudeCode`       | `'claude-code'`           | Claude Code tab                    |
+| `Codex`            | `'openai-codex'`          | Codex tab                          |
+| `Growth`           | `'copilot-growth'`        | Growth                             |
+| `AgentHostCopilot` | `'agent-host-copilotcli'` | Agent Host                         |
 
 ### Model Identifier Format
 
@@ -135,9 +133,7 @@ Example: `opencodego/deepseek-v4-flash`
 Model responses are ALWAYS routed through the provider's `provideLanguageModelChatResponse()` regardless of `targetChatSessionType`. From `extHostLanguageModels.ts` line ~326:
 
 ```typescript
-value = data.provider.provideLanguageModelChatResponse(
-    knownModel.info, messages, options, progress, token
-);
+value = data.provider.provideLanguageModelChatResponse(knownModel.info, messages, options, progress, token);
 ```
 
 This means setting `targetChatSessionType` on a model does not affect how the response is handled — it only affects which model picker shows the model.
@@ -148,33 +144,33 @@ This means setting `targetChatSessionType` on a model does not affect how the re
 
 ### Option A: Duplicate Models with `targetChatSessionType: 'copilotcli'`
 
-| Aspect | Detail |
-|--------|--------|
-| **Approach** | Register each model twice — once without `targetChatSessionType` (Chat view) and once with `targetChatSessionType: 'copilotcli'` (Agents window) |
-| **API Requirement** | `targetChatSessionType` is **STABLE API** |
-| **Marketplace** | ✅ Fully compatible — no `enabledApiProposals` needed |
-| **User Experience** | Models appear under existing "Copilot CLI" tab in Agents window |
-| **Trade-off** | Model picker shows twice as many entries (each model has 2 copies) |
-| **Implementation** | Modify `provideLanguageModelChatInformation()` in `extension.ts` |
+| Aspect              | Detail                                                                                                                                           |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Approach**        | Register each model twice — once without `targetChatSessionType` (Chat view) and once with `targetChatSessionType: 'copilotcli'` (Agents window) |
+| **API Requirement** | `targetChatSessionType` is **STABLE API**                                                                                                        |
+| **Marketplace**     | ✅ Fully compatible — no `enabledApiProposals` needed                                                                                            |
+| **User Experience** | Models appear under existing "Copilot CLI" tab in Agents window                                                                                  |
+| **Trade-off**       | Model picker shows twice as many entries (each model has 2 copies)                                                                               |
+| **Implementation**  | Modify `provideLanguageModelChatInformation()` in `extension.ts`                                                                                 |
 
 ### Option B: Own Chat Session with `chatSessions` contribution
 
-| Aspect | Detail |
-|--------|--------|
-| **Approach** | Declare `chatSessions` in `package.json` with `type: "opencode-copilot"` and `requiresCustomModels: true`, plus register models with `targetChatSessionType: 'opencode-copilot'` |
-| **API Requirement** | `chatSessionsProvider` **proposed API** |
-| **Marketplace** | ❌ **REJECTED** — `vsce publish` blocks `enabledApiProposals` |
-| **Evidence** | `wlxms/opencode-copilot` uses this approach but is NOT on Marketplace (HTTP 404 on marketplace URL) |
-| **Runtime** | VS Code allows proposed APIs at runtime (`isProposedApiEnabled` check is commented out in `extensions.ts`), but `vsce` blocks at publish time |
+| Aspect              | Detail                                                                                                                                                                           |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Approach**        | Declare `chatSessions` in `package.json` with `type: "opencode-copilot"` and `requiresCustomModels: true`, plus register models with `targetChatSessionType: 'opencode-copilot'` |
+| **API Requirement** | `chatSessionsProvider` **proposed API**                                                                                                                                          |
+| **Marketplace**     | ❌ **REJECTED** — `vsce publish` blocks `enabledApiProposals`                                                                                                                    |
+| **Evidence**        | `wlxms/opencode-copilot` uses this approach but is NOT on Marketplace (HTTP 404 on marketplace URL)                                                                              |
+| **Runtime**         | VS Code allows proposed APIs at runtime (`isProposedApiEnabled` check is commented out in `extensions.ts`), but `vsce` blocks at publish time                                    |
 
 ### Option C: Distribute as VSIX only (bypass marketplace)
 
-| Aspect | Detail |
-|--------|--------|
-| **Approach** | Use `enabledApiProposals` + `--allow-all-proposed-apis` with `vsce` |
-| **Marketplace** | ❌ Not publishable |
-| **Distribution** | Manual VSIX install only |
-| **Verdict** | Not viable for the project's goal |
+| Aspect           | Detail                                                              |
+| ---------------- | ------------------------------------------------------------------- |
+| **Approach**     | Use `enabledApiProposals` + `--allow-all-proposed-apis` with `vsce` |
+| **Marketplace**  | ❌ Not publishable                                                  |
+| **Distribution** | Manual VSIX install only                                            |
+| **Verdict**      | Not viable for the project's goal                                   |
 
 ---
 
@@ -220,11 +216,11 @@ This extension is **NOT on VS Code Marketplace** (verified: HTTP 404 on `https:/
 
 ### Design Decision: Config Toggle
 
-| Approach | Pros | Cons |
-|----------|------|------|
-| **Always duplicate** | Zero config, works immediately | Model picker shows 2× entries |
-| **Config toggle (default: true)** | User can disable if unwanted | Needs reload window |
-| **Config toggle (default: false)** | Backward compatible | User must enable manually |
+| Approach                           | Pros                           | Cons                          |
+| ---------------------------------- | ------------------------------ | ----------------------------- |
+| **Always duplicate**               | Zero config, works immediately | Model picker shows 2× entries |
+| **Config toggle (default: true)**  | User can disable if unwanted   | Needs reload window           |
+| **Config toggle (default: false)** | Backward compatible            | User must enable manually     |
 
 ### Visual Diagram
 
@@ -245,29 +241,29 @@ provideLanguageModelChatInformation()
 
 ## Files Investigated (VS Code Source)
 
-| File | Key Finding |
-|------|------------|
-| `src/vscode-dts/vscode.d.ts` | `targetChatSessionType` is in STABLE API (9 matches) |
-| `src/vs/workbench/api/common/extHostLanguageModels.ts` | Model identifier format: `${vendor}/${group}/${modelId}` |
-| `src/vs/workbench/api/common/extHost.api.impl.ts` | `registerChatSessionContentProvider` → `checkProposedApiEnabled('chatSessionsProvider')` |
-| `src/vs/workbench/contrib/chat/browser/chatSessions/chatSessions.contribution.ts` | `chatSessions` contribution SKIPPED without proposed API |
-| `src/vs/workbench/contrib/chat/browser/widget/input/chatModelSelectionLogic.ts` | `filterModelsForSession()` — targetChatSessionType filtering |
-| `src/vs/workbench/contrib/chat/common/chatSessionsService.ts` | `IChatSessionsExtensionPoint` schema, `SessionType` namespace |
-| `src/vs/workbench/contrib/chat/browser/agentSessions/agentSessions.ts` | `AgentSessionProviders` enum — hardcoded built-in providers only |
-| `extensions/copilot/src/extension/chatSessions/copilotcli/node/copilotCli.ts` | Copilot CLI sets `targetChatSessionType: 'copilotcli'` on models |
+| File                                                                              | Key Finding                                                                              |
+| --------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `src/vscode-dts/vscode.d.ts`                                                      | `targetChatSessionType` is in STABLE API (9 matches)                                     |
+| `src/vs/workbench/api/common/extHostLanguageModels.ts`                            | Model identifier format: `${vendor}/${group}/${modelId}`                                 |
+| `src/vs/workbench/api/common/extHost.api.impl.ts`                                 | `registerChatSessionContentProvider` → `checkProposedApiEnabled('chatSessionsProvider')` |
+| `src/vs/workbench/contrib/chat/browser/chatSessions/chatSessions.contribution.ts` | `chatSessions` contribution SKIPPED without proposed API                                 |
+| `src/vs/workbench/contrib/chat/browser/widget/input/chatModelSelectionLogic.ts`   | `filterModelsForSession()` — targetChatSessionType filtering                             |
+| `src/vs/workbench/contrib/chat/common/chatSessionsService.ts`                     | `IChatSessionsExtensionPoint` schema, `SessionType` namespace                            |
+| `src/vs/workbench/contrib/chat/browser/agentSessions/agentSessions.ts`            | `AgentSessionProviders` enum — hardcoded built-in providers only                         |
+| `extensions/copilot/src/extension/chatSessions/copilotcli/node/copilotCli.ts`     | Copilot CLI sets `targetChatSessionType: 'copilotcli'` on models                         |
 
 ---
 
 ## Files in Our Extension
 
-| File | Relevance |
-|------|-----------|
-| `src/extension.ts` | `provideLanguageModelChatInformation()` at ~line 1035 — where models are registered |
-| `src/extension.ts` | `OpenCodeModel` interface at ~line 180 — extends `vscode.LanguageModelChatInformation` |
-| `src/extension.ts` | `provideLanguageModelChatResponse()` — handles streaming for all models |
-| `src/vscode.proposed.chatProvider.d.ts` | Contains `targetChatSessionType?: string` at line 109 |
-| `src/providerTypes.ts` | Exports `GO_VENDOR = "opencodego"` and `ZEN_VENDOR = "opencodezen"` |
-| `package.json` | `languageModelChatProviders` contribution, NO `enabledApiProposals` |
+| File                                    | Relevance                                                                              |
+| --------------------------------------- | -------------------------------------------------------------------------------------- |
+| `src/extension.ts`                      | `provideLanguageModelChatInformation()` at ~line 1035 — where models are registered    |
+| `src/extension.ts`                      | `OpenCodeModel` interface at ~line 180 — extends `vscode.LanguageModelChatInformation` |
+| `src/extension.ts`                      | `provideLanguageModelChatResponse()` — handles streaming for all models                |
+| `src/vscode.proposed.chatProvider.d.ts` | Contains `targetChatSessionType?: string` at line 109                                  |
+| `src/providerTypes.ts`                  | Exports `GO_VENDOR = "opencodego"` and `ZEN_VENDOR = "opencodezen"`                    |
+| `package.json`                          | `languageModelChatProviders` contribution, NO `enabledApiProposals`                    |
 
 ---
 

@@ -27,12 +27,12 @@ The Go Usage Tracker status bar icon showed a rich SVG usage summary (session/we
 
 Investigated multiple approaches to make the tooltip "sticky":
 
-| Approach | Feasibility | Reason |
-|----------|-------------|--------|
-| `statusBarItem.showHover()` | ❌ Not available | VS Code API has no programmatic hover trigger for status bar items |
-| `workbench.action.showHover` | ❌ Internal only | Only works for editor hovers, not status bar tooltips |
-| Tooltip with `command` | ⚠️ Conflicts | Setting `command` on StatusBarItem prevents hover tooltip from appearing while mouse is over the item — VS Code shows the command action instead |
-| **Webview Panel** | ✅ Best solution | Persistent, theme-aware, real-time updates, matches Copilot UX pattern |
+| Approach                     | Feasibility      | Reason                                                                                                                                           |
+| ---------------------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `statusBarItem.showHover()`  | ❌ Not available | VS Code API has no programmatic hover trigger for status bar items                                                                               |
+| `workbench.action.showHover` | ❌ Internal only | Only works for editor hovers, not status bar tooltips                                                                                            |
+| Tooltip with `command`       | ⚠️ Conflicts     | Setting `command` on StatusBarItem prevents hover tooltip from appearing while mouse is over the item — VS Code shows the command action instead |
+| **Webview Panel**            | ✅ Best solution | Persistent, theme-aware, real-time updates, matches Copilot UX pattern                                                                           |
 
 **Key Finding:** GitHub Copilot itself uses a Webview/panel approach for showing quota details — not a sticky tooltip. The hover shows a brief summary, and clicking opens a persistent view.
 
@@ -42,10 +42,10 @@ Investigated multiple approaches to make the tooltip "sticky":
 
 ### Dual-Interaction Design
 
-| Interaction | Behavior |
-|-------------|----------|
-| **Hover** over status bar icon | Shows tooltip with SVG usage summary (existing behavior preserved) |
-| **Click** on status bar icon | Opens persistent Webview panel with the same SVG in `ViewColumn.Beside` |
+| Interaction                    | Behavior                                                                |
+| ------------------------------ | ----------------------------------------------------------------------- |
+| **Hover** over status bar icon | Shows tooltip with SVG usage summary (existing behavior preserved)      |
+| **Click** on status bar icon   | Opens persistent Webview panel with the same SVG in `ViewColumn.Beside` |
 
 ### Architecture
 
@@ -72,16 +72,16 @@ sequenceDiagram
 
 ## Changes
 
-| # | Change | Files | Impact |
-|---|--------|-------|--------|
-| P0 | New `usageWebviewPanel` module variable | `src/extension.ts` | Tracks persistent panel lifecycle |
-| P1 | Register `opencodego.showUsageDetails` command | `package.json`, `src/extension.ts` | New command entry point for click action |
-| P2 | Assign command to status bar item | `src/extension.ts` | `goUsageStatusBarItem.command = "opencodego.showUsageDetails"` enables click |
-| P3 | `showUsageWebview()` function | `src/extension.ts` | Creates or reveals Webview panel in `ViewColumn.Beside` |
-| P4 | `updateWebviewContent()` function | `src/extension.ts` | Renders usage SVG inside themed HTML with CSS variables |
-| P5 | Real-time sync in `refreshGoUsageStatusBar()` | `src/extension.ts` | Calls `updateWebviewContent()` after every usage refresh |
-| P6 | Panel dispose handler | `src/extension.ts` | Cleans up `usageWebviewPanel` reference when user closes panel |
-| P7 | Activation event + command contribution | `package.json` | `onCommand:opencodego.showUsageDetails` + command metadata |
+| #   | Change                                         | Files                              | Impact                                                                       |
+| --- | ---------------------------------------------- | ---------------------------------- | ---------------------------------------------------------------------------- |
+| P0  | New `usageWebviewPanel` module variable        | `src/extension.ts`                 | Tracks persistent panel lifecycle                                            |
+| P1  | Register `opencodego.showUsageDetails` command | `package.json`, `src/extension.ts` | New command entry point for click action                                     |
+| P2  | Assign command to status bar item              | `src/extension.ts`                 | `goUsageStatusBarItem.command = "opencodego.showUsageDetails"` enables click |
+| P3  | `showUsageWebview()` function                  | `src/extension.ts`                 | Creates or reveals Webview panel in `ViewColumn.Beside`                      |
+| P4  | `updateWebviewContent()` function              | `src/extension.ts`                 | Renders usage SVG inside themed HTML with CSS variables                      |
+| P5  | Real-time sync in `refreshGoUsageStatusBar()`  | `src/extension.ts`                 | Calls `updateWebviewContent()` after every usage refresh                     |
+| P6  | Panel dispose handler                          | `src/extension.ts`                 | Cleans up `usageWebviewPanel` reference when user closes panel               |
+| P7  | Activation event + command contribution        | `package.json`                     | `onCommand:opencodego.showUsageDetails` + command metadata                   |
 
 ### Files Changed
 
@@ -111,12 +111,14 @@ sequenceDiagram
 ### Auto-Sync
 
 `refreshGoUsageStatusBar()` now calls `updateWebviewContent()` at the end of every refresh cycle. This means:
+
 - User sends chat → response arrives → usage recorded → status bar updated → **Webview also updated**
 - No manual refresh needed
 
 ### Theme Integration
 
 The Webview uses VS Code's native CSS variables for theming, ensuring consistent appearance across:
+
 - Dark themes (default One Dark Pro, etc.)
 - Light themes
 - High contrast themes

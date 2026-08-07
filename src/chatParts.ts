@@ -1,22 +1,14 @@
 import * as vscode from "vscode";
-import {
-  hasUsageSnapshot,
-  toProviderUsagePayload,
-  type UsageSnapshot,
-} from "./usage";
+import { hasUsageSnapshot, toProviderUsagePayload, type UsageSnapshot } from "./usage";
 
 export const OPENCODE_USAGE_DATA_MIME = "application/vnd.opencode.usage+json";
 export const COPILOT_USAGE_DATA_MIME = "usage";
 
-export function createUsageDataPart(
-  usage: UsageSnapshot,
-): vscode.LanguageModelDataPart | undefined {
+export function createUsageDataPart(usage: UsageSnapshot): vscode.LanguageModelDataPart | undefined {
   return createUsageDataParts(usage)[0];
 }
 
-export function createUsageDataParts(
-  usage: UsageSnapshot,
-): vscode.LanguageModelDataPart[] {
+export function createUsageDataParts(usage: UsageSnapshot): vscode.LanguageModelDataPart[] {
   if (!hasUsageSnapshot(usage)) {
     return [];
   }
@@ -33,9 +25,6 @@ export function createUsageDataParts(
   ];
 }
 
-export function isInternalDataPart(
-  part: vscode.LanguageModelDataPart,
-): boolean {
-  return part.mimeType === OPENCODE_USAGE_DATA_MIME
-    || part.mimeType === COPILOT_USAGE_DATA_MIME;
+export function isInternalDataPart(part: vscode.LanguageModelDataPart): boolean {
+  return part.mimeType === OPENCODE_USAGE_DATA_MIME || part.mimeType === COPILOT_USAGE_DATA_MIME;
 }

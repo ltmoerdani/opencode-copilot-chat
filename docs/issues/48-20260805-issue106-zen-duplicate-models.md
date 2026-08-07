@@ -41,12 +41,12 @@ The `Clear API Key` action resets the flag so the extension's own secret-storage
 
 ### Behavior
 
-| Scenario | Result |
-|---|---|
-| BYOK group only (reporter) | 8 models, never duplicated |
-| Key via extension command only (#86) | 8 models, unchanged |
-| Multiple BYOK groups (#63) | one set per group, unchanged |
-| Key via command + BYOK group | transient 16 for one resolution, then heals to 8 |
+| Scenario                              | Result                                               |
+| ------------------------------------- | ---------------------------------------------------- |
+| BYOK group only (reporter)            | 8 models, never duplicated                           |
+| Key via extension command only (#86)  | 8 models, unchanged                                  |
+| Multiple BYOK groups (#63)            | one set per group, unchanged                         |
+| Key via command + BYOK group          | transient 16 for one resolution, then heals to 8     |
 | Group removed, key lingers in secrets | 0 models until `Clear API Key` / re-adding the group |
 
 ## Verification

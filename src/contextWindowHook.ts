@@ -2,10 +2,7 @@ import { AsyncLocalStorage } from "node:async_hooks";
 import * as vscode from "vscode";
 import type { UsageSnapshot } from "./usage";
 
-type HandleProgressChunkFn = (
-  requestId: string,
-  chunks: unknown[],
-) => Promise<void>;
+type HandleProgressChunkFn = (requestId: string, chunks: unknown[]) => Promise<void>;
 
 type CapturedProxy = {
   proxyTarget: Record<string, unknown>;
@@ -59,17 +56,12 @@ function createUsageChunk(usage: ContextWindowUsage): {
     kind: "usage",
     promptTokens: usage.promptTokens,
     completionTokens: usage.completionTokens,
-    ...(usage.outputBuffer === undefined
-      ? {}
-      : { outputBuffer: usage.outputBuffer }),
+    ...(usage.outputBuffer === undefined ? {} : { outputBuffer: usage.outputBuffer }),
   };
 }
 
 function queueProgressBinding(localRequestId: string): void {
-  if (
-    localToVsCodeRequestIds.has(localRequestId) ||
-    queuedProgressLocalRequestIdSet.has(localRequestId)
-  ) {
+  if (localToVsCodeRequestIds.has(localRequestId) || queuedProgressLocalRequestIdSet.has(localRequestId)) {
     return;
   }
 
@@ -103,15 +95,10 @@ function injectUsageChunk(requestId: string, usage: ContextWindowUsage): void {
     return;
   }
 
-  void originalHandleProgressChunk
-    .call(proxyTarget, requestId, [createUsageChunk(usage)])
-    .catch(() => undefined);
+  void originalHandleProgressChunk.call(proxyTarget, requestId, [createUsageChunk(usage)]).catch(() => undefined);
 }
 
-function bindLocalRequestToVsCodeRequest(
-  localRequestId: string,
-  requestId: string,
-): void {
+function bindLocalRequestToVsCodeRequest(localRequestId: string, requestId: string): void {
   discardQueuedProgressBinding(localRequestId);
 
   const previousRequestId = localToVsCodeRequestIds.get(localRequestId);
@@ -155,20 +142,14 @@ function cleanupVsCodeRequest(requestId: string): void {
   outputBuffersByLocalRequestId.delete(localRequestId);
 }
 
-async function captureProxy(
-  logDiagnostic?: (message: string) => void,
-): Promise<CapturedProxy | null> {
+async function captureProxy(logDiagnostic?: (message: string) => void): Promise<CapturedProxy | null> {
   const originalMapSet = Map.prototype.set;
   const probeId = `_opencode_probe_${Date.now()}`;
   let found = false;
   let capturedProxyTarget: Record<string, unknown> | null = null;
   let capturedHandleProgressChunk: HandleProgressChunkFn | null = null;
 
-  Map.prototype.set = function (
-    this: Map<unknown, unknown>,
-    key: unknown,
-    value: unknown,
-  ) {
+  Map.prototype.set = function (this: Map<unknown, unknown>, key: unknown, value: unknown) {
     if (!found && isRecord(value)) {
       const candidate = isRecord(value._proxy) ? value._proxy : undefined;
       const handleProgressChunk = candidate?.$handleProgressChunk;
@@ -215,10 +196,7 @@ function patchProxy(captured: CapturedProxy): void {
 
   const target = captured.proxyTarget;
   const original = captured.originalHandleProgressChunk;
-  const patched: HandleProgressChunkFn = function (
-    requestId: string,
-    chunks: unknown[],
-  ): Promise<void> {
+  const patched: HandleProgressChunkFn = function (requestId: string, chunks: unknown[]): Promise<void> {
     let localRequestId = requestContextStorage.getStore();
     if (!localRequestId && !vsCodeToLocalRequestIds.has(requestId)) {
       localRequestId = takeQueuedProgressBinding();
@@ -231,9 +209,7 @@ function patchProxy(captured: CapturedProxy): void {
     if (stored) {
       for (let index = 0; index < chunks.length; index += 1) {
         const raw = chunks[index];
-        const chunk = (Array.isArray(raw) ? raw[0] : raw) as
-          | Record<string, unknown>
-          | undefined;
+        const chunk = (Array.isArray(raw) ? raw[0] : raw) as Record<string, unknown> | undefined;
         if (chunk?.kind === "usage") {
           chunk.promptTokens = stored.promptTokens;
           chunk.completionTokens = stored.completionTokens;
@@ -250,8 +226,7 @@ function patchProxy(captured: CapturedProxy): void {
   proxyTarget = target;
   originalHandleProgressChunk = original;
   patchedHandleProgressChunk = patched;
-  (target as { $handleProgressChunk?: HandleProgressChunkFn }).$handleProgressChunk =
-    patched;
+  (target as { $handleProgressChunk?: HandleProgressChunkFn }).$handleProgressChunk = patched;
   hookInstalled = true;
 }
 
@@ -260,11 +235,9 @@ function unpatchProxy(): void {
     proxyTarget &&
     originalHandleProgressChunk &&
     patchedHandleProgressChunk &&
-    (proxyTarget as { $handleProgressChunk?: HandleProgressChunkFn })
-      .$handleProgressChunk === patchedHandleProgressChunk
+    (proxyTarget as { $handleProgressChunk?: HandleProgressChunkFn }).$handleProgressChunk === patchedHandleProgressChunk
   ) {
-    (proxyTarget as { $handleProgressChunk?: HandleProgressChunkFn }).$handleProgressChunk =
-      originalHandleProgressChunk;
+    (proxyTarget as { $handleProgressChunk?: HandleProgressChunkFn }).$handleProgressChunk = originalHandleProgressChunk;
   }
 
   patchedHandleProgressChunk = null;
@@ -289,10 +262,7 @@ function installRequestTracking(): void {
     return capturedOriginalAdd.call(this, value);
   };
 
-  const nextPatchedDelete: SetDeleteFn = function <T>(
-    this: Set<T>,
-    value: T,
-  ): boolean {
+  const nextPatchedDelete: SetDeleteFn = function <T>(this: Set<T>, value: T): boolean {
     if (isRecord(value) && typeof value.requestId === "string" && "extRequest" in value) {
       cleanupVsCodeRequest(value.requestId);
     }
@@ -346,18 +316,12 @@ function normalizeOutputBuffer(outputBuffer: number): number | undefined {
   return Math.floor(outputBuffer);
 }
 
-function withOutputBuffer(
-  localRequestId: string,
-  usage: ContextWindowUsage,
-): ContextWindowUsage {
+function withOutputBuffer(localRequestId: string, usage: ContextWindowUsage): ContextWindowUsage {
   const outputBuffer = outputBuffersByLocalRequestId.get(localRequestId);
   return outputBuffer === undefined ? usage : { ...usage, outputBuffer };
 }
 
-export function reportUsageToContextWindowForRequest(
-  localRequestId: string,
-  usage: UsageSnapshot,
-): boolean {
+export function reportUsageToContextWindowForRequest(localRequestId: string, usage: UsageSnapshot): boolean {
   if (!isContextIndicatorEnabled()) {
     return false;
   }
@@ -383,10 +347,7 @@ export function reportUsageToContextWindowForRequest(
   return true;
 }
 
-export function setContextWindowOutputBufferForRequest(
-  localRequestId: string,
-  outputBuffer: number,
-): void {
+export function setContextWindowOutputBufferForRequest(localRequestId: string, outputBuffer: number): void {
   if (!isContextIndicatorEnabled()) {
     return;
   }
@@ -421,10 +382,7 @@ export function setContextWindowOutputBufferForRequest(
   }
 }
 
-export function withContextWindowRequest<T>(
-  localRequestId: string,
-  fn: () => T,
-): T {
+export function withContextWindowRequest<T>(localRequestId: string, fn: () => T): T {
   return requestContextStorage.run(localRequestId, fn);
 }
 
@@ -472,9 +430,7 @@ export function disposeContextWindowHook(): boolean {
   return hadState;
 }
 
-export async function initializeContextWindowHook(
-  logDiagnostic?: (message: string) => void,
-): Promise<boolean> {
+export async function initializeContextWindowHook(logDiagnostic?: (message: string) => void): Promise<boolean> {
   if (!isContextIndicatorEnabled()) {
     return false;
   }

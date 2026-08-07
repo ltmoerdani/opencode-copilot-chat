@@ -46,9 +46,7 @@ export async function writeMigratedTo(context: vscode.ExtensionContext, fingerpr
 export function readProfiles(context: vscode.ExtensionContext): UsageProfile[] {
   const stored = context.globalState.get<UsageProfile[]>(PROFILES_REGISTRY_KEY, []);
   if (!Array.isArray(stored)) return [];
-  return stored.filter(
-    (p) => p && typeof p.fingerprint === "string" && typeof p.label === "string" && typeof p.lastSeenAt === "number",
-  );
+  return stored.filter((p) => p && typeof p.fingerprint === "string" && typeof p.label === "string" && typeof p.lastSeenAt === "number");
 }
 
 export async function writeProfiles(context: vscode.ExtensionContext, profiles: UsageProfile[]): Promise<void> {
@@ -69,10 +67,7 @@ export async function renameProfile(context: vscode.ExtensionContext, fingerprin
  * Get or create a profile for the given fingerprint.
  * Labels are assigned sequentially: "Profile 1", "Profile 2", etc.
  */
-export async function getOrCreateProfile(
-  context: vscode.ExtensionContext,
-  fingerprint: string,
-): Promise<UsageProfile> {
+export async function getOrCreateProfile(context: vscode.ExtensionContext, fingerprint: string): Promise<UsageProfile> {
   const profiles = readProfiles(context);
   const existing = findProfile(profiles, fingerprint);
   if (existing) {
@@ -93,10 +88,10 @@ export async function getOrCreateProfile(
 
 /** Read profiles, excluding the legacy fingerprint (which is not a real profile). */
 export function readActiveProfiles(context: vscode.ExtensionContext): UsageProfile[] {
-  return readProfiles(context).filter(p => p.fingerprint !== LEGACY_FINGERPRINT && p.fingerprint !== "");
+  return readProfiles(context).filter((p) => p.fingerprint !== LEGACY_FINGERPRINT && p.fingerprint !== "");
 }
 
 /** Count real (non-legacy) profiles. */
 export function nonLegacyCount(profiles: UsageProfile[]): number {
-  return profiles.filter(p => p.fingerprint !== LEGACY_FINGERPRINT && p.fingerprint !== "").length;
+  return profiles.filter((p) => p.fingerprint !== LEGACY_FINGERPRINT && p.fingerprint !== "").length;
 }

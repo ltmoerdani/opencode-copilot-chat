@@ -23,9 +23,7 @@ export interface ProviderUsagePayload {
 export function withUsageTotals(usage: UsageSnapshot): UsageSnapshot {
   const totalTokens =
     usage.totalTokens ??
-    (usage.promptTokens !== undefined && usage.completionTokens !== undefined
-      ? usage.promptTokens + usage.completionTokens
-      : undefined);
+    (usage.promptTokens !== undefined && usage.completionTokens !== undefined ? usage.promptTokens + usage.completionTokens : undefined);
 
   return totalTokens === usage.totalTokens
     ? usage
@@ -36,11 +34,7 @@ export function withUsageTotals(usage: UsageSnapshot): UsageSnapshot {
 }
 
 export function hasUsageSnapshot(usage: UsageSnapshot): boolean {
-  return (
-    usage.promptTokens !== undefined ||
-    usage.completionTokens !== undefined ||
-    usage.totalTokens !== undefined
-  );
+  return usage.promptTokens !== undefined || usage.completionTokens !== undefined || usage.totalTokens !== undefined;
 }
 
 export function formatCompactTokenCount(value: number | undefined): string {
@@ -60,11 +54,7 @@ export function formatCompactTokenCount(value: number | undefined): string {
 }
 
 export function cacheHitRatio(usage: UsageSnapshot): number | undefined {
-  if (
-    usage.cachedTokens === undefined ||
-    usage.promptTokens === undefined ||
-    usage.promptTokens <= 0
-  ) {
+  if (usage.cachedTokens === undefined || usage.promptTokens === undefined || usage.promptTokens <= 0) {
     return undefined;
   }
 
@@ -76,10 +66,7 @@ export function formatCacheHitRatio(usage: UsageSnapshot): string | undefined {
   return ratio === undefined ? undefined : `${ratio.toFixed(1)}%`;
 }
 
-export function formatUsageStatusBarText(
-  providerDisplayName: string,
-  usage: UsageSnapshot,
-): string | undefined {
+export function formatUsageStatusBarText(providerDisplayName: string, usage: UsageSnapshot): string | undefined {
   const normalized = withUsageTotals(usage);
   if (!hasUsageSnapshot(normalized)) {
     return undefined;
@@ -92,11 +79,7 @@ export function formatUsageStatusBarText(
   ].join(" ");
 }
 
-export function formatUsageStatusBarTooltip(
-  providerDisplayName: string,
-  modelId: string,
-  usage: UsageSnapshot,
-): string {
+export function formatUsageStatusBarTooltip(providerDisplayName: string, modelId: string, usage: UsageSnapshot): string {
   const normalized = withUsageTotals(usage);
   const lines = [
     `Provider: ${providerDisplayName}`,
@@ -150,24 +133,16 @@ export function formatUsageLogLine(usage: UsageSnapshot): string | undefined {
   return parts.join(" ");
 }
 
-export function toProviderUsagePayload(
-  usage: UsageSnapshot,
-): ProviderUsagePayload | undefined {
+export function toProviderUsagePayload(usage: UsageSnapshot): ProviderUsagePayload | undefined {
   const normalized = withUsageTotals(usage);
   if (!hasUsageSnapshot(normalized)) {
     return undefined;
   }
 
   return {
-    ...(normalized.promptTokens === undefined
-      ? {}
-      : { prompt_tokens: normalized.promptTokens }),
-    ...(normalized.completionTokens === undefined
-      ? {}
-      : { completion_tokens: normalized.completionTokens }),
-    ...(normalized.totalTokens === undefined
-      ? {}
-      : { total_tokens: normalized.totalTokens }),
+    ...(normalized.promptTokens === undefined ? {} : { prompt_tokens: normalized.promptTokens }),
+    ...(normalized.completionTokens === undefined ? {} : { completion_tokens: normalized.completionTokens }),
+    ...(normalized.totalTokens === undefined ? {} : { total_tokens: normalized.totalTokens }),
     ...(normalized.cachedTokens === undefined
       ? {}
       : {
@@ -175,11 +150,7 @@ export function toProviderUsagePayload(
             cached_tokens: normalized.cachedTokens,
           },
         }),
-    ...(normalized.finishReason === undefined
-      ? {}
-      : { finish_reason: normalized.finishReason }),
-    ...(normalized.copilotCredits === undefined
-      ? {}
-      : { copilotCredits: normalized.copilotCredits }),
+    ...(normalized.finishReason === undefined ? {} : { finish_reason: normalized.finishReason }),
+    ...(normalized.copilotCredits === undefined ? {} : { copilotCredits: normalized.copilotCredits }),
   };
 }

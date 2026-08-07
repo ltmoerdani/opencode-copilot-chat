@@ -31,13 +31,13 @@ This session also involved an incorrect initial fix (v0.1.9) that rerouted Qwen 
 
 The investigation traced through the full request pipeline:
 
-| Component | File | Finding |
-|-----------|------|---------|
-| Routing | `src/routing.ts` | `isMessagesQwenModel()` routes all Qwen to Anthropic `/messages` endpoint |
-| Request builder | `src/extension.ts` | `buildAnthropicMessagesRequestBody()` constructs Anthropic-format body |
-| Streaming parser | `src/streaming.ts` | `AnthropicResponseExtractor` only checks flat `delta.type === "tool_use"` |
-| Usage parser | `src/streaming.ts` | `updateRequestUsageSummary()` only reads OpenAI fields (`prompt_tokens`, `completion_tokens`) |
-| Thinking payload | `src/extension.ts` | `buildThinkingPayload()` sends Qwen-native `enable_thinking` to Anthropic endpoint |
+| Component        | File               | Finding                                                                                       |
+| ---------------- | ------------------ | --------------------------------------------------------------------------------------------- |
+| Routing          | `src/routing.ts`   | `isMessagesQwenModel()` routes all Qwen to Anthropic `/messages` endpoint                     |
+| Request builder  | `src/extension.ts` | `buildAnthropicMessagesRequestBody()` constructs Anthropic-format body                        |
+| Streaming parser | `src/streaming.ts` | `AnthropicResponseExtractor` only checks flat `delta.type === "tool_use"`                     |
+| Usage parser     | `src/streaming.ts` | `updateRequestUsageSummary()` only reads OpenAI fields (`prompt_tokens`, `completion_tokens`) |
+| Thinking payload | `src/extension.ts` | `buildThinkingPayload()` sends Qwen-native `enable_thinking` to Anthropic endpoint            |
 
 The `AnthropicResponseExtractor.extractStreamParts()` only handled:
 
@@ -62,11 +62,11 @@ This meant tool calls were silently dropped, and usage metadata (Anthropic `inpu
 
 **Files changed:**
 
-| # | Change | File | Detail |
-|---|--------|------|--------|
-| 1 | Remove `isMessagesQwenModel()` | `src/routing.ts` | Deleted function and its call from routing condition |
-| 2 | Version bump | `package.json` | `0.1.8` → `0.1.9` |
-| 3 | CHANGELOG entry | `CHANGELOG.md` | Documented the fix |
+| #   | Change                         | File             | Detail                                               |
+| --- | ------------------------------ | ---------------- | ---------------------------------------------------- |
+| 1   | Remove `isMessagesQwenModel()` | `src/routing.ts` | Deleted function and its call from routing condition |
+| 2   | Version bump                   | `package.json`   | `0.1.8` → `0.1.9`                                    |
+| 3   | CHANGELOG entry                | `CHANGELOG.md`   | Documented the fix                                   |
 
 **Initial test result:** ✅ User confirmed `qwen3.5-plus` and `qwen3.7-max` worked locally.
 
@@ -91,14 +91,14 @@ Model qwen3.7-max is not supported for format oa-compat
 
 **Changes:**
 
-| # | Fix | Files | Impact |
-|---|-----|-------|--------|
-| P0 | Restore Qwen routing to `/messages` | `src/routing.ts` | Restored `isMessagesQwenModel()`, Qwen back to Anthropic endpoint |
-| P1 | Rewrite `AnthropicResponseExtractor.extractStreamParts()` | `src/streaming.ts` | Now handles `content_block_start` (tool_use id/name), `content_block_delta` (input_json_delta partial_json), `message_delta` (stop_reason + usage), `message_stop` (final flush) |
-| P2 | Add Anthropic usage fields to `updateRequestUsageSummary()` | `src/streaming.ts` | Parse `input_tokens`, `output_tokens`, `cache_read_input_tokens` in addition to OpenAI fields |
-| P3 | Add Anthropic `stop_reason` parsing | `src/streaming.ts` | Extract `delta.stop_reason` from `message_delta` events |
-| P4 | Qwen thinking payload translation | `src/extension.ts` | New `buildQwenAnthropicThinkingPayload()` converts `enable_thinking` to Anthropic-native `{ type: "enabled"/"disabled" }` when Qwen is on messages endpoint |
-| P5 | Version bump + CHANGELOG | `package.json`, `CHANGELOG.md` | `0.1.9` → `0.1.10` |
+| #   | Fix                                                         | Files                          | Impact                                                                                                                                                                           |
+| --- | ----------------------------------------------------------- | ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| P0  | Restore Qwen routing to `/messages`                         | `src/routing.ts`               | Restored `isMessagesQwenModel()`, Qwen back to Anthropic endpoint                                                                                                                |
+| P1  | Rewrite `AnthropicResponseExtractor.extractStreamParts()`   | `src/streaming.ts`             | Now handles `content_block_start` (tool_use id/name), `content_block_delta` (input_json_delta partial_json), `message_delta` (stop_reason + usage), `message_stop` (final flush) |
+| P2  | Add Anthropic usage fields to `updateRequestUsageSummary()` | `src/streaming.ts`             | Parse `input_tokens`, `output_tokens`, `cache_read_input_tokens` in addition to OpenAI fields                                                                                    |
+| P3  | Add Anthropic `stop_reason` parsing                         | `src/streaming.ts`             | Extract `delta.stop_reason` from `message_delta` events                                                                                                                          |
+| P4  | Qwen thinking payload translation                           | `src/extension.ts`             | New `buildQwenAnthropicThinkingPayload()` converts `enable_thinking` to Anthropic-native `{ type: "enabled"/"disabled" }` when Qwen is on messages endpoint                      |
+| P5  | Version bump + CHANGELOG                                    | `package.json`, `CHANGELOG.md` | `0.1.9` → `0.1.10`                                                                                                                                                               |
 
 **Verification:**
 
@@ -121,8 +121,7 @@ Qwen models remain on the Anthropic `/messages` endpoint as required by the Open
 ```ts
 // src/routing.ts
 function isMessagesQwenModel(modelId: string): boolean {
-  return /^qwen3\.(?:5|6)-plus(?:-free)?$/i.test(modelId)
-    || /^qwen3\.7-max$/i.test(modelId);
+  return /^qwen3\.(?:5|6)-plus(?:-free)?$/i.test(modelId) || /^qwen3\.7-max$/i.test(modelId);
 }
 ```
 
@@ -147,34 +146,34 @@ function isMessagesQwenModel(modelId: string): boolean {
 
 `updateRequestUsageSummary()` now recognizes both OpenAI and Anthropic usage field names:
 
-| OpenAI field | Anthropic field | Mapped to |
-|-------------|-----------------|-----------|
-| `prompt_tokens` | `input_tokens` | `promptTokens` |
-| `completion_tokens` | `output_tokens` | `completionTokens` |
-| `prompt_tokens_details.cached_tokens` | `cache_read_input_tokens` | `cachedTokens` |
-| *(in delta)* | `delta.stop_reason` | `finishReason` |
+| OpenAI field                          | Anthropic field           | Mapped to          |
+| ------------------------------------- | ------------------------- | ------------------ |
+| `prompt_tokens`                       | `input_tokens`            | `promptTokens`     |
+| `completion_tokens`                   | `output_tokens`           | `completionTokens` |
+| `prompt_tokens_details.cached_tokens` | `cache_read_input_tokens` | `cachedTokens`     |
+| _(in delta)_                          | `delta.stop_reason`       | `finishReason`     |
 
 ### Thinking Payload (bridged)
 
 New `buildQwenAnthropicThinkingPayload()` translates Qwen-native thinking settings to Anthropic format when Qwen is on the messages endpoint:
 
-| Qwen Setting | Anthropic Payload |
-|-------------|-------------------|
-| `off` | `{ thinking: { type: "disabled" } }` |
-| `on` | `{ thinking: { type: "enabled", budget_tokens: N } }` |
-| `auto` | `{}` (no directive) |
+| Qwen Setting | Anthropic Payload                                     |
+| ------------ | ----------------------------------------------------- |
+| `off`        | `{ thinking: { type: "disabled" } }`                  |
+| `on`         | `{ thinking: { type: "enabled", budget_tokens: N } }` |
+| `auto`       | `{}` (no directive)                                   |
 
 ---
 
 ## Files Changed
 
-| File | Change |
-|------|--------|
-| `src/routing.ts` | Restored `isMessagesQwenModel()` after v0.1.9 regression |
+| File               | Change                                                                                            |
+| ------------------ | ------------------------------------------------------------------------------------------------- |
+| `src/routing.ts`   | Restored `isMessagesQwenModel()` after v0.1.9 regression                                          |
 | `src/streaming.ts` | Rewrote `AnthropicResponseExtractor.extractStreamParts()`, enhanced `updateRequestUsageSummary()` |
-| `src/extension.ts` | Added `buildQwenAnthropicThinkingPayload()`, updated `buildAnthropicMessagesRequestBody()` |
-| `package.json` | `0.1.8` → `0.1.9` → `0.1.10` |
-| `CHANGELOG.md` | Entries for v0.1.9 and v0.1.10 |
+| `src/extension.ts` | Added `buildQwenAnthropicThinkingPayload()`, updated `buildAnthropicMessagesRequestBody()`        |
+| `package.json`     | `0.1.8` → `0.1.9` → `0.1.10`                                                                      |
+| `CHANGELOG.md`     | Entries for v0.1.9 and v0.1.10                                                                    |
 
 ---
 

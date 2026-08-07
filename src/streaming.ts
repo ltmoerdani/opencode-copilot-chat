@@ -28,11 +28,7 @@ import {
   setContextWindowOutputBufferForRequest,
 } from "./contextWindowHookBridge";
 import { formatUsageLogLine } from "./usage";
-import {
-  parseToolInput,
-  ToolCallAccumulator,
-  type PendingToolCall,
-} from "./toolCallAccumulator";
+import { parseToolInput, ToolCallAccumulator, type PendingToolCall } from "./toolCallAccumulator";
 
 export interface StreamRequestOptions {
   url: string;
@@ -89,9 +85,7 @@ export interface TransportRequestSummary {
   errorMessage?: string;
 }
 
-export async function streamChatCompletions(
-  options: StreamRequestOptions,
-): Promise<void> {
+export async function streamChatCompletions(options: StreamRequestOptions): Promise<void> {
   const thinkFilter = createThinkTagFilter(options.stripThinkTags, options.modelId);
   // Workaround for opencode-go gateway bug (#37635): the Go gateway wraps ALL
   // streaming responses in `reasoning_content`. Only apply when:
@@ -101,8 +95,7 @@ export async function streamChatCompletions(
   // CoT and should remain in the thinking panel.
   const isGoGateway = options.url.includes("/zen/go/");
   const body = options.body as Record<string, unknown> | undefined;
-  const hasReasoningEffort = isGoGateway &&
-    (typeof body?.reasoning_effort === "string" || typeof body?.budget_tokens === "number");
+  const hasReasoningEffort = isGoGateway && (typeof body?.reasoning_effort === "string" || typeof body?.budget_tokens === "number");
   const treatReasoningAsContent = isGoGateway && !hasReasoningEffort;
   if (isGoGateway) {
     options.output?.appendLine(
@@ -125,14 +118,8 @@ export async function streamChatCompletions(
     extractFullParts: extractChatCompletionParts,
   });
 
-  extractor.flushRemainingToolCalls(
-    options.progress,
-    options.requestHeaders["x-opencode-request"],
-  );
-  extractor.flushReasoningFallback(
-    options.progress,
-    options.requestHeaders["x-opencode-request"],
-  );
+  extractor.flushRemainingToolCalls(options.progress, options.requestHeaders["x-opencode-request"]);
+  extractor.flushReasoningFallback(options.progress, options.requestHeaders["x-opencode-request"]);
   options.output?.appendLine(
     `[stream-summary model=${options.modelId}] textChars=${extractor.emittedText} toolCalls=${extractor.emittedTools} reasoningChars=${extractor.reasoningChars}`,
   );
@@ -150,9 +137,7 @@ export async function streamChatCompletions(
   }
 }
 
-export async function streamAnthropicMessages(
-  options: StreamRequestOptions,
-): Promise<void> {
+export async function streamAnthropicMessages(options: StreamRequestOptions): Promise<void> {
   const thinkFilter = createThinkTagFilter(options.stripThinkTags, options.modelId);
   const extractor = new AnthropicResponseExtractor(
     options.onReasoningContent,
@@ -168,18 +153,13 @@ export async function streamAnthropicMessages(
     extractFullParts: extractAnthropicParts,
   });
 
-  extractor.flushReasoningFallback(
-    options.progress,
-    options.requestHeaders["x-opencode-request"],
-  );
+  extractor.flushReasoningFallback(options.progress, options.requestHeaders["x-opencode-request"]);
   options.output?.appendLine(
     `[stream-summary model=${options.modelId}] textChars=${extractor.emittedText} toolCalls=${extractor.emittedTools} reasoningChars=${extractor.reasoningChars}`,
   );
 }
 
-export async function streamResponsesApi(
-  options: StreamRequestOptions,
-): Promise<void> {
+export async function streamResponsesApi(options: StreamRequestOptions): Promise<void> {
   const thinkFilter = createThinkTagFilter(options.stripThinkTags, options.modelId);
   const extractor = new OpenAiResponseExtractor(
     options.onReasoningContent,
@@ -191,28 +171,18 @@ export async function streamResponsesApi(
 
   await streamOpenCodeResponse({
     ...options,
-    extractStreamParts: (data) =>
-      extractor.extractStreamParts(normalizeResponsesStreamEvent(data)),
-    extractFullParts: (data) =>
-      extractChatCompletionParts(normalizeResponsesFullResponse(data)),
+    extractStreamParts: (data) => extractor.extractStreamParts(normalizeResponsesStreamEvent(data)),
+    extractFullParts: (data) => extractChatCompletionParts(normalizeResponsesFullResponse(data)),
   });
 
-  extractor.flushRemainingToolCalls(
-    options.progress,
-    options.requestHeaders["x-opencode-request"],
-  );
-  extractor.flushReasoningFallback(
-    options.progress,
-    options.requestHeaders["x-opencode-request"],
-  );
+  extractor.flushRemainingToolCalls(options.progress, options.requestHeaders["x-opencode-request"]);
+  extractor.flushReasoningFallback(options.progress, options.requestHeaders["x-opencode-request"]);
   options.output?.appendLine(
     `[stream-summary model=${options.modelId}] textChars=${extractor.emittedText} toolCalls=${extractor.emittedTools} reasoningChars=${extractor.reasoningChars}`,
   );
 }
 
-export async function streamGoogleGenerateContent(
-  options: StreamRequestOptions,
-): Promise<void> {
+export async function streamGoogleGenerateContent(options: StreamRequestOptions): Promise<void> {
   const thinkFilter = createThinkTagFilter(options.stripThinkTags, options.modelId);
   const extractor = new OpenAiResponseExtractor(
     options.onReasoningContent,
@@ -225,20 +195,12 @@ export async function streamGoogleGenerateContent(
   await streamOpenCodeResponse({
     ...options,
     url: `${options.url}:streamGenerateContent?alt=sse`,
-    extractStreamParts: (data) =>
-      extractor.extractStreamParts(normalizeGoogleStreamEvent(data)),
-    extractFullParts: (data) =>
-      extractChatCompletionParts(normalizeGoogleFullResponse(data)),
+    extractStreamParts: (data) => extractor.extractStreamParts(normalizeGoogleStreamEvent(data)),
+    extractFullParts: (data) => extractChatCompletionParts(normalizeGoogleFullResponse(data)),
   });
 
-  extractor.flushRemainingToolCalls(
-    options.progress,
-    options.requestHeaders["x-opencode-request"],
-  );
-  extractor.flushReasoningFallback(
-    options.progress,
-    options.requestHeaders["x-opencode-request"],
-  );
+  extractor.flushRemainingToolCalls(options.progress, options.requestHeaders["x-opencode-request"]);
+  extractor.flushReasoningFallback(options.progress, options.requestHeaders["x-opencode-request"]);
   options.output?.appendLine(
     `[stream-summary model=${options.modelId}] textChars=${extractor.emittedText} toolCalls=${extractor.emittedTools} reasoningChars=${extractor.reasoningChars}`,
   );
@@ -294,15 +256,13 @@ function reportProgressPart(
  *     successfully emitted, so the caller can decide whether to also
  *     accumulate into `reasoningContent` for the legacy fallback path.
  */
-const thinkingPartConstructor:
-  | (new (value: string | string[]) => vscode.LanguageModelResponsePart2)
-  | undefined = (() => {
-  const ctor = (vscode as unknown as {
-    LanguageModelThinkingPart?: unknown;
-  }).LanguageModelThinkingPart;
-  return typeof ctor === "function"
-    ? (ctor as new (value: string | string[]) => vscode.LanguageModelResponsePart2)
-    : undefined;
+const thinkingPartConstructor: (new (value: string | string[]) => vscode.LanguageModelResponsePart2) | undefined = (() => {
+  const ctor = (
+    vscode as unknown as {
+      LanguageModelThinkingPart?: unknown;
+    }
+  ).LanguageModelThinkingPart;
+  return typeof ctor === "function" ? (ctor as new (value: string | string[]) => vscode.LanguageModelResponsePart2) : undefined;
 })();
 
 /**
@@ -321,11 +281,7 @@ function emitThinkingPart(
     return false;
   }
   try {
-    reportProgressPart(
-      localRequestId,
-      progress,
-      new thinkingPartConstructor(reasoningChunk),
-    );
+    reportProgressPart(localRequestId, progress, new thinkingPartConstructor(reasoningChunk));
     return true;
   } catch {
     // Defensive: never let a thinking-part emit failure break the visible response.
@@ -342,10 +298,7 @@ function emitThinkingPart(
  * listener being removed — which would otherwise call `clearTimeout` on an
  * already-finished timer (harmless) or, worse, resolve a stale listener.
  */
-function sleepWithCancellation(
-  ms: number,
-  token: vscode.CancellationToken,
-): Promise<void> {
+function sleepWithCancellation(ms: number, token: vscode.CancellationToken): Promise<void> {
   return new Promise((resolve) => {
     const timer = setTimeout(resolve, ms);
     token.onCancellationRequested(() => {
@@ -355,19 +308,13 @@ function sleepWithCancellation(
   });
 }
 
-async function streamOpenCodeResponse(
-  options: StreamOpenCodeResponseOptions,
-): Promise<void> {
+async function streamOpenCodeResponse(options: StreamOpenCodeResponseOptions): Promise<void> {
   const controller = new AbortController();
   const startedAt = Date.now();
   const localRequestId = options.requestHeaders["x-opencode-request"];
   let firstByteAt: number | undefined;
   const usageSummary: RequestUsageSummary = {};
-  let abortReason:
-    | "request-timeout"
-    | "stream-idle-timeout"
-    | "cancelled"
-    | undefined;
+  let abortReason: "request-timeout" | "stream-idle-timeout" | "cancelled" | undefined;
   let responseStatus: number | undefined;
   let responseContentType: string | undefined;
   let emittedSummary = false;
@@ -375,28 +322,16 @@ async function streamOpenCodeResponse(
     abortReason ??= reason;
     controller.abort();
   };
-  const cancellation = options.token.onCancellationRequested(() =>
-    abort("cancelled"),
-  );
-  const requestTimeout = setTimeout(
-    () => abort("request-timeout"),
-    options.requestTimeoutMs,
-  );
+  const cancellation = options.token.onCancellationRequested(() => abort("cancelled"));
+  const requestTimeout = setTimeout(() => abort("request-timeout"), options.requestTimeoutMs);
   let streamIdleTimeout: ReturnType<typeof setTimeout> | undefined;
   const resetStreamIdleTimeout = () => {
     if (streamIdleTimeout) {
       clearTimeout(streamIdleTimeout);
     }
-    streamIdleTimeout = setTimeout(
-      () => abort("stream-idle-timeout"),
-      options.streamIdleTimeoutMs,
-    );
+    streamIdleTimeout = setTimeout(() => abort("stream-idle-timeout"), options.streamIdleTimeoutMs);
   };
-  const emitSummary = (
-    totalBytes: number,
-    totalEvents: number,
-    extra?: Partial<TransportRequestSummary>,
-  ) => {
+  const emitSummary = (totalBytes: number, totalEvents: number, extra?: Partial<TransportRequestSummary>) => {
     if (emittedSummary) {
       return;
     }
@@ -410,28 +345,16 @@ async function streamOpenCodeResponse(
       status: responseStatus,
       contentType: responseContentType,
       payloadBytes:
-        typeof options.body === "string"
-          ? options.body.length
-          : new TextEncoder().encode(JSON.stringify(options.body)).byteLength,
+        typeof options.body === "string" ? options.body.length : new TextEncoder().encode(JSON.stringify(options.body)).byteLength,
       totalBytes,
       totalEvents,
       durationMs: Date.now() - startedAt,
       ...(firstByteAt === undefined ? {} : { ttfbMs: firstByteAt - startedAt }),
-      ...(usageSummary.promptTokens === undefined
-        ? {}
-        : { promptTokens: usageSummary.promptTokens }),
-      ...(usageSummary.completionTokens === undefined
-        ? {}
-        : { completionTokens: usageSummary.completionTokens }),
-      ...(usageSummary.totalTokens === undefined
-        ? {}
-        : { totalTokens: usageSummary.totalTokens }),
-      ...(usageSummary.cachedTokens === undefined
-        ? {}
-        : { cachedTokens: usageSummary.cachedTokens }),
-      ...(usageSummary.finishReason === undefined
-        ? {}
-        : { finishReason: usageSummary.finishReason }),
+      ...(usageSummary.promptTokens === undefined ? {} : { promptTokens: usageSummary.promptTokens }),
+      ...(usageSummary.completionTokens === undefined ? {} : { completionTokens: usageSummary.completionTokens }),
+      ...(usageSummary.totalTokens === undefined ? {} : { totalTokens: usageSummary.totalTokens }),
+      ...(usageSummary.cachedTokens === undefined ? {} : { cachedTokens: usageSummary.cachedTokens }),
+      ...(usageSummary.finishReason === undefined ? {} : { finishReason: usageSummary.finishReason }),
       ...extra,
     };
 
@@ -481,10 +404,7 @@ async function streamOpenCodeResponse(
 
   try {
     if (localRequestId && options.contextWindowOutputBuffer !== undefined) {
-      setContextWindowOutputBufferForRequest(
-        localRequestId,
-        options.contextWindowOutputBuffer,
-      );
+      setContextWindowOutputBufferForRequest(localRequestId, options.contextWindowOutputBuffer);
     }
 
     const rawPayload = JSON.stringify(options.body);
@@ -522,20 +442,14 @@ async function streamOpenCodeResponse(
     if (response.status === 400) {
       const errorDetail = await response.text();
       consumedErrorBody = errorDetail;
-      options.output?.appendLine(
-        `[http-error-body] ${errorDetail.trim() ? truncateForLog(errorDetail) : "<empty>"}`,
-      );
+      options.output?.appendLine(`[http-error-body] ${errorDetail.trim() ? truncateForLog(errorDetail) : "<empty>"}`);
       const parsedBody = JSON.parse(rawPayload) as Record<string, unknown>;
       const patch = analyzeHttp400ForRetry(errorDetail, parsedBody);
       if (patch) {
-        options.output?.appendLine(
-          `[retry] HTTP 400 recoverable: ${patch.reason}. Retrying with patched body…`,
-        );
+        options.output?.appendLine(`[retry] HTTP 400 recoverable: ${patch.reason}. Retrying with patched body…`);
         payload = JSON.stringify(patch.body);
         response = await fetchWithBody(payload);
-        options.output?.appendLine(
-          `[retry] Response after patch: ${response.status} ${response.statusText}`,
-        );
+        options.output?.appendLine(`[retry] Response after patch: ${response.status} ${response.statusText}`);
         // If retry also returned 400, consume its body so the normal error
         // handler below doesn't try to re-read (the stream is already consumed).
         if (!response.ok && response.status === 400) {
@@ -553,17 +467,11 @@ async function streamOpenCodeResponse(
     // when the gateway is momentarily unavailable (502/503/504, or 5xx body
     // that names Router.Unavailable). Cancellation aborts the wait immediately.
     let attempt = 0;
-    while (
-      attempt < TRANSIENT_5XX_MAX_RETRIES &&
-      isTransientServerError(response.status, consumedErrorBody ?? "")
-    ) {
+    while (attempt < TRANSIENT_5XX_MAX_RETRIES && isTransientServerError(response.status, consumedErrorBody ?? "")) {
       attempt += 1;
       // Jitter spreads concurrent retries so they don't pile on the gateway
       // at the same timestamp.
-      const backoffMs = Math.round(
-        TRANSIENT_5XX_RETRY_BASE_MS * 2 ** (attempt - 1) +
-          Math.random() * TRANSIENT_5XX_RETRY_JITTER_MS,
-      );
+      const backoffMs = Math.round(TRANSIENT_5XX_RETRY_BASE_MS * 2 ** (attempt - 1) + Math.random() * TRANSIENT_5XX_RETRY_JITTER_MS);
       options.output?.appendLine(
         `[retry] transient ${response.status} (attempt ${attempt}/${TRANSIENT_5XX_MAX_RETRIES}); retrying in ${backoffMs}ms…`,
       );
@@ -578,12 +486,8 @@ async function streamOpenCodeResponse(
 
     responseStatus = response.status;
     responseContentType = response.headers.get("content-type") ?? "";
-    options.output?.appendLine(
-      `[http] ${response.status} ${response.statusText} content-type=${responseContentType || "<none>"}`,
-    );
-    const rateLimitSummary = formatRateLimitSummary(
-      readRateLimitInfo(response.headers),
-    );
+    options.output?.appendLine(`[http] ${response.status} ${response.statusText} content-type=${responseContentType || "<none>"}`);
+    const rateLimitSummary = formatRateLimitSummary(readRateLimitInfo(response.headers));
     if (rateLimitSummary) {
       options.output?.appendLine(`[rate-limit] ${rateLimitSummary}`);
     }
@@ -591,10 +495,8 @@ async function streamOpenCodeResponse(
     if (!response.ok) {
       // Use already-consumed body if available (from retry logic above),
       // otherwise read from the response stream.
-      const detail = consumedErrorBody ?? await response.text();
-      options.output?.appendLine(
-        `[http-error-body] ${detail.trim() ? truncateForLog(detail) : "<empty>"}`,
-      );
+      const detail = consumedErrorBody ?? (await response.text());
+      options.output?.appendLine(`[http-error-body] ${detail.trim() ? truncateForLog(detail) : "<empty>"}`);
       const capacityHint =
         options.capacityLimitedModelNotes?.[options.modelId] && response.status >= 500
           ? ` — ${options.capacityLimitedModelNotes[options.modelId]}`
@@ -660,9 +562,7 @@ async function streamOpenCodeResponse(
       }
       const chunk = decoder.decode(value, { stream: true });
       if (options.debugReasoning && options.output && chunk) {
-        options.output.appendLine(
-          `[sse-raw bytes=${value?.byteLength ?? 0}] ${truncateForLog(chunk)}`,
-        );
+        options.output.appendLine(`[sse-raw bytes=${value?.byteLength ?? 0}] ${truncateForLog(chunk)}`);
       }
       buffer += chunk;
       const events = buffer.split("\n\n");
@@ -673,14 +573,10 @@ async function streamOpenCodeResponse(
         if (options.debugReasoning && options.output && event.trim()) {
           options.output.appendLine(`[sse] ${truncateForLog(event)}`);
         }
-        for (const part of parseServerSentEvent(
-          event,
-          options.extractStreamParts,
-          (data) => {
-            updateRequestUsageSummary(usageSummary, data);
-            rawSseData.push(data);
-          },
-        )) {
+        for (const part of parseServerSentEvent(event, options.extractStreamParts, (data) => {
+          updateRequestUsageSummary(usageSummary, data);
+          rawSseData.push(data);
+        })) {
           extractedPartCount += 1;
           reportProgressPart(localRequestId, options.progress, part);
         }
@@ -691,42 +587,29 @@ async function streamOpenCodeResponse(
       if (options.debugReasoning && options.output) {
         options.output.appendLine(`[sse-tail] ${truncateForLog(buffer)}`);
       }
-      for (const part of parseServerSentEvent(
-        buffer,
-        options.extractStreamParts,
-        (data) => {
-          updateRequestUsageSummary(usageSummary, data);
-          rawSseData.push(data);
-        },
-      )) {
+      for (const part of parseServerSentEvent(buffer, options.extractStreamParts, (data) => {
+        updateRequestUsageSummary(usageSummary, data);
+        rawSseData.push(data);
+      })) {
         extractedPartCount += 1;
         reportProgressPart(localRequestId, options.progress, part);
       }
     }
 
     if (options.debugReasoning && options.output) {
-      options.output.appendLine(
-        `[sse-stats] totalBytes=${totalBytes} totalEvents=${totalEvents} bufferTailLen=${buffer.length}`,
-      );
+      options.output.appendLine(`[sse-stats] totalBytes=${totalBytes} totalEvents=${totalEvents} bufferTailLen=${buffer.length}`);
     }
 
     // Diagnostic: when the gateway reported completion tokens but our
     // extractor found nothing, dump raw SSE data to identify format mismatches.
     // This helps diagnose issues like #93 where the model generates tokens
     // but the response content is in an unrecognized format.
-    if (
-      usageSummary.completionTokens
-      && usageSummary.completionTokens > 0
-      && extractedPartCount === 0
-      && rawSseData.length > 0
-    ) {
+    if (usageSummary.completionTokens && usageSummary.completionTokens > 0 && extractedPartCount === 0 && rawSseData.length > 0) {
       options.output?.appendLine(
         `[diag-empty-response] model=${options.modelId} completionTokens=${usageSummary.completionTokens} totalEvents=${totalEvents} rawSseDataCount=${rawSseData.length}`,
       );
       for (let i = 0; i < rawSseData.length; i++) {
-        options.output?.appendLine(
-          `[diag-sse-event-${i}] ${truncateForLog(JSON.stringify(rawSseData[i]))}`,
-        );
+        options.output?.appendLine(`[diag-sse-event-${i}] ${truncateForLog(JSON.stringify(rawSseData[i]))}`);
       }
     }
 
@@ -844,10 +727,7 @@ function createReasoningDebugger(
 const OPEN_THINK_TAG = "<think>";
 const CLOSE_THINK_TAG = "</think>";
 
-function shouldStripThinkTags(
-  mode: "never" | "auto" | "always" | undefined,
-  modelId: string,
-): boolean {
+function shouldStripThinkTags(mode: "never" | "auto" | "always" | undefined, modelId: string): boolean {
   if (mode === "always") {
     return true;
   }
@@ -858,10 +738,7 @@ function shouldStripThinkTags(
   return /^minimax-m/i.test(modelId);
 }
 
-function createThinkTagFilter(
-  mode: "never" | "auto" | "always" | undefined,
-  modelId: string,
-): ThinkTagFilter | undefined {
+function createThinkTagFilter(mode: "never" | "auto" | "always" | undefined, modelId: string): ThinkTagFilter | undefined {
   return shouldStripThinkTags(mode, modelId) ? new ThinkTagFilter() : undefined;
 }
 
@@ -997,13 +874,8 @@ class OpenAiResponseExtractor {
   private readonly reasoningFragmentSuffixes: string[] = [];
   private static readonly REASONING_LOOP_SUFFIX_MATCHES = 6;
 
-
-
   constructor(
-    private readonly onReasoningContent?: (
-      toolCallIds: string[],
-      reasoningContent: string,
-    ) => void,
+    private readonly onReasoningContent?: (toolCallIds: string[], reasoningContent: string) => void,
     private readonly onReasoningDebug?: (reasoningContent: string) => void,
     private readonly thinkFilter?: ThinkTagFilter,
     /**
@@ -1109,9 +981,7 @@ class OpenAiResponseExtractor {
         this.reasoningFragmentSuffixes.push(suffix);
         if (this.reasoningFragmentSuffixes.length >= 6) {
           this._reasoningLoopSuppressed = true;
-          this.output?.appendLine(
-            `[mimo] reasoning loop: suffix repeated 6x. Suppressing thinking parts.`,
-          );
+          this.output?.appendLine(`[mimo] reasoning loop: suffix repeated 6x. Suppressing thinking parts.`);
         }
       } else {
         this.reasoningFragmentSuffixes.length = 0;
@@ -1121,9 +991,7 @@ class OpenAiResponseExtractor {
 
     if (this._reasoningLoopSuppressed && !this.reasoningLoopLogGuard) {
       this.reasoningLoopLogGuard = true;
-      this.output?.appendLine(
-        `[mimo] reasoning loop suppression ACTIVE. Thinking parts will be dropped.`,
-      );
+      this.output?.appendLine(`[mimo] reasoning loop suppression ACTIVE. Thinking parts will be dropped.`);
     }
 
     return this._reasoningLoopSuppressed;
@@ -1214,19 +1082,12 @@ class OpenAiResponseExtractor {
     return this.thinkFilter.process(text);
   }
 
-  flushReasoningFallback(
-    progress: vscode.Progress<vscode.LanguageModelResponsePart2>,
-    localRequestId?: string,
-  ): void {
+  flushReasoningFallback(progress: vscode.Progress<vscode.LanguageModelResponsePart2>, localRequestId?: string): void {
     // Emit a visible warning if a reasoning loop was detected and suppressed
     if (this._reasoningLoopSuppressed && !this.reasoningLoopWarningEmitted) {
       this.reasoningLoopWarningEmitted = true;
       const warning = "[Reasoning loop detected — thinking output suppressed]";
-      reportProgressPart(
-        localRequestId,
-        progress,
-        new vscode.LanguageModelTextPart(warning),
-      );
+      reportProgressPart(localRequestId, progress, new vscode.LanguageModelTextPart(warning));
       this.emittedTextLength += warning.length;
     }
 
@@ -1235,11 +1096,7 @@ class OpenAiResponseExtractor {
       const { visible, thinking } = this.thinkFilter.finish();
       if (visible) {
         this.emittedTextLength += visible.length;
-        reportProgressPart(
-          localRequestId,
-          progress,
-          new vscode.LanguageModelTextPart(visible),
-        );
+        reportProgressPart(localRequestId, progress, new vscode.LanguageModelTextPart(visible));
       }
       if (thinking) {
         // Surface remaining think-filter carry through the thinking part channel.
@@ -1267,11 +1124,7 @@ class OpenAiResponseExtractor {
       return;
     }
     this.onReasoningDebug?.(this.reasoningContent);
-    reportProgressPart(
-      localRequestId,
-      progress,
-      new vscode.LanguageModelTextPart(reasoning),
-    );
+    reportProgressPart(localRequestId, progress, new vscode.LanguageModelTextPart(reasoning));
     this.emittedTextLength += reasoning.length;
     this.reasoningContent = "";
   }
@@ -1283,12 +1136,7 @@ class OpenAiResponseExtractor {
   private flushToolCalls(): vscode.LanguageModelToolCallPart[] {
     const calls = this.toolCallAccumulator.flush();
     const parts = calls.map(
-      (call, index) =>
-        new vscode.LanguageModelToolCallPart(
-          call.id || `opencodego-tool-${Date.now()}-${index}`,
-          call.name,
-          call.input,
-        ),
+      (call, index) => new vscode.LanguageModelToolCallPart(call.id || `opencodego-tool-${Date.now()}-${index}`, call.name, call.input),
     );
 
     if (this.reasoningContent.trim()) {
@@ -1312,10 +1160,7 @@ class OpenAiResponseExtractor {
    * Must be called BEFORE `flushReasoningFallback` so tool-call reasoning
    * replication runs first. Safe no-op when nothing is pending.
    */
-  flushRemainingToolCalls(
-    progress: vscode.Progress<vscode.LanguageModelResponsePart2>,
-    localRequestId?: string,
-  ): void {
+  flushRemainingToolCalls(progress: vscode.Progress<vscode.LanguageModelResponsePart2>, localRequestId?: string): void {
     if (this.toolCallAccumulator.size === 0) {
       return;
     }
@@ -1339,10 +1184,7 @@ class AnthropicResponseExtractor {
   private totalReasoningChars = 0;
 
   constructor(
-    private readonly onReasoningContent?: (
-      toolCallIds: string[],
-      reasoningContent: string,
-    ) => void,
+    private readonly onReasoningContent?: (toolCallIds: string[], reasoningContent: string) => void,
     private readonly onReasoningDebug?: (reasoningContent: string) => void,
     private readonly thinkFilter?: ThinkTagFilter,
     /**
@@ -1550,20 +1392,13 @@ class AnthropicResponseExtractor {
     return this.thinkFilter.process(text);
   }
 
-  flushReasoningFallback(
-    progress: vscode.Progress<vscode.LanguageModelResponsePart2>,
-    localRequestId?: string,
-  ): void {
+  flushReasoningFallback(progress: vscode.Progress<vscode.LanguageModelResponsePart2>, localRequestId?: string): void {
     // Flush any remaining text in the think filter
     if (this.thinkFilter) {
       const { visible, thinking } = this.thinkFilter.finish();
       if (visible) {
         this.emittedTextLength += visible.length;
-        reportProgressPart(
-          localRequestId,
-          progress,
-          new vscode.LanguageModelTextPart(visible),
-        );
+        reportProgressPart(localRequestId, progress, new vscode.LanguageModelTextPart(visible));
       }
       if (thinking) {
         // Surface remaining think-filter carry through the thinking part channel.
@@ -1591,19 +1426,13 @@ class AnthropicResponseExtractor {
       return;
     }
     this.onReasoningDebug?.(this.reasoningContent);
-    reportProgressPart(
-      localRequestId,
-      progress,
-      new vscode.LanguageModelTextPart(reasoning),
-    );
+    reportProgressPart(localRequestId, progress, new vscode.LanguageModelTextPart(reasoning));
     this.emittedTextLength += reasoning.length;
     this.reasoningContent = "";
   }
 
   private flushToolCalls(): vscode.LanguageModelToolCallPart[] {
-    const toolCalls = Array.from(this.pendingToolCalls.values()).filter(
-      (toolCall) => toolCall.name,
-    );
+    const toolCalls = Array.from(this.pendingToolCalls.values()).filter((toolCall) => toolCall.name);
     const parts = toolCalls.map(
       (toolCall, index) =>
         new vscode.LanguageModelToolCallPart(
@@ -1627,9 +1456,7 @@ class AnthropicResponseExtractor {
   }
 }
 
-function extractChatCompletionParts(
-  data: unknown,
-): vscode.LanguageModelResponsePart[] {
+function extractChatCompletionParts(data: unknown): vscode.LanguageModelResponsePart[] {
   if (!isRecord(data) || !Array.isArray(data.choices)) {
     return [];
   }
@@ -1658,9 +1485,7 @@ function extractChatCompletionParts(
         parts.push(thinkingPart);
       }
     }
-    for (const toolCallPart of toolCallPartsFromOpenAiMessage(
-      message.tool_calls,
-    )) {
+    for (const toolCallPart of toolCallPartsFromOpenAiMessage(message.tool_calls)) {
       parts.push(toolCallPart);
     }
   }
@@ -1701,9 +1526,7 @@ function extractReasoningFromDelta(delta: Record<string, unknown>): string {
     delta.reasoning_content,
     delta.reasoning,
     delta.thinking,
-    isRecord(delta.message)
-      ? (delta.message as Record<string, unknown>).reasoning_content
-      : undefined,
+    isRecord(delta.message) ? (delta.message as Record<string, unknown>).reasoning_content : undefined,
   ];
   let collected = "";
   for (const candidate of candidates) {
@@ -1777,9 +1600,7 @@ function extractAnthropicParts(data: unknown): vscode.LanguageModelResponsePart[
   return parts;
 }
 
-function toolCallPartsFromOpenAiMessage(
-  toolCalls: unknown,
-): vscode.LanguageModelToolCallPart[] {
+function toolCallPartsFromOpenAiMessage(toolCalls: unknown): vscode.LanguageModelToolCallPart[] {
   if (!Array.isArray(toolCalls)) {
     return [];
   }
@@ -1788,26 +1609,15 @@ function toolCallPartsFromOpenAiMessage(
     .filter(isRecord)
     .map((toolCall, index) => {
       const fn = toolCall.function;
-      const id =
-        typeof toolCall.id === "string"
-          ? toolCall.id
-          : `opencodego-tool-${Date.now()}-${index}`;
+      const id = typeof toolCall.id === "string" ? toolCall.id : `opencodego-tool-${Date.now()}-${index}`;
       const name = isRecord(fn) && typeof fn.name === "string" ? fn.name : "";
-      const args =
-        isRecord(fn) && typeof fn.arguments === "string" ? fn.arguments : "{}";
-      return name
-        ? new vscode.LanguageModelToolCallPart(id, name, parseToolInput(args))
-        : undefined;
+      const args = isRecord(fn) && typeof fn.arguments === "string" ? fn.arguments : "{}";
+      return name ? new vscode.LanguageModelToolCallPart(id, name, parseToolInput(args)) : undefined;
     })
-    .filter(
-      (part): part is vscode.LanguageModelToolCallPart => Boolean(part),
-    );
+    .filter((part): part is vscode.LanguageModelToolCallPart => Boolean(part));
 }
 
-function updateRequestUsageSummary(
-  summary: RequestUsageSummary,
-  data: unknown,
-): void {
+function updateRequestUsageSummary(summary: RequestUsageSummary, data: unknown): void {
   if (!isRecord(data)) {
     return;
   }
@@ -1815,32 +1625,17 @@ function updateRequestUsageSummary(
   const usage = isRecord(data.usage) ? data.usage : undefined;
   if (usage) {
     // OpenAI-compatible fields
-    const promptTokens =
-      typeof usage.prompt_tokens === "number" ? usage.prompt_tokens : undefined;
-    const completionTokens =
-      typeof usage.completion_tokens === "number"
-        ? usage.completion_tokens
-        : undefined;
-    const totalTokens =
-      typeof usage.total_tokens === "number" ? usage.total_tokens : undefined;
-    const promptTokenDetails = isRecord(usage.prompt_tokens_details)
-      ? usage.prompt_tokens_details
-      : undefined;
+    const promptTokens = typeof usage.prompt_tokens === "number" ? usage.prompt_tokens : undefined;
+    const completionTokens = typeof usage.completion_tokens === "number" ? usage.completion_tokens : undefined;
+    const totalTokens = typeof usage.total_tokens === "number" ? usage.total_tokens : undefined;
+    const promptTokenDetails = isRecord(usage.prompt_tokens_details) ? usage.prompt_tokens_details : undefined;
     const cachedTokens =
-      promptTokenDetails &&
-      typeof promptTokenDetails.cached_tokens === "number"
-        ? promptTokenDetails.cached_tokens
-        : undefined;
+      promptTokenDetails && typeof promptTokenDetails.cached_tokens === "number" ? promptTokenDetails.cached_tokens : undefined;
 
     // Anthropic-compatible fields (input_tokens / output_tokens)
-    const anthropicInputTokens =
-      typeof usage.input_tokens === "number" ? usage.input_tokens : undefined;
-    const anthropicOutputTokens =
-      typeof usage.output_tokens === "number" ? usage.output_tokens : undefined;
-    const cacheReadInputTokens =
-      typeof usage.cache_read_input_tokens === "number"
-        ? usage.cache_read_input_tokens
-        : undefined;
+    const anthropicInputTokens = typeof usage.input_tokens === "number" ? usage.input_tokens : undefined;
+    const anthropicOutputTokens = typeof usage.output_tokens === "number" ? usage.output_tokens : undefined;
+    const cacheReadInputTokens = typeof usage.cache_read_input_tokens === "number" ? usage.cache_read_input_tokens : undefined;
 
     if (promptTokens !== undefined) {
       summary.promptTokens = promptTokens;
@@ -1868,10 +1663,7 @@ function updateRequestUsageSummary(
     summary.finishReason = delta.stop_reason;
   }
 
-  const firstChoice =
-    Array.isArray(data.choices) && isRecord(data.choices[0])
-      ? data.choices[0]
-      : undefined;
+  const firstChoice = Array.isArray(data.choices) && isRecord(data.choices[0]) ? data.choices[0] : undefined;
   if (firstChoice && typeof firstChoice.finish_reason === "string") {
     summary.finishReason = firstChoice.finish_reason;
   }

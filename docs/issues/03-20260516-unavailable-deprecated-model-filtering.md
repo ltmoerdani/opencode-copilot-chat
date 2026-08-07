@@ -83,11 +83,11 @@ The live OpenCode endpoints and `models.dev` registry were checked.
 
 Findings:
 
-| Source | Finding |
-|---|---|
-| OpenCode Go `/zen/go/v1/models` | `ring-2.6-1t` was not returned in the active Go list |
-| OpenCode Zen `/zen/v1/models` | `ring-2.6-1t-free` and `trinity-large-preview-free` could still appear in the catalog |
-| `models.dev/api.json` | `ring-2.6-1t-free` and `trinity-large-preview-free` were marked `status: "deprecated"` |
+| Source                          | Finding                                                                                |
+| ------------------------------- | -------------------------------------------------------------------------------------- |
+| OpenCode Go `/zen/go/v1/models` | `ring-2.6-1t` was not returned in the active Go list                                   |
+| OpenCode Zen `/zen/v1/models`   | `ring-2.6-1t-free` and `trinity-large-preview-free` could still appear in the catalog  |
+| `models.dev/api.json`           | `ring-2.6-1t-free` and `trinity-large-preview-free` were marked `status: "deprecated"` |
 
 The important discovery was that OpenCode `/models` is not a sufficient serving guarantee. A model can still be listed in the catalog while the underlying provider returns a 404 because no endpoint exists or the free tier was withdrawn.
 
@@ -109,11 +109,7 @@ The implementation added two filtering layers.
 First, a local safety list blocks model IDs that are known to fail even if a registry still mentions them:
 
 ```ts
-const KNOWN_UNAVAILABLE_MODEL_IDS = new Set([
-  "ring-2.6-1t",
-  "ring-2.6-1t-free",
-  "trinity-large-preview-free"
-]);
+const KNOWN_UNAVAILABLE_MODEL_IDS = new Set(["ring-2.6-1t", "ring-2.6-1t-free", "trinity-large-preview-free"]);
 ```
 
 Second, model registration filters Zen models marked deprecated in the resolved metadata snapshot:
@@ -145,10 +141,10 @@ Documentation was updated to reflect the final behavior:
 
 There were three root causes.
 
-| Root Cause | Detail |
-|---|---|
-| Catalog drift | OpenCode `/models` could still list models that no longer had a usable provider endpoint |
-| Fallback drift | Bundled fallback lists could reintroduce stale model IDs when live model discovery failed |
+| Root Cause                  | Detail                                                                                                                  |
+| --------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| Catalog drift               | OpenCode `/models` could still list models that no longer had a usable provider endpoint                                |
+| Fallback drift              | Bundled fallback lists could reintroduce stale model IDs when live model discovery failed                               |
 | Missing availability filter | The extension previously did not use resolved model `status` metadata to hide deprecated Zen models before registration |
 
 There was also a diagnostics issue: the transport error text could use the wrong provider display name, making Zen failures appear as OpenCode Go failures.
@@ -173,13 +169,13 @@ This keeps the picker clean without requiring an extension release for every ups
 
 ## Files Changed
 
-| File | Change |
-|---|---|
+| File                                         | Change                                                                                                         |
+| -------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
 | [`src/extension.ts`](../../src/extension.ts) | Added known-unavailable model filtering, registration-time deprecated filtering, and provider-aware error text |
-| [`src/metadata.ts`](../../src/metadata.ts) | Provides cached `models.dev` metadata and status fields consumed by the provider filter |
-| [`README.md`](../../README.md) | Documents model discovery behavior and removes stale free-model examples |
-| [`CHANGELOG.md`](../../CHANGELOG.md) | Records the model filtering fix |
-| [`docs/devlog.md`](../devlog.md) | Adds the completed backdated session entry |
+| [`src/metadata.ts`](../../src/metadata.ts)   | Provides cached `models.dev` metadata and status fields consumed by the provider filter                        |
+| [`README.md`](../../README.md)               | Documents model discovery behavior and removes stale free-model examples                                       |
+| [`CHANGELOG.md`](../../CHANGELOG.md)         | Records the model filtering fix                                                                                |
+| [`docs/devlog.md`](../devlog.md)             | Adds the completed backdated session entry                                                                     |
 
 ---
 

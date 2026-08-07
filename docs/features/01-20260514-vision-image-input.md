@@ -31,6 +31,7 @@ Enable GitHub Copilot Chat users to attach images (screenshots, photos, diagrams
 ## Root Cause
 
 The initial provider implementation (`v0.1.0`–`v0.1.2`) focused on text-only chat and tool calling. Vision capability was deferred because:
+
 - The VS Code `LanguageModelChatCapabilities` API had not yet been audited
 - The `LanguageModelDataPart` class (VS Code's way to deliver image bytes) was not handled
 - Model vision support documentation was scattered across multiple providers
@@ -43,21 +44,21 @@ The initial provider implementation (`v0.1.0`–`v0.1.2`) focused on text-only c
 
 Added `VISION_CAPABLE_MODELS` — a `Set<string>` containing model IDs that support multimodal image input through the OpenCode gateway:
 
-| Model ID | Provider | Vision Notes |
-|----------|----------|-------------|
-| `minimax-m2.7` | MiniMax | Multimodal |
-| `minimax-m2.5` | MiniMax | Multimodal |
-| `minimax-m2.5-free` | MiniMax | Multimodal (Zen free tier) |
-| `kimi-k2.6` | MoonshotAI | Multimodal |
-| `kimi-k2.5` | MoonshotAI | Multimodal |
-| `glm-5.1` | Z.AI | GLM-5 series vision |
-| `glm-5` | Z.AI | GLM-5 series vision |
-| `mimo-v2.5` | Xiaomi | Multimodal |
-| `mimo-v2.5-pro` | Xiaomi | Multimodal |
-| `mimo-v2-omni` | Xiaomi | Explicitly multimodal ("omni") |
-| `mimo-v2-pro` | Xiaomi | Multimodal |
-| `qwen3.6-plus` | Alibaba | Qwen-VL series |
-| `qwen3.5-plus` | Alibaba | Qwen-VL series |
+| Model ID            | Provider   | Vision Notes                   |
+| ------------------- | ---------- | ------------------------------ |
+| `minimax-m2.7`      | MiniMax    | Multimodal                     |
+| `minimax-m2.5`      | MiniMax    | Multimodal                     |
+| `minimax-m2.5-free` | MiniMax    | Multimodal (Zen free tier)     |
+| `kimi-k2.6`         | MoonshotAI | Multimodal                     |
+| `kimi-k2.5`         | MoonshotAI | Multimodal                     |
+| `glm-5.1`           | Z.AI       | GLM-5 series vision            |
+| `glm-5`             | Z.AI       | GLM-5 series vision            |
+| `mimo-v2.5`         | Xiaomi     | Multimodal                     |
+| `mimo-v2.5-pro`     | Xiaomi     | Multimodal                     |
+| `mimo-v2-omni`      | Xiaomi     | Explicitly multimodal ("omni") |
+| `mimo-v2-pro`       | Xiaomi     | Multimodal                     |
+| `qwen3.6-plus`      | Alibaba    | Qwen-VL series                 |
+| `qwen3.5-plus`      | Alibaba    | Qwen-VL series                 |
 
 **Not vision-capable (text-only):** `deepseek-v4-pro`, `deepseek-v4-flash`, `deepseek-v4-flash-free`, `hy3-preview`, `ring-2.6-1t-free`, `trinity-large-preview-free`, `nemotron-3-super-free`, `big-pickle`.
 
@@ -74,7 +75,7 @@ function modelCapabilities(): CopilotCompatibleCapabilities {
     imageInput: false,
     toolCalling: 128,
     supportsImageToText: false,
-    supportsToolCalling: true
+    supportsToolCalling: true,
   };
 }
 
@@ -85,7 +86,7 @@ function modelCapabilities(modelId: string): CopilotCompatibleCapabilities {
     imageInput: supportsVision,
     toolCalling: 128,
     supportsImageToText: supportsVision,
-    supportsToolCalling: true
+    supportsToolCalling: true,
   };
 }
 ```
@@ -123,7 +124,7 @@ if (part instanceof vscode.LanguageModelDataPart && part.mimeType.startsWith("im
   const base64 = btoa(String.fromCodePoint(...part.data));
   imageParts.push({
     type: "image_url",
-    image_url: { url: `data:${part.mimeType};base64,${base64}` }
+    image_url: { url: `data:${part.mimeType};base64,${base64}` },
   });
   continue;
 }
@@ -170,14 +171,14 @@ if (Array.isArray(message.content)) {
 
 ## Files Changed
 
-| File | Change |
-|------|--------|
-| `src/extension.ts` | Added `VISION_CAPABLE_MODELS` set, `OpenAiContentPart` interface |
-| `src/extension.ts` | Changed `modelCapabilities()` to accept `modelId` parameter |
+| File               | Change                                                              |
+| ------------------ | ------------------------------------------------------------------- |
+| `src/extension.ts` | Added `VISION_CAPABLE_MODELS` set, `OpenAiContentPart` interface    |
+| `src/extension.ts` | Changed `modelCapabilities()` to accept `modelId` parameter         |
 | `src/extension.ts` | Updated `convertMessage()` to handle `LanguageModelDataPart` images |
-| `src/extension.ts` | Extended `ApiMessage.content` type for multimodal arrays |
-| `src/extension.ts` | Updated `normalizeMessages()` for safe array handling |
-| `src/extension.ts` | Updated `hasMessagePayload()` for array content detection |
+| `src/extension.ts` | Extended `ApiMessage.content` type for multimodal arrays            |
+| `src/extension.ts` | Updated `normalizeMessages()` for safe array handling               |
+| `src/extension.ts` | Updated `hasMessagePayload()` for array content detection           |
 
 ---
 

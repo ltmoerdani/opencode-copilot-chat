@@ -20,10 +20,10 @@ OpenCode Copilot Chat is a VS Code extension that registers OpenCode models as n
 
 The extension exposes two independent BYOK providers:
 
-| Provider | Vendor ID | Purpose | Model Source |
-|---|---|---|---|
-| OpenCode Go | `opencodego` | Paid Go/top-up models | `https://opencode.ai/zen/go/v1/models` |
-| OpenCode Zen | `opencodezen` | Free Zen models by default, paid Zen optional | `https://opencode.ai/zen/v1/models` |
+| Provider     | Vendor ID     | Purpose                                       | Model Source                           |
+| ------------ | ------------- | --------------------------------------------- | -------------------------------------- |
+| OpenCode Go  | `opencodego`  | Paid Go/top-up models                         | `https://opencode.ai/zen/go/v1/models` |
+| OpenCode Zen | `opencodezen` | Free Zen models by default, paid Zen optional | `https://opencode.ai/zen/v1/models`    |
 
 Both providers can be configured at the same time through VS Code **Language Models → Add Models...**. Each provider group owns its own API key secret in VS Code's native provider configuration flow, so Go and Zen can be added, configured, and removed separately.
 
@@ -33,21 +33,21 @@ This document is intentionally backdated to the original provider-architecture s
 
 ## Timeline
 
-| Date | Version | Change | Status |
-|---|---|---|---|
-| 2026-05-14 | 0.1.0 | Initial OpenCode Go provider, model list, fallback limits, endpoint routing, tool support, and diagnostics | ✅ Solved |
-| 2026-05-14 | 0.1.1 | Native VS Code Language Models BYOK configuration schema and secret `apiKey` flow | ✅ Solved |
-| 2026-05-14 | 0.1.2 | Separate OpenCode Zen provider, free-model filtering, key caching, tool-call streaming, and DeepSeek reasoning replay | ✅ Solved |
-| 2026-05-16 | 0.1.3 | Context-size metadata corrected and model limits split per provider | ✅ Solved |
-| 2026-05-17 | 0.1.4 | Zen `freeOnly`, per-model thinking configuration, model-label fixes, schema sanitization, and unavailable-model filtering | ✅ Solved |
-| 2026-05-21 | 0.1.6 | Request timeout, sticky gateway headers, models.dev cache, Zen GPT `/responses`, and Zen Gemini routing | ✅ Solved |
-| 2026-05-27 | 0.1.7 | Transport diagnostics, usage status bar, usage DataPart, context-window hook, and OpenCode auth/body fixes | ✅ Solved |
-| 2026-06-04 | 0.1.8 | Pricing metadata, modality detection, provider capability shape, and redundant experimental context setting removal | ✅ Solved |
-| 2026-06-05 | 0.2.0 | Go Usage Tracker for subscription limits and cost tracking | ✅ Solved |
-| 2026-06-09 | 0.2.4 | Context Size selector, dynamic reasoning options, Mimo/MiniMax/DeepSeek/Kimi thinking controls, and strip-think-tags setting | ✅ Solved |
-| 2026-06-12 | 0.2.7 | Temperature support guard and Kimi thinking documentation correction | ✅ Solved |
-| 2026-06-23 | 0.3.4 | VS Code ≥1.126 model picker crash fix: `category` type from object to string, secrets fallback via `options.configuration` discriminator, agent variant independent resolution | ✅ Solved |
-| 2026-06-24 | 0.3.4 | Security hardening: removed API key debug log leak, Clear API Key BYOK warning, `reasoningContentByToolCallId` memory cap at 500, removed dead `agentProvidersByBaseVendor` map and `categoryOrder` field | ✅ Solved |
+| Date       | Version | Change                                                                                                                                                                                                    | Status    |
+| ---------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- |
+| 2026-05-14 | 0.1.0   | Initial OpenCode Go provider, model list, fallback limits, endpoint routing, tool support, and diagnostics                                                                                                | ✅ Solved |
+| 2026-05-14 | 0.1.1   | Native VS Code Language Models BYOK configuration schema and secret `apiKey` flow                                                                                                                         | ✅ Solved |
+| 2026-05-14 | 0.1.2   | Separate OpenCode Zen provider, free-model filtering, key caching, tool-call streaming, and DeepSeek reasoning replay                                                                                     | ✅ Solved |
+| 2026-05-16 | 0.1.3   | Context-size metadata corrected and model limits split per provider                                                                                                                                       | ✅ Solved |
+| 2026-05-17 | 0.1.4   | Zen `freeOnly`, per-model thinking configuration, model-label fixes, schema sanitization, and unavailable-model filtering                                                                                 | ✅ Solved |
+| 2026-05-21 | 0.1.6   | Request timeout, sticky gateway headers, models.dev cache, Zen GPT `/responses`, and Zen Gemini routing                                                                                                   | ✅ Solved |
+| 2026-05-27 | 0.1.7   | Transport diagnostics, usage status bar, usage DataPart, context-window hook, and OpenCode auth/body fixes                                                                                                | ✅ Solved |
+| 2026-06-04 | 0.1.8   | Pricing metadata, modality detection, provider capability shape, and redundant experimental context setting removal                                                                                       | ✅ Solved |
+| 2026-06-05 | 0.2.0   | Go Usage Tracker for subscription limits and cost tracking                                                                                                                                                | ✅ Solved |
+| 2026-06-09 | 0.2.4   | Context Size selector, dynamic reasoning options, Mimo/MiniMax/DeepSeek/Kimi thinking controls, and strip-think-tags setting                                                                              | ✅ Solved |
+| 2026-06-12 | 0.2.7   | Temperature support guard and Kimi thinking documentation correction                                                                                                                                      | ✅ Solved |
+| 2026-06-23 | 0.3.4   | VS Code ≥1.126 model picker crash fix: `category` type from object to string, secrets fallback via `options.configuration` discriminator, agent variant independent resolution                            | ✅ Solved |
+| 2026-06-24 | 0.3.4   | Security hardening: removed API key debug log leak, Clear API Key BYOK warning, `reasoningContentByToolCallId` memory cap at 500, removed dead `agentProvidersByBaseVendor` map and `categoryOrder` field | ✅ Solved |
 
 ---
 
@@ -67,29 +67,29 @@ This document is intentionally backdated to the original provider-architecture s
 Provider registration starts in `src/extension.ts`.
 
 ```ts
-vscode.lm.registerLanguageModelChatProvider(GO_VENDOR, goProvider)
-vscode.lm.registerLanguageModelChatProvider(ZEN_VENDOR, zenProvider)
+vscode.lm.registerLanguageModelChatProvider(GO_VENDOR, goProvider);
+vscode.lm.registerLanguageModelChatProvider(ZEN_VENDOR, zenProvider);
 ```
 
 The vendor constants live in `src/providerTypes.ts`:
 
-| Constant | Value |
-|---|---|
-| `GO_VENDOR` | `opencodego` |
+| Constant     | Value         |
+| ------------ | ------------- |
+| `GO_VENDOR`  | `opencodego`  |
 | `ZEN_VENDOR` | `opencodezen` |
 
 The native provider configuration schema is declared in `package.json` under `contributes.languageModelChatProviders`. VS Code prompts for a group name first, then the provider-specific `apiKey` secret field.
 
 ### Configuration Commands
 
-| Command | Purpose |
-|---|---|
-| `OpenCode Go: Manage Provider` | Legacy fallback key management, refresh, and connection test |
-| `OpenCode Go: Set API Key` | Legacy fallback key storage |
-| `OpenCode Go: Diagnostics` | Go model and transport diagnostics |
-| `OpenCode Zen: Diagnostics` | Zen model and transport diagnostics |
-| `OpenCode: Model Picker Diagnostics` | Cross-provider model metadata comparison |
-| `OpenCode: Set Thinking Effort...` | Global thinking-mode helper for supported families |
+| Command                              | Purpose                                                      |
+| ------------------------------------ | ------------------------------------------------------------ |
+| `OpenCode Go: Manage Provider`       | Legacy fallback key management, refresh, and connection test |
+| `OpenCode Go: Set API Key`           | Legacy fallback key storage                                  |
+| `OpenCode Go: Diagnostics`           | Go model and transport diagnostics                           |
+| `OpenCode Zen: Diagnostics`          | Zen model and transport diagnostics                          |
+| `OpenCode: Model Picker Diagnostics` | Cross-provider model metadata comparison                     |
+| `OpenCode: Set Thinking Effort...`   | Global thinking-mode helper for supported families           |
 
 The recommended setup path is still VS Code's native **Language Models** UI. The legacy commands remain for diagnostics and fallback compatibility.
 
@@ -125,11 +125,11 @@ Model discovery uses this sequence:
 
 ### Live Sources
 
-| Provider | Endpoint |
-|---|---|
-| OpenCode Go | `https://opencode.ai/zen/go/v1/models` |
-| OpenCode Zen | `https://opencode.ai/zen/v1/models` |
-| models.dev | `https://models.dev/api.json` |
+| Provider     | Endpoint                               |
+| ------------ | -------------------------------------- |
+| OpenCode Go  | `https://opencode.ai/zen/go/v1/models` |
+| OpenCode Zen | `https://opencode.ai/zen/v1/models`    |
+| models.dev   | `https://models.dev/api.json`          |
 
 ### Metadata Resolution
 
@@ -175,14 +175,14 @@ Known unavailable Zen entries are filtered before registration so stale or tempo
 
 Routing is centralized in `src/routing.ts`.
 
-| Condition | Endpoint Kind | Endpoint |
-|---|---|---|
-| Zen GPT family (`gpt-*`) | `responses` | `/zen/v1/responses` |
-| Claude family | `messages` | `/zen/v1/messages` |
-| Go MiniMax M2 family | `messages` | `/zen/go/v1/messages` |
-| Qwen 3.5/3.6 Plus and Qwen 3.7 Max | `messages` | provider messages endpoint |
-| Zen Gemini family | `google` | `streamGenerateContent?alt=sse` style route |
-| All other models | `chat-completions` | provider chat-completions endpoint |
+| Condition                          | Endpoint Kind      | Endpoint                                    |
+| ---------------------------------- | ------------------ | ------------------------------------------- |
+| Zen GPT family (`gpt-*`)           | `responses`        | `/zen/v1/responses`                         |
+| Claude family                      | `messages`         | `/zen/v1/messages`                          |
+| Go MiniMax M2 family               | `messages`         | `/zen/go/v1/messages`                       |
+| Qwen 3.5/3.6 Plus and Qwen 3.7 Max | `messages`         | provider messages endpoint                  |
+| Zen Gemini family                  | `google`           | `streamGenerateContent?alt=sse` style route |
+| All other models                   | `chat-completions` | provider chat-completions endpoint          |
 
 The request layer maps VS Code chat parts and tools into the correct request body for the selected endpoint.
 
@@ -190,12 +190,12 @@ The request layer maps VS Code chat parts and tools into the correct request bod
 
 `src/openCodeAuth.ts` maps auth headers by endpoint type:
 
-| Endpoint Kind | Header |
-|---|---|
-| `chat-completions` | `Authorization: Bearer <key>` |
-| `responses` | `Authorization: Bearer <key>` |
-| `messages` | `x-api-key: <key>` + `anthropic-version` |
-| `google` | `x-goog-api-key: <key>` |
+| Endpoint Kind      | Header                                   |
+| ------------------ | ---------------------------------------- |
+| `chat-completions` | `Authorization: Bearer <key>`            |
+| `responses`        | `Authorization: Bearer <key>`            |
+| `messages`         | `x-api-key: <key>` + `anthropic-version` |
+| `google`           | `x-goog-api-key: <key>`                  |
 
 ---
 
@@ -219,14 +219,14 @@ Streaming parsers accumulate partial tool-call argument chunks before emitting V
 
 Thinking support is model-family specific and is configured through `opencodego.thinking.*` settings plus dynamic `models.dev` reasoning metadata.
 
-| Family | Setting | Payload Behavior |
-|---|---|---|
-| DeepSeek | `opencodego.thinking.deepseek` | Maps to reasoning effort |
-| GLM | `opencodego.thinking.glm` | Maps to `thinking: { type }` |
-| Kimi | `opencodego.thinking.kimi` | Maps to `thinking: { type }` |
-| MiniMax | `opencodego.thinking.minimax` | Maps to on/off thinking shape |
-| Mimo | `opencodego.thinking.mimo` | Maps to reasoning effort |
-| Qwen | `opencodego.thinking.qwen` and `qwenBudget` | Maps to Qwen thinking controls |
+| Family   | Setting                                     | Payload Behavior               |
+| -------- | ------------------------------------------- | ------------------------------ |
+| DeepSeek | `opencodego.thinking.deepseek`              | Maps to reasoning effort       |
+| GLM      | `opencodego.thinking.glm`                   | Maps to `thinking: { type }`   |
+| Kimi     | `opencodego.thinking.kimi`                  | Maps to `thinking: { type }`   |
+| MiniMax  | `opencodego.thinking.minimax`               | Maps to on/off thinking shape  |
+| Mimo     | `opencodego.thinking.mimo`                  | Maps to reasoning effort       |
+| Qwen     | `opencodego.thinking.qwen` and `qwenBudget` | Maps to Qwen thinking controls |
 
 Reasoning content is handled carefully:
 
@@ -264,11 +264,11 @@ The context-window hook silently no-ops if VS Code internals change or cannot be
 
 Diagnostics are designed to answer whether a model is registered, where its metadata came from, and what happened during recent transport requests.
 
-| Diagnostic | Includes |
-|---|---|
-| OpenCode Go Diagnostics | Go models, metadata, routing, recent Go request summaries |
+| Diagnostic               | Includes                                                    |
+| ------------------------ | ----------------------------------------------------------- |
+| OpenCode Go Diagnostics  | Go models, metadata, routing, recent Go request summaries   |
 | OpenCode Zen Diagnostics | Zen models, metadata, routing, recent Zen request summaries |
-| Model Picker Diagnostics | Go, Zen, and Copilot model metadata side by side |
+| Model Picker Diagnostics | Go, Zen, and Copilot model metadata side by side            |
 
 Recent summaries include endpoint kind, initiator, metadata source, request IDs, usage, latency, and errors when available.
 

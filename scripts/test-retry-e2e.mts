@@ -20,7 +20,9 @@ import { analyzeHttp400ForRetry } from "../src/retry.js";
 function createMockServer() {
   return createServer((req: IncomingMessage, res: ServerResponse) => {
     let body = "";
-    req.on("data", (chunk) => { body += chunk; });
+    req.on("data", (chunk) => {
+      body += chunk;
+    });
     req.on("end", () => {
       try {
         const parsed = JSON.parse(body);
@@ -63,10 +65,12 @@ function createMockServer() {
 
         // Accept valid requests
         res.writeHead(200, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({
-          choices: [{ message: { content: "OK" }, finish_reason: "stop" }],
-          usage: { prompt_tokens: 5, completion_tokens: 1, total_tokens: 6 },
-        }));
+        res.end(
+          JSON.stringify({
+            choices: [{ message: { content: "OK" }, finish_reason: "stop" }],
+            usage: { prompt_tokens: 5, completion_tokens: 1, total_tokens: 6 },
+          }),
+        );
       } catch {
         res.writeHead(400, { "Content-Type": "application/json" });
         res.end(JSON.stringify({ error: { message: "Invalid JSON" } }));
@@ -93,23 +97,45 @@ const TEST_CASES: TestCase[] = [
   },
   {
     name: "Kimi K2.7-code: temperature 0.2 → remove temperature",
-    badBody: { model: "kimi-k2.7-code", messages: [{ role: "user", content: "Hi" }], max_tokens: 10, temperature: 0.2, thinking: { type: "enabled", keep: "all" } },
-    expectedPatch: (b) => { const n = { ...b }; delete n.temperature; return n; },
+    badBody: {
+      model: "kimi-k2.7-code",
+      messages: [{ role: "user", content: "Hi" }],
+      max_tokens: 10,
+      temperature: 0.2,
+      thinking: { type: "enabled", keep: "all" },
+    },
+    expectedPatch: (b) => {
+      const n = { ...b };
+      delete n.temperature;
+      return n;
+    },
   },
   {
     name: "DeepSeek: invalid reasoning_effort → remove it",
     badBody: { model: "deepseek-v4-pro", messages: [{ role: "user", content: "Hi" }], max_tokens: 10, reasoning_effort: "invalid_value" },
-    expectedPatch: (b) => { const n = { ...b }; delete n.reasoning_effort; return n; },
+    expectedPatch: (b) => {
+      const n = { ...b };
+      delete n.reasoning_effort;
+      return n;
+    },
   },
   {
     name: "MiniMax M2.7: thinking disabled → remove thinking field",
     badBody: { model: "minimax-m2.7", messages: [{ role: "user", content: "Hi" }], max_tokens: 10, thinking: { type: "disabled" } },
-    expectedPatch: (b) => { const n = { ...b }; delete n.thinking; return n; },
+    expectedPatch: (b) => {
+      const n = { ...b };
+      delete n.thinking;
+      return n;
+    },
   },
   {
     name: "GLM-5: thinking invalid → remove thinking",
     badBody: { model: "glm-5", messages: [{ role: "user", content: "Hi" }], max_tokens: 10, thinking: { type: "invalid" } },
-    expectedPatch: (b) => { const n = { ...b }; delete n.thinking; return n; },
+    expectedPatch: (b) => {
+      const n = { ...b };
+      delete n.thinking;
+      return n;
+    },
   },
   {
     name: "DeepSeek: valid reasoning_effort=high → no 400 (no retry needed)",

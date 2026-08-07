@@ -67,7 +67,7 @@ The first attempt added three layers of defense:
 3. Added a `Set<string>` dedup by `model.id` as a safety net.
 4. Made the API key fallback unconditional for all providers.
 
-During self-test the contributor discovered this still duplicated entries on 1.126, specifically because of the unconditional `SecretStorage` fallback. The comment thread on PR #53 (2026-06-22) confirms: *"1.126 still duplicate the entries, because the secret store failback... but whiout it dosent show on the model picker."*
+During self-test the contributor discovered this still duplicated entries on 1.126, specifically because of the unconditional `SecretStorage` fallback. The comment thread on PR #53 (2026-06-22) confirms: _"1.126 still duplicate the entries, because the secret store failback... but whiout it dosent show on the model picker."_
 
 ### Iteration 2 (shipped)
 
@@ -83,35 +83,35 @@ if (!apiKey && (this.definition.isAgentVariant || options.configuration)) {
 
 The discriminator maps to four concrete cases:
 
-| `options.configuration` | Provider type | Behavior |
-|---|---|---|
-| `undefined` | Non-agent | VS Code is still resolving. Return `[]`. VS Code calls again with the real BYOK key. |
-| `{ apiKey: "sk-..." }` | Non-agent | BYOK key resolved by `getConfiguredApiKey`. No fallback needed. |
-| `{}` (empty object) | Non-agent, 1.126+ | 1.126 sends an empty configuration for non-BYOK providers. Fall back to `SecretStorage`. |
-| absent / `undefined` | Agent variant | Agent variants never receive BYOK keys (no configuration schema). Always fall back to `SecretStorage`. |
+| `options.configuration` | Provider type     | Behavior                                                                                               |
+| ----------------------- | ----------------- | ------------------------------------------------------------------------------------------------------ |
+| `undefined`             | Non-agent         | VS Code is still resolving. Return `[]`. VS Code calls again with the real BYOK key.                   |
+| `{ apiKey: "sk-..." }`  | Non-agent         | BYOK key resolved by `getConfiguredApiKey`. No fallback needed.                                        |
+| `{}` (empty object)     | Non-agent, 1.126+ | 1.126 sends an empty configuration for non-BYOK providers. Fall back to `SecretStorage`.               |
+| absent / `undefined`    | Agent variant     | Agent variants never receive BYOK keys (no configuration schema). Always fall back to `SecretStorage`. |
 
 This removed the need for version checks, the `group` guard, the `Set` dedup, and the unconditional fallback. The provider path returns `[]` during the unresolved phase, so VS Code resolves again cleanly without producing duplicate cache keys.
 
 ### Cleanup included in iteration 2
 
-| Removed | Reason |
-|---|---|
-| `category` object field from `OpenCodeModel` and the returned model info | Type mismatch with `LanguageModelChatInformation`. |
-| `group !== undefined` guard + explanatory comment | No longer needed; `options.configuration` discriminator handles the same case. |
-| `Set<string>` dedup block | No longer producing duplicates upstream. |
-| Eight `this.log("[DIAG] ...")` calls in the provider path | Diagnostic noise from iteration 1. Replaced with a single `this.log(\`[picker] options=${JSON.stringify(options)}\`)`. |
-| Sequential `warmModelPickerMetadata` (main vendors, then agent variants) | Reverted to the original parallel `Promise.allSettled` pattern. |
-| `onLanguageModelChatProvider:opencodego-agent` and `:opencodezen-agent` activation events | Not needed with the new fallback strategy. |
+| Removed                                                                                   | Reason                                                                                                                 |
+| ----------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `category` object field from `OpenCodeModel` and the returned model info                  | Type mismatch with `LanguageModelChatInformation`.                                                                     |
+| `group !== undefined` guard + explanatory comment                                         | No longer needed; `options.configuration` discriminator handles the same case.                                         |
+| `Set<string>` dedup block                                                                 | No longer producing duplicates upstream.                                                                               |
+| Eight `this.log("[DIAG] ...")` calls in the provider path                                 | Diagnostic noise from iteration 1. Replaced with a single `this.log(\`[picker] options=${JSON.stringify(options)}\`)`. |
+| Sequential `warmModelPickerMetadata` (main vendors, then agent variants)                  | Reverted to the original parallel `Promise.allSettled` pattern.                                                        |
+| `onLanguageModelChatProvider:opencodego-agent` and `:opencodezen-agent` activation events | Not needed with the new fallback strategy.                                                                             |
 
 ---
 
 ## Files Changed
 
-| File | Change |
-|---|---|
+| File               | Change                                                                                                                                                                                                            |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `src/extension.ts` | Removed `category` field; rewrote `provideLanguageModelChatInformation` key resolution with the `options.configuration` discriminator; reverted `warmModelPickerMetadata` to parallel pattern; trimmed DIAG logs. |
-| `CHANGELOG.md` | v0.3.4 Fixed entries for the crash and the 1.126 visibility fix. |
-| `README.md` | Agents Window section: clarified Local vs Copilot split, `supportAgentsWindow` requirement note. |
+| `CHANGELOG.md`     | v0.3.4 Fixed entries for the crash and the 1.126 visibility fix.                                                                                                                                                  |
+| `README.md`        | Agents Window section: clarified Local vs Copilot split, `supportAgentsWindow` requirement note.                                                                                                                  |
 
 ---
 

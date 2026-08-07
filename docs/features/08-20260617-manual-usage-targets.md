@@ -40,10 +40,10 @@ The original tracker auto-calculated everything from request logs:
 
 ### Files Touched
 
-| File | Change |
-|------|--------|
-| `package.json` | New command contribution: `opencodego.setUsageTargets` → "OpenCode Go: Set Usage Targets…" |
-| `src/extension.ts` | Register the command; construct `GoUsageTracker` with a `CostResolver` closure; `showUsageTargetEditor()` 5-step input flow; tooltip gains a command link; webview `enableScripts: false`; status bar click disabled |
+| File                    | Change                                                                                                                                                                                                                                                                                                   |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `package.json`          | New command contribution: `opencodego.setUsageTargets` → "OpenCode Go: Set Usage Targets…"                                                                                                                                                                                                               |
+| `src/extension.ts`      | Register the command; construct `GoUsageTracker` with a `CostResolver` closure; `showUsageTargetEditor()` 5-step input flow; tooltip gains a command link; webview `enableScripts: false`; status bar click disabled                                                                                     |
 | `src/goUsageTracker.ts` | `CostResolver` type + constructor parameter; `setCostResolver()` setter; `estimateCost()` priority chain; `UsageBaselineTargets` exported with `monthlyAnchorDay` / `monthlyAnchorHour`; both summary builders honour `baseline.monthly.expiresAt`; `setManualSpentTargets()` honours the monthly anchor |
 
 ### New Command: `opencodego.setUsageTargets`
@@ -65,22 +65,22 @@ vscode.commands.registerCommand("opencodego.setUsageTargets", async () => {
 
 Sequential `vscode.window.showInputBox` calls, each pre-filled with the current tracked value so Enter keeps the existing number and Escape cancels the entire flow.
 
-| Step | Title | Pre-fill source | Validation |
-|------|-------|-----------------|------------|
-| 1 | Session Spent (5h rolling) | `summary.session.spent` | `0 ≤ n ≤ 12` |
-| 2 | Weekly Spent (Mon–Mon UTC) | `summary.weekly.spent` | `0 ≤ n ≤ 30` |
-| 3 | Monthly Spent | `summary.monthly.spent` | `0 ≤ n ≤ 60` |
-| 4 | Monthly Reset Day (1–31) | `summary.monthly.resetsAt.getUTCDate()` | integer `1..31` |
-| 5 | Monthly Reset Hour (0–23 UTC) | `summary.monthly.resetsAt.getUTCHours()` | integer `0..23` |
+| Step | Title                         | Pre-fill source                          | Validation      |
+| ---- | ----------------------------- | ---------------------------------------- | --------------- |
+| 1    | Session Spent (5h rolling)    | `summary.session.spent`                  | `0 ≤ n ≤ 12`    |
+| 2    | Weekly Spent (Mon–Mon UTC)    | `summary.weekly.spent`                   | `0 ≤ n ≤ 30`    |
+| 3    | Monthly Spent                 | `summary.monthly.spent`                  | `0 ≤ n ≤ 60`    |
+| 4    | Monthly Reset Day (1–31)      | `summary.monthly.resetsAt.getUTCDate()`  | integer `1..31` |
+| 5    | Monthly Reset Hour (0–23 UTC) | `summary.monthly.resetsAt.getUTCHours()` | integer `0..23` |
 
 Returns a `UsageBaselineTargets` object, or `undefined` if any step is cancelled.
 
 ### Persistence: `setManualSpentTargets()`
 
 ```ts
-this.baseline.session  = { amount: max(0, targets.session  - trackedSession),  expiresAt: summary.session.resetsAt.getTime() };
-this.baseline.weekly   = { amount: max(0, targets.weekly   - trackedWeekly),   expiresAt: summary.weekly.resetsAt.getTime() };
-this.baseline.monthly  = { amount: max(0, targets.monthly  - trackedMonthly),  expiresAt: summary.monthly.resetsAt.getTime() };
+this.baseline.session = { amount: max(0, targets.session - trackedSession), expiresAt: summary.session.resetsAt.getTime() };
+this.baseline.weekly = { amount: max(0, targets.weekly - trackedWeekly), expiresAt: summary.weekly.resetsAt.getTime() };
+this.baseline.monthly = { amount: max(0, targets.monthly - trackedMonthly), expiresAt: summary.monthly.resetsAt.getTime() };
 ```
 
 Then, if `monthlyAnchorDay` is supplied (1–31), the monthly `expiresAt` is overridden:
@@ -89,7 +89,11 @@ Then, if `monthlyAnchorDay` is supplied (1–31), the monthly `expiresAt` is ove
 let candidate = Date.UTC(year, month, day, hour, 0, 0, 0);
 if (candidate <= nowMs) {
   // Anchor already passed this month → next reset is next month.
-  month++; if (month > 11) { year++; month = 0; }
+  month++;
+  if (month > 11) {
+    year++;
+    month = 0;
+  }
   candidate = Date.UTC(year, month, day, hour, 0, 0, 0);
 }
 this.baseline.monthly.expiresAt = candidate;
@@ -102,9 +106,7 @@ This correctly rolls the anchor into the next month when the configured day/hour
 Both summary builders (`buildSummaryFromRows` and `buildSummaryFromTracked`) now resolve `resetsAt` symmetrically:
 
 ```ts
-const monthlyResetsAt = this.baseline.monthly
-  ? new Date(this.baseline.monthly.expiresAt)
-  : new Date(monthEndMs);
+const monthlyResetsAt = this.baseline.monthly ? new Date(this.baseline.monthly.expiresAt) : new Date(monthEndMs);
 ```
 
 This guarantees the "resets in Xd Yh" tooltip text reflects the user-configured anchor regardless of which data source (SQLite history vs. extension-tracked entries) is active.
@@ -120,11 +122,15 @@ export type CostResolver = (modelId: string) => ModelCost | undefined;
 Injected via the `GoUsageTracker` constructor from `src/extension.ts`:
 
 ```ts
-goUsageTracker = new GoUsageTracker(context, (msg) => {
-  goUsageLogChannel.appendLine(`[${new Date().toISOString()}] ${msg}`);
-}, (modelId) => {
-  return modelMetadataSnapshot?.providers[GO_VENDOR]?.[modelId]?.cost;
-});
+goUsageTracker = new GoUsageTracker(
+  context,
+  (msg) => {
+    goUsageLogChannel.appendLine(`[${new Date().toISOString()}] ${msg}`);
+  },
+  (modelId) => {
+    return modelMetadataSnapshot?.providers[GO_VENDOR]?.[modelId]?.cost;
+  },
+);
 ```
 
 `estimateCost()` priority chain:
@@ -133,11 +139,11 @@ goUsageTracker = new GoUsageTracker(context, (msg) => {
 const pricing = externalCost ?? liveCostResolver?.(modelId) ?? GO_MODEL_PRICING[modelId];
 ```
 
-| Priority | Source | When it wins |
-|----------|--------|--------------|
-| 1 | `externalCost` (`metadata.cost` passed to `record()`) | Model is present in the models.dev snapshot — the common case |
-| 2 | `liveCostResolver?.(modelId)` | Snapshot miss but resolver still has the entry (defense-in-depth) |
-| 3 | `GO_MODEL_PRICING[modelId]` | Both above miss — bundled static fallback so the extension stays functional when live fetch fails |
+| Priority | Source                                                | When it wins                                                                                      |
+| -------- | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| 1        | `externalCost` (`metadata.cost` passed to `record()`) | Model is present in the models.dev snapshot — the common case                                     |
+| 2        | `liveCostResolver?.(modelId)`                         | Snapshot miss but resolver still has the entry (defense-in-depth)                                 |
+| 3        | `GO_MODEL_PRICING[modelId]`                           | Both above miss — bundled static fallback so the extension stays functional when live fetch fails |
 
 > **Invariant preserved:** `GO_MODEL_PRICING` is never removed. It is the last-resort fallback required by the repo's "extension must keep working when live fetch fails" rule.
 
@@ -154,13 +160,13 @@ const pricing = externalCost ?? liveCostResolver?.(modelId) ?? GO_MODEL_PRICING[
 
 ## Verification
 
-| Check | Result |
-|-------|--------|
-| CI (`CI/build`, GitGuardian) | ✅ Passing |
-| Mergeable status | `MERGEABLE` / `CLEAN` |
-| Both summary builders honour `baseline.monthly.expiresAt` | ✅ Verified via diff (two `monthlyResetsAt` blocks) |
-| `GO_MODEL_PRICING` retained as fallback | ✅ Verified — comment updated to "bundled snapshot fallback" |
-| Cost priority chain matches PR description | ✅ `externalCost → liveCostResolver → GO_MODEL_PRICING` |
+| Check                                                     | Result                                                       |
+| --------------------------------------------------------- | ------------------------------------------------------------ |
+| CI (`CI/build`, GitGuardian)                              | ✅ Passing                                                   |
+| Mergeable status                                          | `MERGEABLE` / `CLEAN`                                        |
+| Both summary builders honour `baseline.monthly.expiresAt` | ✅ Verified via diff (two `monthlyResetsAt` blocks)          |
+| `GO_MODEL_PRICING` retained as fallback                   | ✅ Verified — comment updated to "bundled snapshot fallback" |
+| Cost priority chain matches PR description                | ✅ `externalCost → liveCostResolver → GO_MODEL_PRICING`      |
 
 ---
 

@@ -38,16 +38,19 @@ The extension was unconditionally sending `temperature` in all request payloads 
 ## Solution
 
 ### `src/metadata.ts` — Read and propagate temperature support
+
 - Added `temperature?: boolean` field to `ModelMetadataFields`, `ResolvedModelMetadata`, and `ModelsDevModelRecord` interfaces
 - Parse the `temperature` field from `models.dev` API responses
 - Propagate the field through the metadata resolution pipeline (live → cached → fallback)
 
 ### `src/extension.ts` — Conditionally send temperature
+
 - Modified all 3 request body builders to accept `ResolvedModelMetadata` parameter
 - Only include `temperature` in the request payload when `metadata.temperature !== false`
 - When `temperature` is `false`, the parameter is omitted entirely from the request
 
 ### Pattern Used
+
 ```typescript
 // Only send temperature if the model supports it (not deprecated)
 ...(metadata.temperature !== false ? { temperature: settings.temperature } : {}),
@@ -59,22 +62,23 @@ This is backward-compatible: if `metadata.temperature` is `undefined` (unknown m
 
 ## Changes
 
-| # | Change | Files | Impact |
-|---|--------|-------|--------|
-| P0 | Added `temperature` field to 3 interfaces | `src/metadata.ts` | `ModelMetadataFields`, `ResolvedModelMetadata`, `ModelsDevModelRecord` |
-| P1 | Parse `temperature` from models.dev API | `src/metadata.ts` | `normalizeModelsDevProvider()` reads `model.temperature` |
-| P2 | Propagate through resolution pipeline | `src/metadata.ts` | `resolveModelMetadata()` + `normalizeModelMetadataFields()` |
-| P3 | `buildChatCompletionsRequestBody` — conditional temperature | `src/extension.ts` | Omits `temperature` when `metadata.temperature === false` |
-| P4 | `buildAnthropicMessagesRequestBody` — conditional temperature | `src/extension.ts` | Same pattern for Anthropic endpoint |
-| P5 | `buildResponsesRequestBody` — conditional temperature | `src/extension.ts` | Same pattern for Responses endpoint |
-| P6 | Portuguese comment → English | `src/extension.ts` | Minor cleanup in `buildThinkingPayload()` |
-| P7 | CHANGELOG entry | `CHANGELOG.md` | Documents the fix under `[Unreleased]` |
+| #   | Change                                                        | Files              | Impact                                                                 |
+| --- | ------------------------------------------------------------- | ------------------ | ---------------------------------------------------------------------- |
+| P0  | Added `temperature` field to 3 interfaces                     | `src/metadata.ts`  | `ModelMetadataFields`, `ResolvedModelMetadata`, `ModelsDevModelRecord` |
+| P1  | Parse `temperature` from models.dev API                       | `src/metadata.ts`  | `normalizeModelsDevProvider()` reads `model.temperature`               |
+| P2  | Propagate through resolution pipeline                         | `src/metadata.ts`  | `resolveModelMetadata()` + `normalizeModelMetadataFields()`            |
+| P3  | `buildChatCompletionsRequestBody` — conditional temperature   | `src/extension.ts` | Omits `temperature` when `metadata.temperature === false`              |
+| P4  | `buildAnthropicMessagesRequestBody` — conditional temperature | `src/extension.ts` | Same pattern for Anthropic endpoint                                    |
+| P5  | `buildResponsesRequestBody` — conditional temperature         | `src/extension.ts` | Same pattern for Responses endpoint                                    |
+| P6  | Portuguese comment → English                                  | `src/extension.ts` | Minor cleanup in `buildThinkingPayload()`                              |
+| P7  | CHANGELOG entry                                               | `CHANGELOG.md`     | Documents the fix under `[Unreleased]`                                 |
 
 ---
 
 ## Affected Models (OpenCode Zen)
 
 Models with `temperature: false` in models.dev:
+
 - **Claude:** `claude-fable-5`, `claude-opus-4-7`, `claude-opus-4-8`
 - **GPT-5 family:** `gpt-5`, `gpt-5-codex`, `gpt-5-nano`, `gpt-5.1`, `gpt-5.1-codex`, `gpt-5.1-codex-max`, `gpt-5.1-codex-mini`, `gpt-5.2`, `gpt-5.2-codex`, `gpt-5.3-codex`, `gpt-5.3-codex-spark`, `gpt-5.4`, and more
 
@@ -82,16 +86,16 @@ Models with `temperature: false` in models.dev:
 
 ## Review Findings
 
-| Category | Finding |
-|----------|---------|
-| ✅ Bug fix valid | Resolves issue #20 — HTTP 400 on models that deprecated `temperature` |
-| ✅ Backward-compatible | `undefined` (no metadata) still sends `temperature` as before |
-| ✅ Consistent pattern | Follows the same approach as `reasoning`/`reasoningOptions` already in the codebase |
-| ✅ Uniform update | All 3 request builders updated with same pattern |
-| ✅ Clean code | Spread pattern is idiomatic and readable |
-| ✅ CI | GitGuardian Security Checks — **PASSED** |
-| ✅ CHANGELOG | Updated with clear description |
-| ✅ Low risk | Only affects models with `temperature: false` in metadata |
+| Category               | Finding                                                                             |
+| ---------------------- | ----------------------------------------------------------------------------------- |
+| ✅ Bug fix valid       | Resolves issue #20 — HTTP 400 on models that deprecated `temperature`               |
+| ✅ Backward-compatible | `undefined` (no metadata) still sends `temperature` as before                       |
+| ✅ Consistent pattern  | Follows the same approach as `reasoning`/`reasoningOptions` already in the codebase |
+| ✅ Uniform update      | All 3 request builders updated with same pattern                                    |
+| ✅ Clean code          | Spread pattern is idiomatic and readable                                            |
+| ✅ CI                  | GitGuardian Security Checks — **PASSED**                                            |
+| ✅ CHANGELOG           | Updated with clear description                                                      |
+| ✅ Low risk            | Only affects models with `temperature: false` in metadata                           |
 
 **Verdict:** ✅ Approved to merge — no revisions needed.
 
@@ -118,8 +122,11 @@ gh pr checks 21 --repo ltmoerdani/opencode-copilot-chat
 Review comment posted — [PR #21 comment](https://github.com/ltmoerdani/opencode-copilot-chat/pull/21#issuecomment-4692922424).
 
 Content:
+
 > ## Review Summary ✅
+>
 > Code looks clean and ready to merge. Quick notes:
+>
 > - **Bug fix valid** — resolves #20 (HTTP 400 on models that deprecated `temperature`)
 > - **Backward-compatible** — `undefined` (no metadata) still sends `temperature` as before
 > - **Consistent pattern** — follows the same approach as `reasoning`/`reasoningOptions` already in the codebase
@@ -137,12 +144,13 @@ After PR #21 was merged (by maintainer), the following changes were made locally
 
 ### Changes
 
-| # | Change | Files | Impact |
-|---|--------|-------|--------|
-| V1 | Rename `[Unreleased]` → `[0.2.7] — 2026-06-12` | `CHANGELOG.md` | Version stamp for release |
-| V2 | Version bump `0.2.6` → `0.2.7` | `package.json` | Extension version updated |
+| #   | Change                                         | Files          | Impact                    |
+| --- | ---------------------------------------------- | -------------- | ------------------------- |
+| V1  | Rename `[Unreleased]` → `[0.2.7] — 2026-06-12` | `CHANGELOG.md` | Version stamp for release |
+| V2  | Version bump `0.2.6` → `0.2.7`                 | `package.json` | Extension version updated |
 
 ### `CHANGELOG.md` — Section Header
+
 ```markdown
 ## [0.2.7] — 2026-06-12
 
@@ -153,6 +161,7 @@ After PR #21 was merged (by maintainer), the following changes were made locally
 ```
 
 ### `package.json`
+
 ```json
 "version": "0.2.7",
 ```

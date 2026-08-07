@@ -23,6 +23,7 @@ The OpenCode Go gateway for `gpt-5.6-luna` sends tool calls in **standard OpenAI
 Our `OpenAiResponseExtractor.extractStreamParts()` only flushed accumulated tool calls when `finish_reason === "tool_calls"`. Since the gateway sends `null`, tool calls were collected by `collectOpenAiToolCalls()` but never flushed by `flushToolCalls()` — silently disappearing.
 
 **Evidence from diagnostic SSE output:**
+
 - Events 8-17: tool calls with `grep_search`, `read_file`, etc. ✓
 - Event 20 (final): `finish_reason: null` ← BUG
 - Result: `completionTokens=180` but `textChars=0 toolCalls=0`
@@ -63,6 +64,7 @@ Initial fix removed `baseVendor === ZEN_VENDOR` guard, routing ALL GPT models to
 ### 3. `src/metadata.ts` — Model metadata
 
 Added `gpt-5.6-luna` to Go vendor `MODEL_LIMITS_BY_PROVIDER`:
+
 ```ts
 "gpt-5.6-luna": { contextWindow: 1050000, maxOutputTokens: 128000 },
 ```
@@ -85,6 +87,7 @@ Added `"gpt-5.6-luna"` to the Go provider's `fallbackModels` array so the model 
 ## Diagnostic Output
 
 When agent mode fails with `gpt-5.6-luna`, the Output channel will now automatically show:
+
 ```
 [diag-empty-response] model=gpt-5.6-luna completionTokens=65 totalEvents=15 rawSseDataCount=15
 [diag-sse-event-0] {"id":"...","object":"chat.completion.chunk",...}

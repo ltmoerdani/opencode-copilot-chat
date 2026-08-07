@@ -15,12 +15,12 @@
 
 The newly released `kimi-k2.7-code` model (Moonshot AI) introduces **breaking changes** from `kimi-k2.6` that cause two distinct HTTP 400 errors. Both share a single root theme: the extension sends request parameters that K2.7-code no longer accepts.
 
-| # | Reporter | Error Message | Status |
-|---|----------|---------------|--------|
-| 1 | @JacksApps | `invalid temperature: only 1 is allowed for this model` | Initially intermittent → reproduced by @Tynamix |
-| 2 | @Tynamix | `invalid thinking: only type=enabled is allowed for this model` | Reproducible |
+| #   | Reporter   | Error Message                                                   | Status                                          |
+| --- | ---------- | --------------------------------------------------------------- | ----------------------------------------------- |
+| 1   | @JacksApps | `invalid temperature: only 1 is allowed for this model`         | Initially intermittent → reproduced by @Tynamix |
+| 2   | @Tynamix   | `invalid thinking: only type=enabled is allowed for this model` | Reproducible                                    |
 
-@JacksApps noted the issue disappeared when starting a fresh chat — but this only masked the bug. The fresh-chat workaround succeeds only because the default thinking setting is `off`, and the *first* request to K2.7 doesn't always trigger the thinking-disabled branch depending on session state. @Tynamix's reproduction confirms the bug is real and persistent.
+@JacksApps noted the issue disappeared when starting a fresh chat — but this only masked the bug. The fresh-chat workaround succeeds only because the default thinking setting is `off`, and the _first_ request to K2.7 doesn't always trigger the thinking-disabled branch depending on session state. @Tynamix's reproduction confirms the bug is real and persistent.
 
 ---
 
@@ -33,20 +33,21 @@ Source: [platform.kimi.ai/docs/api/chat](https://platform.kimi.ai/docs/api/chat)
 > Controls thinking for the kimi-k2.7-code model, and whether to fully preserve `reasoning_content` across multi-turn conversations. Optional parameter. Default value is `{"type": "enabled", "keep": "all"}`.
 >
 > **Differences from kimi-k2.6:**
+>
 > - `type` **only accepts `"enabled"`**. Unlike kimi-k2.6, `"disabled"` is NOT supported — passing it returns an error. **Thinking is always on for this model.**
 > - `keep` only accepts the valid value `"all"`; omitting it or passing `"all"` is treated as `"all"` on the server, while any other invalid value returns an error. Preserved Thinking is therefore always enabled for this model.
 
 ### `temperature` parameter
 
-The K2.7-code API spec does **not** list `temperature` as a supported body parameter (unlike K2.6 which accepts it). The error message from the OpenCode Go gateway — *"invalid temperature: only 1 is allowed for this model"* — confirms the upstream Moonshot API rejects any non-default temperature for K2.7-code.
+The K2.7-code API spec does **not** list `temperature` as a supported body parameter (unlike K2.6 which accepts it). The error message from the OpenCode Go gateway — _"invalid temperature: only 1 is allowed for this model"_ — confirms the upstream Moonshot API rejects any non-default temperature for K2.7-code.
 
 ### Contract summary for K2.7-code
 
-| Parameter | K2.6 / K2.5 | K2.7-code (NEW) |
-|-----------|-------------|-----------------|
-| `thinking.type` | `"enabled"` OR `"disabled"` | **`"enabled"` ONLY** (error otherwise) |
-| `thinking.keep` | not documented | `"all"` only (server defaults if omitted) |
-| `temperature` | supported | **rejected** (must omit or send `1`) |
+| Parameter       | K2.6 / K2.5                 | K2.7-code (NEW)                           |
+| --------------- | --------------------------- | ----------------------------------------- |
+| `thinking.type` | `"enabled"` OR `"disabled"` | **`"enabled"` ONLY** (error otherwise)    |
+| `thinking.keep` | not documented              | `"all"` only (server defaults if omitted) |
+| `temperature`   | supported                   | **rejected** (must omit or send `1`)      |
 
 ---
 
@@ -64,8 +65,9 @@ The K2.7-code API spec does **not** list `temperature` as a supported body param
 ```
 
 Consequence:
+
 - `fallbackModelMetadata("kimi-k2.7-code", GO_VENDOR)` → **`undefined`**
-- Live metadata fetch from models.dev *may* return a record (if models.dev has indexed K2.7), but is not guaranteed
+- Live metadata fetch from models.dev _may_ return a record (if models.dev has indexed K2.7), but is not guaranteed
 - When metadata is absent or lacks an explicit `temperature` field, `metadata.temperature` resolves to `undefined`
 
 In `src/extension.ts` `buildChatCompletionsRequestBody` (line ~1634):
@@ -90,13 +92,13 @@ if (/^kimi-/i.test(modelId)) {
 - `kimi-k2.7-code` matches `/^kimi-/i`
 - Default setting `opencodego.thinking.kimi` is `"off"` (see `getSettings`, line ~2916)
 - When user keeps default OR explicitly picks "off", the extension sends `{ thinking: { type: "disabled" } }`
-- K2.7-code **rejects `disabled`** → 400 error: *"invalid thinking: only type=enabled is allowed for this model"*
+- K2.7-code **rejects `disabled`** → 400 error: _"invalid thinking: only type=enabled is allowed for this model"_
 
 This branch is correct for K2.6 and K2.5 (they accept `disabled`), but K2.7 is a breaking change.
 
 ### Why issue #20's fix doesn't cover this
 
-Issue #20 ([doc](./20-20260611-pr18-kimi-thinking-format-review.md)) fixed the payload *format* (`enable_thinking: true/false` → `thinking: { type: "enabled"|"disabled" }`). That fix remains correct for K2.6/K2.5. Issue #25 is about K2.7's *new constraint* on the `type` value — a narrower restriction on top of the same format. The K2.7 special case must be added on top of the K2.6/K2.5 default behavior.
+Issue #20 ([doc](./20-20260611-pr18-kimi-thinking-format-review.md)) fixed the payload _format_ (`enable_thinking: true/false` → `thinking: { type: "enabled"|"disabled" }`). That fix remains correct for K2.6/K2.5. Issue #25 is about K2.7's _new constraint_ on the `type` value — a narrower restriction on top of the same format. The K2.7 special case must be added on top of the K2.6/K2.5 default behavior.
 
 ---
 
@@ -122,10 +124,12 @@ Issue #20 ([doc](./20-20260611-pr18-kimi-thinking-format-review.md)) fixed the p
 **File:** `src/metadata.ts`
 
 1. Add to `MODEL_LIMITS_BY_PROVIDER[GO_VENDOR]`:
+
    ```typescript
    "kimi-k2.7-code": { contextWindow: 262144, maxOutputTokens: 65536 },
    ```
-   *(Context/output limits to be verified against models.dev live registry — K2.7-code may have different limits than K2.6.)*
+
+   _(Context/output limits to be verified against models.dev live registry — K2.7-code may have different limits than K2.6.)_
 
 2. Add `"kimi-k2.7-code"` to `VISION_CAPABLE_MODELS` if K2.7 supports vision (K2.6 does; K2.7 spec mentions multimodal understanding).
 
@@ -225,11 +229,11 @@ All changes applied on branch `25-open-code-go-kimi-k27-issue`. `npm run compile
 
 ### Files changed
 
-| File | Change |
-|------|--------|
-| `src/metadata.ts` | Register `kimi-k2.7-code` in `MODEL_LIMITS_BY_PROVIDER[GO_VENDOR]`; add to `VISION_CAPABLE_MODELS`; add `MODELS_WITHOUT_TEMPERATURE` set + propagate `temperature: false` in `fallbackModelMetadata` |
-| `src/extension.ts` | Special-case `/^kimi-k2\.7/i` in `buildThinkingPayload` (force `enabled`+`keep:"all"`); special-case in `buildFamilyThinkingSchema` (single "Always On" option); defensive force `kimi:"on"` in `applyRequestThinkingOverride` |
-| `docs/issues/25-...md` | This document — status → ✅ Solved |
+| File                   | Change                                                                                                                                                                                                                         |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `src/metadata.ts`      | Register `kimi-k2.7-code` in `MODEL_LIMITS_BY_PROVIDER[GO_VENDOR]`; add to `VISION_CAPABLE_MODELS`; add `MODELS_WITHOUT_TEMPERATURE` set + propagate `temperature: false` in `fallbackModelMetadata`                           |
+| `src/extension.ts`     | Special-case `/^kimi-k2\.7/i` in `buildThinkingPayload` (force `enabled`+`keep:"all"`); special-case in `buildFamilyThinkingSchema` (single "Always On" option); defensive force `kimi:"on"` in `applyRequestThinkingOverride` |
+| `docs/issues/25-...md` | This document — status → ✅ Solved                                                                                                                                                                                             |
 
 ### Why `MODELS_WITHOUT_TEMPERATURE` instead of extending `BaseModelLimits`
 

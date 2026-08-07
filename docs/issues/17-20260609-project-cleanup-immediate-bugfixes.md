@@ -42,6 +42,7 @@ The extension had accumulated several small but impactful issues across its rapi
 Removed 6 `onCommand:*` entries from `package.json` activation events. VS Code auto-generates these from `contributes.commands` declarations. Only `onStartupFinished` and `onLanguageModelChatProvider:*` events are non-redundant and remain.
 
 **Before:**
+
 ```json
 "activationEvents": [
   "onStartupFinished",
@@ -57,6 +58,7 @@ Removed 6 `onCommand:*` entries from `package.json` activation events. VS Code a
 ```
 
 **After:**
+
 ```json
 "activationEvents": [
   "onStartupFinished",
@@ -86,11 +88,11 @@ Deleted the second identical `[0.2.3] — 2026-06-09` block from `CHANGELOG.md`.
 
 ## Files Changed
 
-| # | File | Change |
-|---|------|--------|
-| 1 | `package.json` | Removed 6 redundant `onCommand:*` activation events |
-| 2 | `src/extension.ts` | Updated `OPEN_CODE_USER_AGENT` from `0.1.7` to `0.2.3` |
-| 3 | `CHANGELOG.md` | Removed duplicate `[0.2.3]` block |
+| #   | File               | Change                                                 |
+| --- | ------------------ | ------------------------------------------------------ |
+| 1   | `package.json`     | Removed 6 redundant `onCommand:*` activation events    |
+| 2   | `src/extension.ts` | Updated `OPEN_CODE_USER_AGENT` from `0.1.7` to `0.2.3` |
+| 3   | `CHANGELOG.md`     | Removed duplicate `[0.2.3]` block                      |
 
 ---
 
@@ -98,15 +100,16 @@ Deleted the second identical `[0.2.3] — 2026-06-09` block from `CHANGELOG.md`.
 
 The full codebase review also identified additional improvement opportunities across 5 categories:
 
-| Category | Items | Priority |
-|----------|-------|----------|
-| Immediate Fixes (Bugs) | 4 (addressed in this session) | ✅ Done |
-| Architecture & Code Quality | 6 (mega-file split, no tests, no linter, duplicate interfaces, magic numbers) | Medium |
-| Feature Improvements | 6 (retry with backoff, model favorites, cost estimation, export, comparison, auto-switch) | Low |
-| Developer Experience | 5 (CI/CD, esbuild bundling, dependency pinning, engine bounds, gitignore cleanup) | Medium |
-| Documentation | 3 (README completeness, CONTRIBUTING.md, architecture diagram) | Low |
+| Category                    | Items                                                                                     | Priority |
+| --------------------------- | ----------------------------------------------------------------------------------------- | -------- |
+| Immediate Fixes (Bugs)      | 4 (addressed in this session)                                                             | ✅ Done  |
+| Architecture & Code Quality | 6 (mega-file split, no tests, no linter, duplicate interfaces, magic numbers)             | Medium   |
+| Feature Improvements        | 6 (retry with backoff, model favorites, cost estimation, export, comparison, auto-switch) | Low      |
+| Developer Experience        | 5 (CI/CD, esbuild bundling, dependency pinning, engine bounds, gitignore cleanup)         | Medium   |
+| Documentation               | 3 (README completeness, CONTRIBUTING.md, architecture diagram)                            | Low      |
 
 Key architecture recommendations for future work:
+
 - **Split `extension.ts`** (~900+ lines) into `provider.ts`, `statusBar.ts`, `diagnostics.ts`, `config.ts`
 - **Add unit tests** for pure functions: `estimateCost`, `formatUsageStatusBarText`, `resolveModelRouting`, error parsing
 - **Add ESLint + Prettier** for consistent code style

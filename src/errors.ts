@@ -36,14 +36,11 @@ export function buildOpenCodeRequestError(
   const rateLimitInfo = readRateLimitInfo(response.headers);
   const modelHint = modelId ? ` model=${modelId}` : "";
   const sizeHint = ` payloadBytes=${payloadBytes}`;
-  const apiMessage =
-    (apiError.message ?? rawDetail.trim()) || response.statusText;
+  const apiMessage = (apiError.message ?? rawDetail.trim()) || response.statusText;
   const isLimit = isRateLimitResponse(response.status, apiError);
 
   if (isLimit) {
-    const waitText =
-      apiError.retryIn ??
-      formatWaitText(rateLimitInfo.retryAfterMs ?? rateLimitInfo.resetAfterMs);
+    const waitText = apiError.retryIn ?? formatWaitText(rateLimitInfo.retryAfterMs ?? rateLimitInfo.resetAfterMs);
     const quotaText = formatRateLimitSummary(rateLimitInfo);
     const reason = classifyRateLimit(apiError, response.status);
     const details = [
@@ -51,9 +48,7 @@ export function buildOpenCodeRequestError(
       waitText ? `Retry after ${waitText}.` : undefined,
       quotaText ? `Quota: ${quotaText}.` : undefined,
     ].filter((part): part is string => Boolean(part));
-    const userMessage = `${providerDisplayName}: ${reason}${
-      modelHint ? ` (${modelId})` : ""
-    }. ${details.join(" ")}`.trim();
+    const userMessage = `${providerDisplayName}: ${reason}${modelHint ? ` (${modelId})` : ""}. ${details.join(" ")}`.trim();
     return new OpenCodeRequestError(
       `${providerDisplayName} API rate/quota limit (${response.status})${modelHint}${sizeHint}: ${apiMessage}; ${quotaText || "no quota headers"}`,
       userMessage,
@@ -70,10 +65,7 @@ export function buildOpenCodeRequestError(
  * is the transient `Router.Unavailable` condition (no healthy backend for
  * the model right now). Returns the original message otherwise.
  */
-function describeRouterUnavailable(
-  apiError: ParsedApiError,
-  fallback: string,
-): string {
+function describeRouterUnavailable(apiError: ParsedApiError, fallback: string): string {
   const type = apiError.type?.toLowerCase() ?? "";
   if (!type.includes("routerunavailable")) {
     return fallback;
@@ -83,9 +75,7 @@ function describeRouterUnavailable(
 
 export function truncateForLog(value: string, max = 1200): string {
   const collapsed = value.replace(/\s+/g, " ").trim();
-  return collapsed.length > max
-    ? `${collapsed.slice(0, max)}… (+${collapsed.length - max} chars)`
-    : collapsed;
+  return collapsed.length > max ? `${collapsed.slice(0, max)}… (+${collapsed.length - max} chars)` : collapsed;
 }
 
 function parseApiError(rawDetail: string): ParsedApiError {
@@ -105,12 +95,7 @@ function parseApiError(rawDetail: string): ParsedApiError {
       message: firstString(error.message, parsed.message, fallback),
       code: firstString(error.code, parsed.code),
       type: firstString(error.type, parsed.type),
-      retryIn: firstString(
-        error.retryIn,
-        parsed.retryIn,
-        error.retry_in,
-        parsed.retry_in,
-      ),
+      retryIn: firstString(error.retryIn, parsed.retryIn, error.retry_in, parsed.retry_in),
     };
   } catch {
     return { message: fallback };
@@ -131,14 +116,8 @@ export function readRateLimitInfo(headers: Headers): RateLimitInfo {
     "x-ratelimit-remaining",
     "ratelimit-remaining",
   ]);
-  const tokenLimit = firstHeader(headers, [
-    "x-ratelimit-limit-tokens",
-    "anthropic-ratelimit-tokens-limit",
-  ]);
-  const tokenRemaining = firstHeader(headers, [
-    "x-ratelimit-remaining-tokens",
-    "anthropic-ratelimit-tokens-remaining",
-  ]);
+  const tokenLimit = firstHeader(headers, ["x-ratelimit-limit-tokens", "anthropic-ratelimit-tokens-limit"]);
+  const tokenRemaining = firstHeader(headers, ["x-ratelimit-remaining-tokens", "anthropic-ratelimit-tokens-remaining"]);
   const reset = firstHeader(headers, [
     "x-ratelimit-reset-requests",
     "x-ratelimit-reset-tokens",
@@ -166,12 +145,8 @@ export function formatRateLimitSummary(info: RateLimitInfo): string | undefined 
     info.tokenRemaining || info.tokenLimit
       ? `tokens remaining=${info.tokenRemaining ?? "?"}${info.tokenLimit ? `/${info.tokenLimit}` : ""}`
       : undefined,
-    info.retryAfterMs !== undefined
-      ? `retry-after=${formatDuration(info.retryAfterMs)}`
-      : undefined,
-    info.resetAfterMs !== undefined
-      ? `reset=${formatDuration(info.resetAfterMs)}`
-      : undefined,
+    info.retryAfterMs !== undefined ? `retry-after=${formatDuration(info.retryAfterMs)}` : undefined,
+    info.resetAfterMs !== undefined ? `reset=${formatDuration(info.resetAfterMs)}` : undefined,
   ].filter((part): part is string => Boolean(part));
 
   return parts.length ? parts.join("; ") : undefined;
@@ -192,15 +167,10 @@ function classifyRateLimit(apiError: ParsedApiError, status: number): string {
   if (code.includes("subscriptionquota") || code.includes("quota")) {
     return "OpenCode quota exceeded";
   }
-  return status === 429
-    ? "rate limit exceeded"
-    : "OpenCode usage limit reached";
+  return status === 429 ? "rate limit exceeded" : "OpenCode usage limit reached";
 }
 
-function isRateLimitResponse(
-  status: number,
-  apiError: ParsedApiError,
-): boolean {
+function isRateLimitResponse(status: number, apiError: ParsedApiError): boolean {
   const code = `${apiError.code ?? ""} ${apiError.type ?? ""} ${apiError.message ?? ""}`.toLowerCase();
   const compactCode = compactErrorCode(code);
   return (
@@ -219,9 +189,7 @@ function compactErrorCode(value: string): string {
 function shouldIncludeApiMessage(apiMessage: string, reason: string): boolean {
   const normalizedMessage = compactErrorCode(apiMessage.toLowerCase());
   const normalizedReason = compactErrorCode(reason.toLowerCase());
-  return (
-    Boolean(normalizedMessage) && !normalizedMessage.startsWith(normalizedReason)
-  );
+  return Boolean(normalizedMessage) && !normalizedMessage.startsWith(normalizedReason);
 }
 
 function firstHeader(headers: Headers, names: string[]): string | undefined {
@@ -252,9 +220,7 @@ function parseRetryAfter(value: string | undefined): number | undefined {
     return seconds * 1000;
   }
   const dateMs = Date.parse(value);
-  return Number.isFinite(dateMs)
-    ? Math.max(0, dateMs - Date.now())
-    : parseDurationLike(value);
+  return Number.isFinite(dateMs) ? Math.max(0, dateMs - Date.now()) : parseDurationLike(value);
 }
 
 function parseResetAfter(value: string | undefined): number | undefined {
@@ -279,7 +245,10 @@ function parseResetAfter(value: string | undefined): number | undefined {
 }
 
 function parseDurationLike(value: string): number | undefined {
-  const matches = value.trim().toLowerCase().matchAll(/(\d+(?:\.\d+)?)(ms|s|m|h)/g);
+  const matches = value
+    .trim()
+    .toLowerCase()
+    .matchAll(/(\d+(?:\.\d+)?)(ms|s|m|h)/g);
   let totalMs = 0;
   let found = false;
   for (const match of matches) {

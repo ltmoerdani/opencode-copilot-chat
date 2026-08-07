@@ -1,7 +1,5 @@
 import * as vscode from "vscode";
-import {
-  OpenCodeRequestError,
-} from "./errors";
+import { OpenCodeRequestError } from "./errors";
 import {
   MODEL_METADATA_CACHE_KEY,
   MODEL_METADATA_REVISION,
@@ -24,9 +22,7 @@ import {
   type ModelsDevResponse,
   type ResolvedModelMetadata,
 } from "./metadata";
-import {
-  resolveModelRouting,
-} from "./routing";
+import { resolveModelRouting } from "./routing";
 import {
   buildFamilyThinkingSchema,
   buildQwenAnthropicThinkingPayload,
@@ -44,21 +40,20 @@ import {
   streamResponsesApi as runStreamResponsesApi,
   type TransportRequestSummary,
 } from "./streaming";
-import { GO_VENDOR, ZEN_VENDOR, AGENT_GO_VENDOR, AGENT_ZEN_VENDOR, resolveBaseVendor, type AllProviderVendor, type ProviderVendor } from "./providerTypes";
-import { isInternalDataPart } from "./chatParts";
 import {
-  getImageDataUrlBase64Bytes,
-  MAX_IMAGE_BASE64_BYTES,
-  normalizeImageDataUrl,
-} from "./imageNormalizer";
+  GO_VENDOR,
+  ZEN_VENDOR,
+  AGENT_GO_VENDOR,
+  AGENT_ZEN_VENDOR,
+  resolveBaseVendor,
+  type AllProviderVendor,
+  type ProviderVendor,
+} from "./providerTypes";
+import { isInternalDataPart } from "./chatParts";
+import { getImageDataUrlBase64Bytes, MAX_IMAGE_BASE64_BYTES, normalizeImageDataUrl } from "./imageNormalizer";
 import { providerModelDisplayName } from "./modelNames";
 
-import {
-  formatCacheHitRatio,
-  formatUsageStatusBarText,
-  formatUsageStatusBarTooltip,
-  type UsageSnapshot,
-} from "./usage";
+import { formatCacheHitRatio, formatUsageStatusBarText, formatUsageStatusBarTooltip, type UsageSnapshot } from "./usage";
 import {
   GoUsageTracker,
   GO_LIMITS,
@@ -193,18 +188,10 @@ interface ProviderDefinition {
   baseVendor?: typeof GO_VENDOR | typeof ZEN_VENDOR;
 }
 
-type ModelEndpointKind =
-  | "chat-completions"
-  | "messages"
-  | "responses"
-  | "google";
+type ModelEndpointKind = "chat-completions" | "messages" | "responses" | "google";
 
 const FREE_ZEN_MODEL_IDS = new Set(["big-pickle"]);
-const KNOWN_UNAVAILABLE_MODEL_IDS = new Set([
-  "ring-2.6-1t",
-  "ring-2.6-1t-free",
-  "trinity-large-preview-free"
-]);
+const KNOWN_UNAVAILABLE_MODEL_IDS = new Set(["ring-2.6-1t", "ring-2.6-1t-free", "trinity-large-preview-free"]);
 const DEFAULT_REQUEST_TIMEOUT_MS = 10 * 60 * 1000;
 const DEFAULT_STREAM_IDLE_TIMEOUT_MS = 2 * 60 * 1000;
 const OPEN_CODE_CLIENT = "vscode-copilot-chat";
@@ -242,9 +229,7 @@ let cachedUserAgent: string | undefined;
 function getUserAgent(): string {
   if (cachedUserAgent) return cachedUserAgent;
   const version = vscode.extensions.getExtension("ltmoerdani.opencode-copilot-chat")?.packageJSON?.version;
-  cachedUserAgent = typeof version === "string" && version
-    ? `opencode-copilot-chat/${version} VSCode`
-    : FALLBACK_USER_AGENT;
+  cachedUserAgent = typeof version === "string" && version ? `opencode-copilot-chat/${version} VSCode` : FALLBACK_USER_AGENT;
   return cachedUserAgent;
 }
 
@@ -280,7 +265,7 @@ function isTransientFetchError(error: unknown): boolean {
   const explicitStatus = (error as { status?: number } | undefined)?.status;
   const msg = error instanceof Error ? error.message : String(error);
   const msgMatch = msg.match(/\((\d{3})\)/);
-  const httpStatus = typeof explicitStatus === "number" ? explicitStatus : (msgMatch ? Number(msgMatch[1]) : undefined);
+  const httpStatus = typeof explicitStatus === "number" ? explicitStatus : msgMatch ? Number(msgMatch[1]) : undefined;
   if (typeof httpStatus === "number") {
     if (httpStatus === 408 || httpStatus === 429 || httpStatus >= 500) return true;
     return false;
@@ -362,7 +347,7 @@ const PROVIDERS: Record<ProviderDefinition["vendor"], ProviderDefinition> = (() 
       "qwen3.6-plus",
       "qwen3.5-plus",
       "gpt-5.6-luna",
-    ]
+    ],
   };
   const zen: ProviderDefinition = {
     vendor: ZEN_VENDOR,
@@ -415,15 +400,22 @@ const PROVIDERS: Record<ProviderDefinition["vendor"], ProviderDefinition> = (() 
       "qwen3.6-plus",
       "qwen3.6-plus-free",
       "qwen3.5-plus",
-      "big-pickle"
+      "big-pickle",
     ],
-    filterModel: (modelId) => vscode.workspace.getConfiguration("opencodego").get("freeOnly", true) ? modelId.endsWith("-free") || FREE_ZEN_MODEL_IDS.has(modelId) : true
+    filterModel: (modelId) =>
+      vscode.workspace.getConfiguration("opencodego").get("freeOnly", true)
+        ? modelId.endsWith("-free") || FREE_ZEN_MODEL_IDS.has(modelId)
+        : true,
   };
   return {
     [GO_VENDOR]: go,
     [ZEN_VENDOR]: zen,
     [AGENT_GO_VENDOR]: { ...providerVariant(go, AGENT_GO_VENDOR, "OpenCode Go (Agents)"), isAgentVariant: true, baseVendor: GO_VENDOR },
-    [AGENT_ZEN_VENDOR]: { ...providerVariant(zen, AGENT_ZEN_VENDOR, "OpenCode Zen (Agents)"), isAgentVariant: true, baseVendor: ZEN_VENDOR },
+    [AGENT_ZEN_VENDOR]: {
+      ...providerVariant(zen, AGENT_ZEN_VENDOR, "OpenCode Zen (Agents)"),
+      isAgentVariant: true,
+      baseVendor: ZEN_VENDOR,
+    },
   };
 })();
 
@@ -612,7 +604,8 @@ type CopilotCompatibleCapabilities = vscode.LanguageModelChatCapabilities & {
 // catalogs can still hit 5xx during traffic bursts. Surface this so users know
 // to retry or fall back to another free model if the request fails.
 const CAPACITY_LIMITED_MODEL_NOTES: Record<string, string> = {
-  "qwen3.6-plus-free": "Free relaunch with limited GPU capacity. Stable for short prompts; bursty traffic or very large tool catalogs may return 5xx - retry or fall back to 'deepseek-v4-flash-free' / 'big-pickle'. Paid 'qwen3.6-plus' has no quota."
+  "qwen3.6-plus-free":
+    "Free relaunch with limited GPU capacity. Stable for short prompts; bursty traffic or very large tool catalogs may return 5xx - retry or fall back to 'deepseek-v4-flash-free' / 'big-pickle'. Paid 'qwen3.6-plus' has no quota.",
 };
 
 let modelMetadataSnapshot: CachedModelMetadataSnapshot | undefined;
@@ -681,11 +674,7 @@ interface AnthropicToolResultBlock {
   cache_control?: AnthropicCacheControl;
 }
 
-type AnthropicContentBlock =
-  | AnthropicTextBlock
-  | AnthropicImageBlock
-  | AnthropicToolUseBlock
-  | AnthropicToolResultBlock;
+type AnthropicContentBlock = AnthropicTextBlock | AnthropicImageBlock | AnthropicToolUseBlock | AnthropicToolResultBlock;
 
 interface AnthropicRequestMessage {
   role: "user" | "assistant";
@@ -704,11 +693,15 @@ interface RecentTransportSummary extends TransportRequestSummary {
 export function activate(context: vscode.ExtensionContext) {
   const goUsageLogChannel = vscode.window.createOutputChannel("OpenCode Go Usage");
   context.subscriptions.push(goUsageLogChannel);
-  goUsageTracker = new GoUsageTracker(context, (msg) => {
-    goUsageLogChannel.appendLine(`[${new Date().toISOString()}] ${msg}`);
-  }, (modelId) => {
-    return modelMetadataSnapshot?.providers[GO_VENDOR]?.[modelId]?.cost;
-  });
+  goUsageTracker = new GoUsageTracker(
+    context,
+    (msg) => {
+      goUsageLogChannel.appendLine(`[${new Date().toISOString()}] ${msg}`);
+    },
+    (modelId) => {
+      return modelMetadataSnapshot?.providers[GO_VENDOR]?.[modelId]?.cost;
+    },
+  );
   _extensionContext = context;
   _usageLogChannel = goUsageLogChannel;
   profilesCache = readProfiles(context);
@@ -759,12 +752,12 @@ export function activate(context: vscode.ExtensionContext) {
       if (sessionCost && sessionCost.cost > 0) {
         const totalTokens = sessionCost.promptTokens + sessionCost.completionTokens;
         const sessionItem: vscode.QuickPickItem = {
-          label:      `$(comment) Latest Session (est)`,
+          label: `$(comment) Latest Session (est)`,
           description: `$${sessionCost.cost.toFixed(4)}`,
-          detail:     `${tokens(totalTokens)} tokens · ${sessionCost.requests} requests`,
+          detail: `${tokens(totalTokens)} tokens · ${sessionCost.requests} requests`,
           alwaysShow: true,
         };
-        const dailyIdx = items.findIndex(i => i.kind === vscode.QuickPickItemKind.Separator && i.label === "Daily Summary");
+        const dailyIdx = items.findIndex((i) => i.kind === vscode.QuickPickItemKind.Separator && i.label === "Daily Summary");
         if (dailyIdx >= 0) {
           items.splice(dailyIdx + 1, 0, sessionItem);
         } else {
@@ -796,8 +789,14 @@ export function activate(context: vscode.ExtensionContext) {
       }
 
       const separator: vscode.QuickPickItem = { label: "", kind: vscode.QuickPickItemKind.Separator };
-      const setTargetItem: vscode.QuickPickItem & { _action?: string } = { label: "$(edit) Set spent targets…", _action: "setUsageTargets" };
-      const panelItem: vscode.QuickPickItem & { _action?: string } = { label: "$(graph) Open full usage panel", _action: "showUsageDetails" };
+      const setTargetItem: vscode.QuickPickItem & { _action?: string } = {
+        label: "$(edit) Set spent targets…",
+        _action: "setUsageTargets",
+      };
+      const panelItem: vscode.QuickPickItem & { _action?: string } = {
+        label: "$(graph) Open full usage panel",
+        _action: "showUsageDetails",
+      };
       items.push(separator, setTargetItem, panelItem);
       const picked = await vscode.window.showQuickPick(items, {
         placeHolder: "OpenCode Go — Current Usage",
@@ -839,7 +838,7 @@ export function activate(context: vscode.ExtensionContext) {
         return;
       }
       const picked = await vscode.window.showQuickPick(
-        profiles.map(p => ({
+        profiles.map((p) => ({
           label: p.label,
           description: `fingerprint: ${p.fingerprint}`,
           _fp: p.fingerprint,
@@ -863,7 +862,7 @@ export function activate(context: vscode.ExtensionContext) {
       ctx.globalState.update(`opencodego.usageBaseline.v1.${fp}`, {});
       ctx.globalState.update(`opencodego.sessionCosts.v1.${fp}`, []);
 
-      const remaining = readProfiles(ctx).filter(p => p.fingerprint !== fp);
+      const remaining = readProfiles(ctx).filter((p) => p.fingerprint !== fp);
       await writeProfiles(ctx, remaining);
       profilesCache = remaining;
 
@@ -934,8 +933,8 @@ function checkUtilityModelConfiguration(context: vscode.ExtensionContext): void 
   if (major < 1 || (major === 1 && minor < 128)) return;
 
   const chat = vscode.workspace.getConfiguration("chat");
-  const byokDefault    = chat.get<string>("byokUtilityModelDefault", "");
-  const utilitySmall   = chat.get<string>("utilitySmallModel", "");
+  const byokDefault = chat.get<string>("byokUtilityModelDefault", "");
+  const utilitySmall = chat.get<string>("utilitySmallModel", "");
   const utilityGeneral = chat.get<string>("utilityModel", "");
 
   // Treat VS Code's schema default values as "not configured"
@@ -945,17 +944,15 @@ function checkUtilityModelConfiguration(context: vscode.ExtensionContext): void 
     (utilityGeneral !== "" && utilityGeneral !== undefined && utilityGeneral !== "Default");
   if (isConfigured) return;
 
-  void chat
-    .update("byokUtilityModelDefault", "mainAgent", vscode.ConfigurationTarget.Global)
-    .then(() => {
-      const NOTICE_KEY = "opencode.utilityModelAutoFixed.v1128";
-      if (context.globalState.get<boolean>(NOTICE_KEY)) return;
-      void context.globalState.update(NOTICE_KEY, true);
-      void vscode.window.showInformationMessage(
-        "OpenCode: Automatically fixed VS Code 1.128 utility model setting. " +
-          "Background tasks (chat titles, commit messages) now use your OpenCode model.",
-      );
-    });
+  void chat.update("byokUtilityModelDefault", "mainAgent", vscode.ConfigurationTarget.Global).then(() => {
+    const NOTICE_KEY = "opencode.utilityModelAutoFixed.v1128";
+    if (context.globalState.get<boolean>(NOTICE_KEY)) return;
+    void context.globalState.update(NOTICE_KEY, true);
+    void vscode.window.showInformationMessage(
+      "OpenCode: Automatically fixed VS Code 1.128 utility model setting. " +
+        "Background tasks (chat titles, commit messages) now use your OpenCode model.",
+    );
+  });
 }
 
 async function warmModelPickerMetadata(): Promise<void> {
@@ -963,7 +960,7 @@ async function warmModelPickerMetadata(): Promise<void> {
   if (vscode.workspace.getConfiguration("opencodego").get<boolean>("agentsWindow", true)) {
     vendors.push(AGENT_GO_VENDOR, AGENT_ZEN_VENDOR);
   }
-  await Promise.allSettled(vendors.map(v => vscode.lm.selectChatModels({ vendor: v })));
+  await Promise.allSettled(vendors.map((v) => vscode.lm.selectChatModels({ vendor: v })));
 }
 
 async function showModelPickerDiagnostics(): Promise<void> {
@@ -991,14 +988,14 @@ async function showModelPickerDiagnostics(): Promise<void> {
         "```json",
         JSON.stringify(schema ?? null, null, 2),
         "```",
-        ""
+        "",
       );
     }
   }
 
   const doc = await vscode.workspace.openTextDocument({
     content: ["# OpenCode Model Picker Diagnostics", "", ...sections].join("\n"),
-    language: "markdown"
+    language: "markdown",
   });
   await vscode.window.showTextDocument(doc, vscode.ViewColumn.Beside);
 }
@@ -1012,16 +1009,16 @@ async function showThinkingEffortPicker(): Promise<void> {
     { label: "MiniMax (minimax-m*)", key: "minimax", options: ["off", "on"] },
     { label: "OpenAI GPT (gpt-*)", key: "openai", options: ["off", "low", "medium", "high", "xhigh"] },
     { label: "Qwen (qwen3.*)", key: "qwen", options: ["auto", "on", "off"] },
-    { label: "Qwen Thinking Budget", key: "qwenBudget", options: ["auto", "4096", "16384", "32768", "81920"] }
+    { label: "Qwen Thinking Budget", key: "qwenBudget", options: ["auto", "4096", "16384", "32768", "81920"] },
   ];
   const settings = getSettings().thinking;
   const family = await vscode.window.showQuickPick(
-    families.map(f => ({ label: f.label, description: `current: ${settings[f.key]}`, family: f })),
-    { placeHolder: "Pick a model family to configure Thinking" }
+    families.map((f) => ({ label: f.label, description: `current: ${settings[f.key]}`, family: f })),
+    { placeHolder: "Pick a model family to configure Thinking" },
   );
   if (!family) return;
   const choice = await vscode.window.showQuickPick(family.family.options, {
-    placeHolder: `Set ${family.family.label} → Thinking value`
+    placeHolder: `Set ${family.family.label} → Thinking value`,
   });
   if (!choice) return;
   const cfg = vscode.workspace.getConfiguration("opencodego.thinking");
@@ -1033,14 +1030,9 @@ export async function deactivate(): Promise<void> {
   // no-op: experimental context indicator hooks removed in 0.1.8
 }
 
-function ensureUsageStatusBar(
-  context: vscode.ExtensionContext,
-): vscode.StatusBarItem {
+function ensureUsageStatusBar(context: vscode.ExtensionContext): vscode.StatusBarItem {
   if (!usageStatusBarItem) {
-    usageStatusBarItem = vscode.window.createStatusBarItem(
-      vscode.StatusBarAlignment.Right,
-      95,
-    );
+    usageStatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 95);
     context.subscriptions.push(usageStatusBarItem);
   }
 
@@ -1049,9 +1041,7 @@ function ensureUsageStatusBar(
 }
 
 function shouldShowUsageStatusBar(): boolean {
-  return vscode.workspace
-    .getConfiguration("opencodego")
-    .get("showUsageStatusBar", true);
+  return vscode.workspace.getConfiguration("opencodego").get("showUsageStatusBar", true);
 }
 
 function resetUsageStatusBar(): void {
@@ -1069,11 +1059,7 @@ function resetUsageStatusBar(): void {
   usageStatusBarItem.show();
 }
 
-function updateUsageStatusBar(
-  providerDisplayName: string,
-  modelId: string,
-  summary: TransportRequestSummary,
-): void {
+function updateUsageStatusBar(providerDisplayName: string, modelId: string, summary: TransportRequestSummary): void {
   if (!usageStatusBarItem) {
     return;
   }
@@ -1093,27 +1079,17 @@ function updateUsageStatusBar(
   const text = formatUsageStatusBarText(providerDisplayName, usage);
 
   usageStatusBarItem.text = text ?? providerDisplayName;
-  usageStatusBarItem.tooltip = formatUsageStatusBarTooltip(
-    providerDisplayName,
-    modelId,
-    usage,
-  );
+  usageStatusBarItem.tooltip = formatUsageStatusBarTooltip(providerDisplayName, modelId, usage);
   usageStatusBarItem.show();
 }
 
-
 function ensureGoUsageStatusBar(context: vscode.ExtensionContext): void {
   if (goUsageStatusBarItem) return;
-  goUsageStatusBarItem = vscode.window.createStatusBarItem(
-    vscode.StatusBarAlignment.Right,
-    94,
-  );
+  goUsageStatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 94);
   goUsageStatusBarItem.command = "opencodego.showUsageQuickPick";
   context.subscriptions.push(goUsageStatusBarItem);
   refreshGoUsageStatusBar();
 }
-
-
 
 function refreshGoUsageStatusBar(): void {
   if (!goUsageStatusBarItem) return;
@@ -1127,9 +1103,7 @@ function refreshGoUsageStatusBar(): void {
   const s = tracker.getSummary();
   const activeProfile = findProfile(profilesCache, activeProfileFingerprint);
   const baseText = formatGoUsageStatusBarText(s);
-  goUsageStatusBarItem.text = activeProfile && profilesCache.length > 1
-    ? `${baseText} [${activeProfile.label}]`
-    : baseText;
+  goUsageStatusBarItem.text = activeProfile && profilesCache.length > 1 ? `${baseText} [${activeProfile.label}]` : baseText;
   goUsageStatusBarItem.tooltip = buildUsageTooltip(s, tracker.getCurrentSessionCost());
   goUsageStatusBarItem.show();
   updateWebviewContent();
@@ -1141,19 +1115,18 @@ function showUsageWebview(context: vscode.ExtensionContext): void {
     return;
   }
 
-  usageWebviewPanel = vscode.window.createWebviewPanel(
-    "opencodego.usageWebview",
-    "OpenCode Usage Summary",
-    vscode.ViewColumn.Beside,
-    {
-      enableScripts: false,
-      retainContextWhenHidden: true
-    }
-  );
+  usageWebviewPanel = vscode.window.createWebviewPanel("opencodego.usageWebview", "OpenCode Usage Summary", vscode.ViewColumn.Beside, {
+    enableScripts: false,
+    retainContextWhenHidden: true,
+  });
 
-  usageWebviewPanel.onDidDispose(() => {
-    usageWebviewPanel = undefined;
-  }, null, context.subscriptions);
+  usageWebviewPanel.onDidDispose(
+    () => {
+      usageWebviewPanel = undefined;
+    },
+    null,
+    context.subscriptions,
+  );
 
   updateWebviewContent();
 }
@@ -1216,7 +1189,10 @@ function updateWebviewContent(): void {
   `;
 }
 
-function buildUsageTooltip(s: ReturnType<GoUsageTracker["getSummary"]>, sessionCost?: { cost: number; requests: number; promptTokens: number; completionTokens: number }): vscode.MarkdownString {
+function buildUsageTooltip(
+  s: ReturnType<GoUsageTracker["getSummary"]>,
+  sessionCost?: { cost: number; requests: number; promptTokens: number; completionTokens: number },
+): vscode.MarkdownString {
   const md = new vscode.MarkdownString("", true);
   md.supportHtml = true;
   md.isTrusted = true;
@@ -1229,16 +1205,10 @@ function buildUsageTooltip(s: ReturnType<GoUsageTracker["getSummary"]>, sessionC
   }
   (md as any).supportedCommands = commands;
 
-  md.appendMarkdown(
-    `<img alt="Go usage summary" src="${usageTooltipSvgDataUri(s, sessionCost, profileLabel)}" width="420">`,
-  );
-  md.appendMarkdown(
-    "\n\n[$(pencil) Set spent targets](command:opencodego.setUsageTargets)",
-  );
+  md.appendMarkdown(`<img alt="Go usage summary" src="${usageTooltipSvgDataUri(s, sessionCost, profileLabel)}" width="420">`);
+  md.appendMarkdown("\n\n[$(pencil) Set spent targets](command:opencodego.setUsageTargets)");
   if (nonLegacyCount(profilesCache) > 0) {
-    md.appendMarkdown(
-      " \u00B7 [$(pencil) Rename](command:opencodego.renameActiveProfile)",
-    );
+    md.appendMarkdown(" \u00B7 [$(pencil) Rename](command:opencodego.renameActiveProfile)");
   }
   return md;
 }
@@ -1255,9 +1225,7 @@ function parseCurrencyInput(value: string): number {
   return parseFloat(value.replace(",", "."));
 }
 
-async function showUsageTargetEditor(
-  tracker: GoUsageTracker,
-): Promise<UsageBaselineTargets | undefined> {
+async function showUsageTargetEditor(tracker: GoUsageTracker): Promise<UsageBaselineTargets | undefined> {
   const summary = tracker.getSummary();
 
   // Ask for session spent (pre-filled with current tracked value)
@@ -1349,12 +1317,20 @@ async function showUsageTargetEditor(
 
 type _UsageSummary = ReturnType<GoUsageTracker["getSummary"]>;
 
-function usageTooltipSvgDataUri(s: _UsageSummary, sc?: { cost: number; requests: number; promptTokens: number; completionTokens: number }, profileLabel?: string): string {
+function usageTooltipSvgDataUri(
+  s: _UsageSummary,
+  sc?: { cost: number; requests: number; promptTokens: number; completionTokens: number },
+  profileLabel?: string,
+): string {
   const svg = buildUsageTooltipSvg(s, sc);
   return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
 }
 
-function buildUsageTooltipSvg(s: _UsageSummary, sc?: { cost: number; requests: number; promptTokens: number; completionTokens: number }, profileLabel?: string): string {
+function buildUsageTooltipSvg(
+  s: _UsageSummary,
+  sc?: { cost: number; requests: number; promptTokens: number; completionTokens: number },
+  profileLabel?: string,
+): string {
   const hasSession = sc && sc.cost > 0;
   // Session label is longer ("Session (est):") so widen the card and shift
   // the cost column right when session data is present.
@@ -1370,21 +1346,9 @@ function buildUsageTooltipSvg(s: _UsageSummary, sc?: { cost: number; requests: n
   const font = "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
 
   const svgTitle = escapeSvg(profileLabel ? `${profileLabel} - Usage` : "OpenCode Go - Usage");
-  const noDataMsg = s.hasData
-    ? null
-    : nonLegacyCount(profilesCache) > 0
-      ? "No data yet for this profile."
-      : "No usage data yet.";
+  const noDataMsg = s.hasData ? null : nonLegacyCount(profilesCache) > 0 ? "No data yet for this profile." : "No usage data yet.";
 
-  const text = (
-    value: string,
-    x: number,
-    y: number,
-    size: number,
-    weight = 400,
-    color = fg,
-    anchor: "start" | "end" = "start",
-  ): string =>
+  const text = (value: string, x: number, y: number, size: number, weight = 400, color = fg, anchor: "start" | "end" = "start"): string =>
     `<text x="${x}" y="${y}" fill="${color}" font-family="${font}" font-size="${size}" font-weight="${weight}" text-anchor="${anchor}">${escapeSvg(value)}</text>`;
 
   const bar = (pct: number, x: number, y: number, barWidth: number): string => {
@@ -1392,23 +1356,18 @@ function buildUsageTooltipSvg(s: _UsageSummary, sc?: { cost: number; requests: n
     const fillWidth = Math.max(0, Math.round((clamped / 100) * barWidth));
     return [
       `<rect x="${x}" y="${y}" width="${barWidth}" height="5" rx="2.5" fill="${track}"/>`,
-      fillWidth > 0
-        ? `<rect x="${x}" y="${y}" width="${fillWidth}" height="5" rx="2.5" fill="${accent}"/>`
-        : "",
+      fillWidth > 0 ? `<rect x="${x}" y="${y}" width="${fillWidth}" height="5" rx="2.5" fill="${accent}"/>` : "",
     ].join("");
   };
 
-  const period = (
-    label: string,
-    p: _UsageSummary["session"],
-    y: number,
-  ): string => [
-    text(label, 14, y, 14, 700),
-    text(`Resets in ${rel(p.resetsAt)}`, 410, y, 12, 400, muted, "end"),
-    bar(p.percent, 14, y + 12, 340),
-    text(`${p.percent.toFixed(1)}%`, 410, y + 19, 14, 700, fg, "end"),
-    text(`${usd(p.spent)} / ${usd(p.limit)} used`, 14, y + 34, 13, 400, fg),
-  ].join("");
+  const period = (label: string, p: _UsageSummary["session"], y: number): string =>
+    [
+      text(label, 14, y, 14, 700),
+      text(`Resets in ${rel(p.resetsAt)}`, 410, y, 12, 400, muted, "end"),
+      bar(p.percent, 14, y + 12, 340),
+      text(`${p.percent.toFixed(1)}%`, 410, y + 19, 14, 700, fg, "end"),
+      text(`${usd(p.spent)} / ${usd(p.limit)} used`, 14, y + 34, 13, 400, fg),
+    ].join("");
 
   if (!s.hasData) {
     return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
@@ -1425,51 +1384,59 @@ ${period("Session (5h rolling)", s.session, 54)}
 ${period("Weekly", s.weekly, 116)}
 ${period("Monthly", s.monthly, 178)}
 <line x1="14" y1="224" x2="416" y2="224" stroke="${line}" stroke-width="1"/>
-${hasSession ? [
-    text("Session (est):", 14, 250, 13, 400, muted),
-    text(`$${sc!.cost.toFixed(4)}`, cx, 250, 13, 700),
-    text("Requests:", 200, 250, 13, 400, muted),
-    text(String(sc!.requests), 280, 250, 13, 700),
-    text("Tokens:", 320, 250, 13, 400, muted),
-    text(tokens(sc!.promptTokens + sc!.completionTokens), 400, 250, 13, 700),
-  ].join("") : ""}
+${
+  hasSession
+    ? [
+        text("Session (est):", 14, 250, 13, 400, muted),
+        text(`$${sc!.cost.toFixed(4)}`, cx, 250, 13, 700),
+        text("Requests:", 200, 250, 13, 400, muted),
+        text(String(sc!.requests), 280, 250, 13, 700),
+        text("Tokens:", 320, 250, 13, 400, muted),
+        text(tokens(sc!.promptTokens + sc!.completionTokens), 400, 250, 13, 700),
+      ].join("")
+    : ""
+}
 ${text("Today:", 14, hasSession ? 274 : 256, 13, 400, muted)}
 ${text(usd(s.today.cost), cx, hasSession ? 274 : 256, 13, 700)}
 ${text("Requests:", 200, hasSession ? 274 : 256, 13, 400, muted)}
 ${text(String(s.today.requests), 280, hasSession ? 274 : 256, 13, 700)}
 ${text("Tokens:", 320, hasSession ? 274 : 256, 13, 400, muted)}
 ${text(tokens(s.today.tokens), 400, hasSession ? 274 : 256, 13, 700)}
-${s.yesterday.requests > 0 ? [
-    text("Yesterday:", 14, hasSession ? 298 : 278, 13, 400, muted),
-    text(usd(s.yesterday.cost), cx, hasSession ? 298 : 278, 13, 700),
-    text("Requests:", 200, hasSession ? 298 : 278, 13, 400, muted),
-    text(String(s.yesterday.requests), 280, hasSession ? 298 : 278, 13, 700),
-    text("Tokens:", 320, hasSession ? 298 : 278, 13, 400, muted),
-    text(tokens(s.yesterday.tokens), 400, hasSession ? 298 : 278, 13, 700),
-  ].join("") : ""}
+${
+  s.yesterday.requests > 0
+    ? [
+        text("Yesterday:", 14, hasSession ? 298 : 278, 13, 400, muted),
+        text(usd(s.yesterday.cost), cx, hasSession ? 298 : 278, 13, 700),
+        text("Requests:", 200, hasSession ? 298 : 278, 13, 400, muted),
+        text(String(s.yesterday.requests), 280, hasSession ? 298 : 278, 13, 700),
+        text("Tokens:", 320, hasSession ? 298 : 278, 13, 400, muted),
+        text(tokens(s.yesterday.tokens), 400, hasSession ? 298 : 278, 13, 700),
+      ].join("")
+    : ""
+}
 </svg>`;
 }
 
 function escapeSvg(value: string): string {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
+  return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
-function usd(v: number): string { return `$${v.toFixed(2)}`; }
+function usd(v: number): string {
+  return `$${v.toFixed(2)}`;
+}
 function tokens(v: number): string {
   if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`;
-  if (v >= 1_000)     return `${(v / 1_000).toFixed(1)}K`;
+  if (v >= 1_000) return `${(v / 1_000).toFixed(1)}K`;
   return v.toString();
 }
 function rel(date: Date): string {
   const min = Math.max(0, Math.floor((date.getTime() - Date.now()) / 60_000));
   if (min < 60) return `${min}m`;
-  const h = Math.floor(min / 60), m = min % 60;
+  const h = Math.floor(min / 60),
+    m = min % 60;
   if (h < 24) return m ? `${h}h ${m}m` : `${h}h`;
-  const d = Math.floor(h / 24), rh = h % 24;
+  const d = Math.floor(h / 24),
+    rh = h % 24;
   return rh ? `${d}d ${rh}h` : `${d}d`;
 }
 
@@ -1546,7 +1513,7 @@ class OpenCodeProvider implements vscode.LanguageModelChatProvider<OpenCodeModel
 
   constructor(
     private readonly context: vscode.ExtensionContext,
-    private readonly definition: ProviderDefinition
+    private readonly definition: ProviderDefinition,
   ) {
     this.restoreRecentTransportSummaries();
   }
@@ -1567,16 +1534,8 @@ class OpenCodeProvider implements vscode.LanguageModelChatProvider<OpenCodeModel
     return getOpenCodeModelMetadata(this.context, this.getOutputChannel());
   }
 
-  private resolveModelMetadata(
-    modelId: string,
-    snapshot: CachedModelMetadataSnapshot,
-  ): ResolvedModelMetadata {
-    return resolveModelMetadata(
-      modelId,
-      this.baseVendor,
-      snapshot,
-      this.liveModelMetadataById,
-    );
+  private resolveModelMetadata(modelId: string, snapshot: CachedModelMetadataSnapshot): ResolvedModelMetadata {
+    return resolveModelMetadata(modelId, this.baseVendor, snapshot, this.liveModelMetadataById);
   }
 
   private replaceLiveModelMetadata(entries: ModelListEntry[] | undefined): void {
@@ -1597,25 +1556,17 @@ class OpenCodeProvider implements vscode.LanguageModelChatProvider<OpenCodeModel
   }
 
   private restoreRecentTransportSummaries(): void {
-    const stored = this.context.globalState.get<RecentTransportSummary[]>(
-      this.recentTransportSummariesStorageKey(),
-      [],
-    );
+    const stored = this.context.globalState.get<RecentTransportSummary[]>(this.recentTransportSummariesStorageKey(), []);
 
     if (!Array.isArray(stored) || !stored.length) {
       return;
     }
 
-    this.recentTransportSummaries.push(
-      ...stored.slice(-RECENT_TRANSPORT_SUMMARY_LIMIT),
-    );
+    this.recentTransportSummaries.push(...stored.slice(-RECENT_TRANSPORT_SUMMARY_LIMIT));
   }
 
   private persistRecentTransportSummaries(): void {
-    void this.context.globalState.update(
-      this.recentTransportSummariesStorageKey(),
-      this.recentTransportSummaries,
-    );
+    void this.context.globalState.update(this.recentTransportSummariesStorageKey(), this.recentTransportSummaries);
   }
 
   private recordTransportSummary(
@@ -1624,11 +1575,12 @@ class OpenCodeProvider implements vscode.LanguageModelChatProvider<OpenCodeModel
     metadataSource: string,
     requestInitiator: unknown,
   ): void {
-    const initiator = typeof requestInitiator === "string"
-      ? requestInitiator
-      : requestInitiator === undefined || requestInitiator === null
-        ? undefined
-        : String(requestInitiator);
+    const initiator =
+      typeof requestInitiator === "string"
+        ? requestInitiator
+        : requestInitiator === undefined || requestInitiator === null
+          ? undefined
+          : String(requestInitiator);
 
     this.recentTransportSummaries.push({
       ...summary,
@@ -1639,10 +1591,7 @@ class OpenCodeProvider implements vscode.LanguageModelChatProvider<OpenCodeModel
     });
 
     if (this.recentTransportSummaries.length > RECENT_TRANSPORT_SUMMARY_LIMIT) {
-      this.recentTransportSummaries.splice(
-        0,
-        this.recentTransportSummaries.length - RECENT_TRANSPORT_SUMMARY_LIMIT,
-      );
+      this.recentTransportSummaries.splice(0, this.recentTransportSummaries.length - RECENT_TRANSPORT_SUMMARY_LIMIT);
     }
 
     this.persistRecentTransportSummaries();
@@ -1740,12 +1689,12 @@ class OpenCodeProvider implements vscode.LanguageModelChatProvider<OpenCodeModel
         { label: "Set API Key", action: "set" as const },
         { label: "Clear API Key", action: "clear" as const },
         { label: "Test Connection", action: "test" as const },
-        { label: "Refresh Models", action: "refresh" as const }
+        { label: "Refresh Models", action: "refresh" as const },
       ],
       {
         title: `Manage ${this.definition.displayName}`,
-        placeHolder: "Choose an action"
-      }
+        placeHolder: "Choose an action",
+      },
     );
 
     if (!choice) {
@@ -1792,15 +1741,15 @@ class OpenCodeProvider implements vscode.LanguageModelChatProvider<OpenCodeModel
       const response = await fetch(this.definition.chatCompletionsUrl, {
         method: "POST",
         headers: {
-          "Authorization": `Bearer ${apiKey}`,
-          "Content-Type": "application/json"
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           model: this.definition.testModelId,
           messages: [{ role: "user", content: "reply with just: ok" }],
           max_tokens: 10,
-          stream: false
-        })
+          stream: false,
+        }),
       });
 
       const responseText = await response.text();
@@ -1808,9 +1757,13 @@ class OpenCodeProvider implements vscode.LanguageModelChatProvider<OpenCodeModel
       this.log(`Test response (${response.status}): ${responseText}`);
 
       if (response.ok) {
-        vscode.window.showInformationMessage(`${this.definition.displayName}: Connection OK (HTTP ${response.status}). Check Output panel for details.`);
+        vscode.window.showInformationMessage(
+          `${this.definition.displayName}: Connection OK (HTTP ${response.status}). Check Output panel for details.`,
+        );
       } else {
-        vscode.window.showErrorMessage(`${this.definition.displayName}: Connection failed (HTTP ${response.status}). Check Output panel for details.`);
+        vscode.window.showErrorMessage(
+          `${this.definition.displayName}: Connection failed (HTTP ${response.status}). Check Output panel for details.`,
+        );
       }
     } catch (error) {
       statusBar.dispose();
@@ -1825,7 +1778,7 @@ class OpenCodeProvider implements vscode.LanguageModelChatProvider<OpenCodeModel
       title: "OpenCode Go API Key",
       prompt: "Paste your OpenCode Go API key. It will be stored securely in VS Code SecretStorage.",
       password: true,
-      ignoreFocusOut: true
+      ignoreFocusOut: true,
     });
 
     if (!apiKey) {
@@ -1845,22 +1798,22 @@ class OpenCodeProvider implements vscode.LanguageModelChatProvider<OpenCodeModel
       const metadata = this.resolveModelMetadata(rawModelId, metadataSnapshot);
       const limits = modelLimits(metadata);
       return [
-      `- ${rawModelId}`,
-      `  rawModelId: ${rawModelId}`,
-      `  name: ${model.name}`,
-      `  family: ${model.family}`,
-      `  vendor: ${model.vendor}`,
-      `  version: ${model.version}`,
-      `  maxInputTokens: ${model.maxInputTokens}`,
-      `  advertisedMaxOutputTokens: ${limits.advertisedMaxOutputTokens}`,
-      `  advertisedContextWindow: ${limits.advertisedContextWindow}`,
-      `  apiMaxOutputTokens: ${limits.maxOutputTokens}`,
-      `  metadataSource: ${metadata.source}`,
-      `  supportsVision: ${metadata.supportsVision}`,
-      `  status: ${metadata.status ?? "active"}`,
-      `  thinkingFamily: ${thinkingFamily(rawModelId) ?? "none"}`,
-      `  configurationSchema: ${JSON.stringify((model as unknown as { configurationSchema?: unknown }).configurationSchema ?? null)}`,
-      ...(hasExplicitModelLimits(rawModelId, this.baseVendor) ? [] : ["  limits: using bundled fallback"])
+        `- ${rawModelId}`,
+        `  rawModelId: ${rawModelId}`,
+        `  name: ${model.name}`,
+        `  family: ${model.family}`,
+        `  vendor: ${model.vendor}`,
+        `  version: ${model.version}`,
+        `  maxInputTokens: ${model.maxInputTokens}`,
+        `  advertisedMaxOutputTokens: ${limits.advertisedMaxOutputTokens}`,
+        `  advertisedContextWindow: ${limits.advertisedContextWindow}`,
+        `  apiMaxOutputTokens: ${limits.maxOutputTokens}`,
+        `  metadataSource: ${metadata.source}`,
+        `  supportsVision: ${metadata.supportsVision}`,
+        `  status: ${metadata.status ?? "active"}`,
+        `  thinkingFamily: ${thinkingFamily(rawModelId) ?? "none"}`,
+        `  configurationSchema: ${JSON.stringify((model as unknown as { configurationSchema?: unknown }).configurationSchema ?? null)}`,
+        ...(hasExplicitModelLimits(rawModelId, this.baseVendor) ? [] : ["  limits: using bundled fallback"]),
       ].join("\n");
     });
 
@@ -1874,7 +1827,7 @@ class OpenCodeProvider implements vscode.LanguageModelChatProvider<OpenCodeModel
       "",
       `Models visible through vscode.lm.selectChatModels({ vendor: "${this.definition.vendor}" }): ${models.length}`,
       "",
-      ...lines
+      ...lines,
     ].join("\n");
 
     const doc = await vscode.workspace.openTextDocument({ content, language: "markdown" });
@@ -1883,7 +1836,7 @@ class OpenCodeProvider implements vscode.LanguageModelChatProvider<OpenCodeModel
 
   async provideLanguageModelChatInformation(
     options: vscode.PrepareLanguageModelChatModelOptions,
-    token: vscode.CancellationToken
+    token: vscode.CancellationToken,
   ): Promise<OpenCodeModel[]> {
     const opts = options as ConfiguredLanguageModelInfoOptions & { group?: string };
 
@@ -1968,9 +1921,7 @@ class OpenCodeProvider implements vscode.LanguageModelChatProvider<OpenCodeModel
 
     const settings = getSettings();
     const metadataSnapshot = await this.getMetadataSnapshot();
-    const showProviderPrefix = vscode.workspace
-      .getConfiguration("opencodego")
-      .get<boolean>("showProviderPrefix", true);
+    const showProviderPrefix = vscode.workspace.getConfiguration("opencodego").get<boolean>("showProviderPrefix", true);
 
     // CONTRACT: VS Code calls provideLanguageModelChatInformation frequently
     // (every ~300ms during UI refresh). Per-model logging produces thousands
@@ -2009,16 +1960,8 @@ class OpenCodeProvider implements vscode.LanguageModelChatProvider<OpenCodeModel
         // Include effective limits in version so VS Code invalidates stale
         // picker metadata after limit changes (eg. 2M -> 262K corrections).
         version: `1.2.0-${MODEL_METADATA_REVISION}-${limits.contextWindow}-${limits.maxOutputTokens}`,
-        detail: capacityNote
-          ? `${baseDetail} • Limited capacity`
-          : modalityBadges
-            ? `${baseDetail} • ${modalityBadges}`
-            : baseDetail,
-        tooltip: capacityNote
-          ? `${baseTooltip}\n\n${capacityNote}`
-          : modalityBadges
-            ? `${baseTooltip}\n\n${modalityBadges}`
-            : baseTooltip,
+        detail: capacityNote ? `${baseDetail} • Limited capacity` : modalityBadges ? `${baseDetail} • ${modalityBadges}` : baseDetail,
+        tooltip: capacityNote ? `${baseTooltip}\n\n${capacityNote}` : modalityBadges ? `${baseTooltip}\n\n${modalityBadges}` : baseTooltip,
         isUserSelectable: true,
         maxInputTokens: limits.advertisedMaxInputTokens,
         maxOutputTokens: limits.advertisedMaxOutputTokens,
@@ -2029,7 +1972,7 @@ class OpenCodeProvider implements vscode.LanguageModelChatProvider<OpenCodeModel
         ...modelPricingFields(modelId, this.baseVendor, metadata),
         // Inline so Copilot Chat picks up the Thinking submenu directly
         // (parity with zelosleone/Opencode-Go-For-Copilot pattern).
-        ...(configurationSchema ? { configurationSchema } : {})
+        ...(configurationSchema ? { configurationSchema } : {}),
       };
 
       if (this.definition.isAgentVariant) {
@@ -2040,7 +1983,7 @@ class OpenCodeProvider implements vscode.LanguageModelChatProvider<OpenCodeModel
         const agentHostInfo: OpenCodeModel = {
           ...sharedFields,
           id: agentHostModelId,
-          targetChatSessionType: "copilotcli"
+          targetChatSessionType: "copilotcli",
         };
 
         registeredCount += 1;
@@ -2063,9 +2006,9 @@ class OpenCodeProvider implements vscode.LanguageModelChatProvider<OpenCodeModel
     // the Output channel when VS Code refreshes model info frequently.
     if (registeredCount > 0) {
       this.log(
-        `Models registered: count=${registeredCount} provider=${this.definition.vendor}`
-        + ` first=${firstModelId} last=${lastModelId}`
-        + (this.definition.isAgentVariant ? " (agents)" : "")
+        `Models registered: count=${registeredCount} provider=${this.definition.vendor}` +
+          ` first=${firstModelId} last=${lastModelId}` +
+          (this.definition.isAgentVariant ? " (agents)" : ""),
       );
     }
 
@@ -2077,24 +2020,22 @@ class OpenCodeProvider implements vscode.LanguageModelChatProvider<OpenCodeModel
     messages: readonly vscode.LanguageModelChatRequestMessage[],
     options: vscode.ProvideLanguageModelChatResponseOptions,
     progress: vscode.Progress<vscode.LanguageModelResponsePart2>,
-    token: vscode.CancellationToken
+    token: vscode.CancellationToken,
   ): Promise<void> {
-    const apiKey =
-      getConfiguredApiKey(options as ConfiguredLanguageModelResponseOptions)
-      ?? this.apiKeysByModelId.get(model.id);
+    const apiKey = getConfiguredApiKey(options as ConfiguredLanguageModelResponseOptions) ?? this.apiKeysByModelId.get(model.id);
 
     if (!apiKey) {
-      throw new Error(`${this.definition.displayName} API key is required. Use the ${this.definition.displayName} gear icon in Language Models to configure it, then reload the window.`);
+      throw new Error(
+        `${this.definition.displayName} API key is required. Use the ${this.definition.displayName} gear icon in Language Models to configure it, then reload the window.`,
+      );
     }
 
     const rawModelId = model.rawModelId ?? resolveRawModelId(model.id);
     const convertedMessages = await Promise.all(
-      messages.map((message) => convertMessage(message, this.reasoningContentByToolCallId, rawModelId))
+      messages.map((message) => convertMessage(message, this.reasoningContentByToolCallId, rawModelId)),
     );
     const apiMessages = normalizeMessages(convertedMessages.flatMap((result) => result.messages));
-    const normalizedImageCount = convertedMessages
-      .map((result) => result.normalizedImageCount)
-      .reduce((total, count) => total + count, 0);
+    const normalizedImageCount = convertedMessages.map((result) => result.normalizedImageCount).reduce((total, count) => total + count, 0);
     if (normalizedImageCount > 0) {
       this.log(`[vision] Normalized ${normalizedImageCount} image attachment(s) to provider-safe dimensions/encoding.`);
     }
@@ -2105,12 +2046,10 @@ class OpenCodeProvider implements vscode.LanguageModelChatProvider<OpenCodeModel
     const requestOverride = getRequestModelConfiguration(options);
     const settings: ApiSettings = {
       ...baseSettings,
-      thinking: applyRequestThinkingOverride(rawModelId, baseSettings.thinking, requestOverride)
+      thinking: applyRequestThinkingOverride(rawModelId, baseSettings.thinking, requestOverride),
     };
     // Extract the context-size tier selected by the user (if any)
-    const contextSizeOverride = typeof requestOverride?.contextSize === "number"
-      ? requestOverride.contextSize
-      : undefined;
+    const contextSizeOverride = typeof requestOverride?.contextSize === "number" ? requestOverride.contextSize : undefined;
     const metadataSnapshot = await this.getMetadataSnapshot();
     const metadata = this.resolveModelMetadata(rawModelId, metadataSnapshot);
     const routing = resolveModelRouting(rawModelId, this.definition);
@@ -2127,29 +2066,21 @@ class OpenCodeProvider implements vscode.LanguageModelChatProvider<OpenCodeModel
     // Vision proxy: when a text-only model receives images, relay them
     // through a configured vision-capable Copilot model, then replace
     // the image parts with the text description.
-    const visionProxyModelId = isVisionProxyEnabled()
-      ? (this.context.globalState.get<string>(VISION_PROXY_MODEL_ID_KEY, "") || "")
-      : "";
+    const visionProxyModelId = isVisionProxyEnabled() ? this.context.globalState.get<string>(VISION_PROXY_MODEL_ID_KEY, "") || "" : "";
     if (hasImageInput && !actuallySupportsVision && visionProxyModelId) {
-      const visionProxyPrompt = this.context.globalState.get<string>(VISION_PROXY_PROMPT_KEY, "")
-        || DEFAULT_VISION_PROXY_PROMPT;
+      const visionProxyPrompt = this.context.globalState.get<string>(VISION_PROXY_PROMPT_KEY, "") || DEFAULT_VISION_PROXY_PROMPT;
       let imagesHandled = false;
       try {
         this.log(`[vision-proxy] Forwarding images to ${visionProxyModelId}`);
-        const description = await proxyVision(
-          messages,
-          visionProxyModelId,
-          visionProxyPrompt,
-          token,
-        );
+        const description = await proxyVision(messages, visionProxyModelId, visionProxyPrompt, token);
         if (description) {
           for (let i = 0; i < apiMessages.length; i++) {
             const msg = apiMessages[i];
             if (!Array.isArray(msg.content)) continue;
-            if (msg.content.some(p => p.type === "image_url")) {
+            if (msg.content.some((p) => p.type === "image_url")) {
               const textParts = msg.content
                 .filter((p): p is OpenAiContentPart & { text: string } => p.type === "text" && typeof p.text === "string")
-                .map(p => p.text);
+                .map((p) => p.text);
               msg.content = [{ type: "text", text: `[Image described by vision proxy]: ${description}` }];
               if (textParts.length > 0) {
                 msg.content.push({ type: "text", text: textParts.join("\n") });
@@ -2170,10 +2101,10 @@ class OpenCodeProvider implements vscode.LanguageModelChatProvider<OpenCodeModel
         for (let i = 0; i < apiMessages.length; i++) {
           const msg = apiMessages[i];
           if (!Array.isArray(msg.content)) continue;
-          if (msg.content.some(p => p.type === "image_url")) {
+          if (msg.content.some((p) => p.type === "image_url")) {
             const textParts = msg.content
               .filter((p): p is OpenAiContentPart & { text: string } => p.type === "text" && typeof p.text === "string")
-              .map(p => p.text);
+              .map((p) => p.text);
             msg.content = [{ type: "text", text: "[Image unavailable — vision proxy unavailable]" }];
             if (textParts.length > 0) {
               msg.content.push({ type: "text", text: textParts.join("\n") });
@@ -2198,15 +2129,13 @@ class OpenCodeProvider implements vscode.LanguageModelChatProvider<OpenCodeModel
     // output budget reflects the trimmed payload.
     const trimmedCount = trimOldImagesFromHistoryInPlace(apiMessages);
     if (trimmedCount > 0) {
-      this.log(`[history-trim] Replaced ${trimmedCount} old image(s) with placeholder text to bound payload (kept most recent ${MAX_HISTORY_IMAGES_KEPT}).`);
+      this.log(
+        `[history-trim] Replaced ${trimmedCount} old image(s) with placeholder text to bound payload (kept most recent ${MAX_HISTORY_IMAGES_KEPT}).`,
+      );
     }
 
     const thinkingPayload = buildThinkingPayload(rawModelId, settings.thinking, hasImageInput && metadata.supportsVision);
-    const requestHeaders = buildOpenCodeRequestHeaders(
-      messages,
-      options,
-      rawModelId,
-    );
+    const requestHeaders = buildOpenCodeRequestHeaders(messages, options, rawModelId);
     const outputChannel = this.getOutputChannel();
     const onTransportSummary = (summary: TransportRequestSummary) => {
       // Compute credits for VS Code session cost (1 credit = $0.01).
@@ -2221,17 +2150,14 @@ class OpenCodeProvider implements vscode.LanguageModelChatProvider<OpenCodeModel
       const cost = estimateCost(summary.modelId, prompt, completion, cached, metadata.cost);
       summary.copilotCredits = cost * 100;
 
-      this.recordTransportSummary(
-        summary,
-        routing.endpointKind,
-        metadata.source,
-        options.requestInitiator,
-      );
+      this.recordTransportSummary(summary, routing.endpointKind, metadata.source, options.requestInitiator);
       updateUsageStatusBar(this.definition.displayName, rawModelId, summary);
       if (this.baseVendor === GO_VENDOR) {
         const tracker = ensureProfileForApiKey(apiKey, this.definition.displayName);
         if (tracker) {
-          this.log(`[go-usage] Recording profile=${activeProfileFingerprint}: model=${summary.modelId} promptTokens=${prompt} completionTokens=${completion} cachedTokens=${cached}`);
+          this.log(
+            `[go-usage] Recording profile=${activeProfileFingerprint}: model=${summary.modelId} promptTokens=${prompt} completionTokens=${completion} cachedTokens=${cached}`,
+          );
           tracker.record(summary, metadata.cost);
           refreshGoUsageStatusBar();
           this.log(`[go-usage] After record profile=${activeProfileFingerprint}: entries=${tracker.getSummary().today.requests}`);
@@ -2239,7 +2165,9 @@ class OpenCodeProvider implements vscode.LanguageModelChatProvider<OpenCodeModel
       }
     };
 
-    this.log(`Request: initiator=${options.requestInitiator} model=${model.id} rawModel=${rawModelId} endpoint=${routing.endpointKind} metadataSource=${metadata.source} messages=${apiMessages.length} session=${requestHeaders["x-opencode-session"]} request=${requestHeaders["x-opencode-request"]} modelConfiguration=${JSON.stringify(pickThinkingModelConfiguration(requestOverride))} thinking=${JSON.stringify(settings.thinking)} thinkingPayload=${JSON.stringify(thinkingPayload)}`);
+    this.log(
+      `Request: initiator=${options.requestInitiator} model=${model.id} rawModel=${rawModelId} endpoint=${routing.endpointKind} metadataSource=${metadata.source} messages=${apiMessages.length} session=${requestHeaders["x-opencode-session"]} request=${requestHeaders["x-opencode-request"]} modelConfiguration=${JSON.stringify(pickThinkingModelConfiguration(requestOverride))} thinking=${JSON.stringify(settings.thinking)} thinkingPayload=${JSON.stringify(thinkingPayload)}`,
+    );
     if (settings.debugReasoning) {
       this.log("Reasoning debug is enabled. Provider reasoning_content will be written to this output channel when available.");
     }
@@ -2291,7 +2219,7 @@ class OpenCodeProvider implements vscode.LanguageModelChatProvider<OpenCodeModel
           stripThinkTags: settings.stripThinkTags,
           onReasoningContent: (toolCallIds, reasoningContent) => {
             this.storeReasoningContent(toolCallIds, reasoningContent);
-          }
+          },
         });
         this.log(`Request completed: model=${model.id}`);
         return;
@@ -2318,7 +2246,7 @@ class OpenCodeProvider implements vscode.LanguageModelChatProvider<OpenCodeModel
           stripThinkTags: settings.stripThinkTags,
           onReasoningContent: (toolCallIds, reasoningContent) => {
             this.storeReasoningContent(toolCallIds, reasoningContent);
-          }
+          },
         });
         return;
       }
@@ -2343,7 +2271,7 @@ class OpenCodeProvider implements vscode.LanguageModelChatProvider<OpenCodeModel
         stripThinkTags: settings.stripThinkTags,
         onReasoningContent: (toolCallIds, reasoningContent) => {
           this.storeReasoningContent(toolCallIds, reasoningContent);
-        }
+        },
       });
       this.log(`Request completed: model=${model.id}`);
     } catch (error) {
@@ -2359,11 +2287,9 @@ class OpenCodeProvider implements vscode.LanguageModelChatProvider<OpenCodeModel
   async provideTokenCount(
     _model: OpenCodeModel,
     text: string | vscode.LanguageModelChatRequestMessage,
-    _token: vscode.CancellationToken
+    _token: vscode.CancellationToken,
   ): Promise<number> {
-    return typeof text === "string"
-      ? estimateTokenCount(text)
-      : estimateChatMessageTokenCount(text);
+    return typeof text === "string" ? estimateTokenCount(text) : estimateChatMessageTokenCount(text);
   }
 
   /**
@@ -2385,10 +2311,7 @@ class OpenCodeProvider implements vscode.LanguageModelChatProvider<OpenCodeModel
    * - Respects the VS Code CancellationToken: bails early on abort, never
    *   retries an aborted request.
    */
-  private async fetchModels(
-    apiKey?: string,
-    token?: vscode.CancellationToken,
-  ): Promise<string[]> {
+  private async fetchModels(apiKey?: string, token?: vscode.CancellationToken): Promise<string[]> {
     if (token?.isCancellationRequested) return this.fallbackModelList();
 
     // Explicit Accept + User-Agent make this look like a legitimate API call
@@ -2398,7 +2321,7 @@ class OpenCodeProvider implements vscode.LanguageModelChatProvider<OpenCodeModel
     // reporter sits behind a VPN + corporate firewall on Windows 11.
     const headers: Record<string, string> = {
       "User-Agent": getUserAgent(),
-      "Accept": "application/json",
+      Accept: "application/json",
     };
     if (apiKey) {
       headers["Authorization"] = `Bearer ${apiKey}`;
@@ -2413,15 +2336,13 @@ class OpenCodeProvider implements vscode.LanguageModelChatProvider<OpenCodeModel
         // Compose the per-request abort with the caller's cancellation token
         // so either one tears down the in-flight fetch.
         const timeoutSignal = AbortSignal.timeout(MODEL_LIST_FETCH_TIMEOUT_MS);
-        const signal = token
-          ? AbortSignal.any([timeoutSignal, this.signalFromToken(token)])
-          : timeoutSignal;
+        const signal = token ? AbortSignal.any([timeoutSignal, this.signalFromToken(token)]) : timeoutSignal;
 
         const response = await fetch(this.definition.modelsUrl, { headers, signal });
         if (!response.ok) {
           throw new Error(`Model list request failed (${response.status}): ${response.statusText}`);
         }
-        const data = await response.json() as ModelListResponse;
+        const data = (await response.json()) as ModelListResponse;
         this.replaceLiveModelMetadata(data.data);
         const ids = data.data
           ?.map((model) => model.id)
@@ -2450,7 +2371,9 @@ class OpenCodeProvider implements vscode.LanguageModelChatProvider<OpenCodeModel
           break;
         }
         const backoff = MODEL_LIST_FETCH_RETRY_BASE_MS * Math.pow(2, attempt);
-        this.log(`[fetchModels] ${this.definition.displayName}: transient error (attempt ${attempt + 1}/${MODEL_LIST_FETCH_MAX_RETRIES + 1}): ${this.errMsg(error)}. Retrying in ${backoff}ms.`);
+        this.log(
+          `[fetchModels] ${this.definition.displayName}: transient error (attempt ${attempt + 1}/${MODEL_LIST_FETCH_MAX_RETRIES + 1}): ${this.errMsg(error)}. Retrying in ${backoff}ms.`,
+        );
         try {
           await sleep(backoff, token);
         } catch {
@@ -2463,10 +2386,14 @@ class OpenCodeProvider implements vscode.LanguageModelChatProvider<OpenCodeModel
     // Final failure: prefer cached snapshot (still fresh), then bundled list.
     const cached = this.loadCachedModelList();
     if (cached) {
-      this.log(`[fetchModels] ${this.definition.displayName}: ${this.errMsg(lastError)}. Using cached model list (${cached.ids.length} models, fetched ${new Date(cached.fetchedAt).toISOString()}).`);
+      this.log(
+        `[fetchModels] ${this.definition.displayName}: ${this.errMsg(lastError)}. Using cached model list (${cached.ids.length} models, fetched ${new Date(cached.fetchedAt).toISOString()}).`,
+      );
       return this.filterAvailableModels(cached.ids);
     }
-    this.log(`[fetchModels] ${this.definition.displayName}: ${this.errMsg(lastError)}. Using bundled model list (${this.definition.fallbackModels.length} models).`);
+    this.log(
+      `[fetchModels] ${this.definition.displayName}: ${this.errMsg(lastError)}. Using bundled model list (${this.definition.fallbackModels.length} models).`,
+    );
     return this.filterAvailableModels(this.definition.fallbackModels);
   }
 
@@ -2529,9 +2456,8 @@ class OpenCodeProvider implements vscode.LanguageModelChatProvider<OpenCodeModel
 
     try {
       const metadataSnapshot = await this.getMetadataSnapshot();
-      const filteredModelIds = uniqueModelIds.filter((modelId) =>
-        !KNOWN_UNAVAILABLE_MODEL_IDS.has(modelId)
-        && !shouldHideDeprecatedModel(modelId, this.baseVendor, metadataSnapshot)
+      const filteredModelIds = uniqueModelIds.filter(
+        (modelId) => !KNOWN_UNAVAILABLE_MODEL_IDS.has(modelId) && !shouldHideDeprecatedModel(modelId, this.baseVendor, metadataSnapshot),
       );
 
       const removedModelIds = uniqueModelIds.filter((modelId) => !filteredModelIds.includes(modelId));
@@ -2546,7 +2472,6 @@ class OpenCodeProvider implements vscode.LanguageModelChatProvider<OpenCodeModel
       return uniqueModelIds.filter((modelId) => !KNOWN_UNAVAILABLE_MODEL_IDS.has(modelId));
     }
   }
-
 }
 
 function getConfiguredApiKey(options?: { configuration?: LanguageModelConfiguration }): string | undefined {
@@ -2554,9 +2479,7 @@ function getConfiguredApiKey(options?: { configuration?: LanguageModelConfigurat
   return typeof configuredApiKey === "string" && configuredApiKey.trim() ? configuredApiKey.trim() : undefined;
 }
 
-async function clearOpenCodeModelMetadataCache(
-  context: vscode.ExtensionContext,
-): Promise<void> {
+async function clearOpenCodeModelMetadataCache(context: vscode.ExtensionContext): Promise<void> {
   modelMetadataSnapshot = undefined;
   modelMetadataRefreshPromise = undefined;
   await context.globalState.update(MODEL_METADATA_CACHE_KEY, undefined);
@@ -2566,11 +2489,7 @@ async function getOpenCodeModelMetadata(
   context: vscode.ExtensionContext,
   output?: vscode.OutputChannel,
 ): Promise<CachedModelMetadataSnapshot> {
-  const cached =
-    modelMetadataSnapshot ??
-    context.globalState.get<CachedModelMetadataSnapshot>(
-      MODEL_METADATA_CACHE_KEY,
-    );
+  const cached = modelMetadataSnapshot ?? context.globalState.get<CachedModelMetadataSnapshot>(MODEL_METADATA_CACHE_KEY);
   if (cached) {
     modelMetadataSnapshot = cached;
     if (isFreshModelMetadata(cached)) {
@@ -2593,14 +2512,14 @@ async function refreshOpenCodeModelMetadata(
 
   modelMetadataRefreshPromise = (async () => {
     const response = await fetch(MODELS_DEV_API_URL, {
-      signal: AbortSignal.timeout(10_000)
+      signal: AbortSignal.timeout(10_000),
     });
 
     if (!response.ok) {
       throw new Error(`models.dev request failed (${response.status}): ${response.statusText}`);
     }
 
-    const data = await response.json() as ModelsDevResponse;
+    const data = (await response.json()) as ModelsDevResponse;
     const snapshot = normalizeModelsDevSnapshot(data);
     modelMetadataSnapshot = snapshot;
     await context.globalState.update(MODEL_METADATA_CACHE_KEY, snapshot);
@@ -2610,25 +2529,17 @@ async function refreshOpenCodeModelMetadata(
     return snapshot;
   })()
     .catch((error) => {
-      const cached =
-        modelMetadataSnapshot ??
-        context.globalState.get<CachedModelMetadataSnapshot>(
-          MODEL_METADATA_CACHE_KEY,
-        );
+      const cached = modelMetadataSnapshot ?? context.globalState.get<CachedModelMetadataSnapshot>(MODEL_METADATA_CACHE_KEY);
       if (cached) {
         const message = error instanceof Error ? error.message : String(error);
-        output?.appendLine(
-          `[metadata] refresh failed, using cached snapshot: ${message}`,
-        );
+        output?.appendLine(`[metadata] refresh failed, using cached snapshot: ${message}`);
         modelMetadataSnapshot = cached;
         return cached;
       }
 
       const message = error instanceof Error ? error.message : String(error);
       const fallback = bundledModelMetadataSnapshot();
-      output?.appendLine(
-        `[metadata] refresh failed, using bundled snapshot: ${message}`,
-      );
+      output?.appendLine(`[metadata] refresh failed, using bundled snapshot: ${message}`);
       modelMetadataSnapshot = fallback;
       return fallback;
     })
@@ -2677,9 +2588,10 @@ function buildAnthropicMessagesRequestBody(
   // Anthropic-native format ({ type: "enabled"|"disabled" }) rather than the
   // Qwen-native enable_thinking boolean. If the payload contains
   // enable_thinking, translate it; otherwise pass through as-is.
-  const thinkingPayload = /^qwen3(?:\.|-)/i.test(modelId) && ("enable_thinking" in rawThinkingPayload || "thinking_budget" in rawThinkingPayload)
-    ? buildQwenAnthropicThinkingPayload(settings.thinking)
-    : rawThinkingPayload;
+  const thinkingPayload =
+    /^qwen3(?:\.|-)/i.test(modelId) && ("enable_thinking" in rawThinkingPayload || "thinking_budget" in rawThinkingPayload)
+      ? buildQwenAnthropicThinkingPayload(settings.thinking)
+      : rawThinkingPayload;
   const anthropicMessages = buildAnthropicMessages(messages);
 
   return {
@@ -2690,9 +2602,7 @@ function buildAnthropicMessagesRequestBody(
     stream: true,
     messages: anthropicMessages,
     ...thinkingPayload,
-    ...(tools.length
-      ? { tools, tool_choice: anthropicToolChoice(options.toolMode) }
-      : {}),
+    ...(tools.length ? { tools, tool_choice: anthropicToolChoice(options.toolMode) } : {}),
   };
 }
 
@@ -2700,9 +2610,7 @@ function buildAnthropicMessages(messages: ApiMessage[]): AnthropicRequestMessage
   let cacheControlCount = 0;
   const nextCacheControl = (): { cache_control?: AnthropicCacheControl } => {
     cacheControlCount += 1;
-    return cacheControlCount <= 4
-      ? { cache_control: { type: "ephemeral" } }
-      : {};
+    return cacheControlCount <= 4 ? { cache_control: { type: "ephemeral" } } : {};
   };
 
   const anthropicMessages: AnthropicRequestMessage[] = [];
@@ -2727,12 +2635,14 @@ function buildAnthropicMessages(messages: ApiMessage[]): AnthropicRequestMessage
     if (message.role === "tool" && message.tool_call_id) {
       anthropicMessages.push({
         role: "user",
-        content: [{
-          type: "tool_result",
-          tool_use_id: message.tool_call_id,
-          content: anthropicToolResultContent(message.content, nextCacheControl),
-          ...nextCacheControl(),
-        }],
+        content: [
+          {
+            type: "tool_result",
+            tool_use_id: message.tool_call_id,
+            content: anthropicToolResultContent(message.content, nextCacheControl),
+            ...nextCacheControl(),
+          },
+        ],
       });
     }
   }
@@ -2752,9 +2662,7 @@ function anthropicUserBlocks(
   nextCacheControl: () => { cache_control?: AnthropicCacheControl },
 ): AnthropicContentBlock[] {
   if (typeof content === "string") {
-    return content.trim()
-      ? [{ type: "text", text: content, ...nextCacheControl() }]
-      : [];
+    return content.trim() ? [{ type: "text", text: content, ...nextCacheControl() }] : [];
   }
 
   if (!Array.isArray(content)) {
@@ -2841,9 +2749,7 @@ function anthropicToolCallInput(argumentsText: string): unknown {
   }
 }
 
-function anthropicImageSource(
-  part: OpenAiContentPart,
-): AnthropicImageSource | undefined {
+function anthropicImageSource(part: OpenAiContentPart): AnthropicImageSource | undefined {
   if (part.type !== "image_url") {
     return undefined;
   }
@@ -2931,14 +2837,14 @@ function responsesInputItemsFromMessage(message: ApiMessage): Array<Record<strin
     // represented natively here, so we degrade to the joined text payload.
     // Vision-capable OpenAI/Anthropic/Google transports handle images in tool
     // results natively via their respective request builders.
-    const output = typeof message.content === "string"
-      ? message.content
-      : responsesToolOutput(message.content);
-    return [{
-      type: "function_call_output",
-      call_id: message.tool_call_id ?? `tool-${Date.now()}`,
-      output,
-    }];
+    const output = typeof message.content === "string" ? message.content : responsesToolOutput(message.content);
+    return [
+      {
+        type: "function_call_output",
+        call_id: message.tool_call_id ?? `tool-${Date.now()}`,
+        output,
+      },
+    ];
   }
 
   return [];
@@ -2987,15 +2893,10 @@ function responsesToolOutput(content: ApiMessage["content"]): string {
     return text || "";
   }
 
-  return [text, "[Image attachment omitted — Responses API does not support images in tool output]"]
-    .filter(Boolean)
-    .join("\n\n");
+  return [text, "[Image attachment omitted — Responses API does not support images in tool output]"].filter(Boolean).join("\n\n");
 }
 
-function joinedTextContent(
-  content: ApiMessage["content"],
-  separator = "",
-): string {
+function joinedTextContent(content: ApiMessage["content"], separator = ""): string {
   if (typeof content === "string") {
     return content;
   }
@@ -3082,9 +2983,11 @@ function googleContentsFromMessages(messages: ApiMessage[]): Array<Record<string
       const response = googleFunctionResponseContent(message.content, name);
       contents.push({
         role: "user",
-        parts: [{
-          functionResponse: response,
-        }],
+        parts: [
+          {
+            functionResponse: response,
+          },
+        ],
       });
     }
   }
@@ -3207,12 +3110,7 @@ function buildOpenCodeRequestHeaders(
     ]) ?? `vscode-${stableHash(conversationAnchor(messages, modelId))}`,
   );
   const requestId = cleanHeaderValue(
-    findStringOption(options, [
-      "requestId",
-      "requestID",
-      "messageId",
-      "messageID",
-    ]) ??
+    findStringOption(options, ["requestId", "requestID", "messageId", "messageID"]) ??
       `req-${stableHash(`${Date.now()}-${Math.random()}-${sessionId}-${modelId}`)}`,
   );
 
@@ -3224,10 +3122,7 @@ function buildOpenCodeRequestHeaders(
   };
 }
 
-function findStringOption(
-  options: unknown,
-  paths: string[],
-): string | undefined {
+function findStringOption(options: unknown, paths: string[]): string | undefined {
   for (const path of paths) {
     const value = readPath(options, path.split("."));
     if (typeof value === "string" && value.trim()) {
@@ -3248,13 +3143,8 @@ function readPath(value: unknown, path: string[]): unknown {
   return current;
 }
 
-function conversationAnchor(
-  messages: readonly vscode.LanguageModelChatRequestMessage[],
-  modelId: string,
-): string {
-  const anchorMessages = messages
-    .slice(0, 3)
-    .map((message) => `${message.role}:${messageText(message).slice(0, 2048)}`);
+function conversationAnchor(messages: readonly vscode.LanguageModelChatRequestMessage[], modelId: string): string {
+  const anchorMessages = messages.slice(0, 3).map((message) => `${message.role}:${messageText(message).slice(0, 2048)}`);
   return anchorMessages.length ? anchorMessages.join("\n") : modelId;
 }
 
@@ -3278,8 +3168,8 @@ function mapOpenAiTools(tools: readonly vscode.LanguageModelChatTool[] | undefin
     function: {
       name: tool.name,
       description: tool.description,
-      parameters: sanitizeToolSchema(tool.inputSchema)
-    }
+      parameters: sanitizeToolSchema(tool.inputSchema),
+    },
   }));
 }
 
@@ -3287,7 +3177,7 @@ function mapAnthropicTools(tools: readonly vscode.LanguageModelChatTool[] | unde
   return (tools ?? []).map((tool) => ({
     name: tool.name,
     description: tool.description,
-    input_schema: sanitizeToolSchema(tool.inputSchema)
+    input_schema: sanitizeToolSchema(tool.inputSchema),
   }));
 }
 
@@ -3301,7 +3191,7 @@ function sanitizeToolSchema(schema: unknown): object {
   return {
     type: sanitized.type === "object" ? "object" : "object",
     properties: isRecord(sanitized.properties) ? sanitized.properties : {},
-    ...(Array.isArray(sanitized.required) ? { required: sanitized.required } : {})
+    ...(Array.isArray(sanitized.required) ? { required: sanitized.required } : {}),
   };
 }
 
@@ -3338,8 +3228,8 @@ function sanitizeJsonSchemaNode(value: unknown, root: Record<string, unknown>, s
       result.properties = Object.fromEntries(
         Object.entries(child).map(([propertyName, propertySchema]) => [
           propertyName,
-          sanitizeJsonSchemaNode(propertySchema, root, seenRefs)
-        ])
+          sanitizeJsonSchemaNode(propertySchema, root, seenRefs),
+        ]),
       );
       continue;
     }
@@ -3415,8 +3305,8 @@ async function convertMessage(
         type: "function",
         function: {
           name: part.name,
-          arguments: JSON.stringify(part.input ?? {})
-        }
+          arguments: JSON.stringify(part.input ?? {}),
+        },
       });
       continue;
     }
@@ -3439,12 +3329,14 @@ async function convertMessage(
       const toolTextParts: string[] = [];
       const toolImageParts: OpenAiContentPart[] = [];
       for (const resultPart of part.content) {
-        if (resultPart instanceof vscode.LanguageModelDataPart
-          && resultPart.mimeType.startsWith("image/")
-          && !isInternalDataPart(resultPart)) {
+        if (
+          resultPart instanceof vscode.LanguageModelDataPart &&
+          resultPart.mimeType.startsWith("image/") &&
+          !isInternalDataPart(resultPart)
+        ) {
           if (resultPart.data.byteLength > MAX_TOOL_RESULT_IMAGE_BYTES) {
             toolTextParts.push(
-              `[Image attachment omitted: ${resultPart.data.byteLength} bytes exceeds the ${MAX_TOOL_RESULT_IMAGE_BYTES}-byte limit for tool results. Ask the tool to produce a smaller screenshot or save it to a file.]`
+              `[Image attachment omitted: ${resultPart.data.byteLength} bytes exceeds the ${MAX_TOOL_RESULT_IMAGE_BYTES}-byte limit for tool results. Ask the tool to produce a smaller screenshot or save it to a file.]`,
             );
             continue;
           }
@@ -3482,7 +3374,7 @@ async function convertMessage(
           const flattened: string[] = [...toolTextParts];
           for (let i = 0; i < toolImageParts.length; i++) {
             flattened.push(
-              `[Tool returned an image attachment, but the MiMo upstream provider does not accept images in tool messages. Image ${i + 1} of ${toolImageParts.length} was dropped to keep the request valid.]`
+              `[Tool returned an image attachment, but the MiMo upstream provider does not accept images in tool messages. Image ${i + 1} of ${toolImageParts.length} was dropped to keep the request valid.]`,
             );
           }
           toolContent = flattened.join("\n");
@@ -3515,15 +3407,15 @@ async function convertMessage(
       const base64Bytes = getImageDataUrlBase64Bytes(imageUrl);
       if (base64Bytes === undefined || base64Bytes > MAX_IMAGE_BASE64_BYTES) {
         textParts.push(
-          `[Image attachment omitted: normalized payload exceeds the `
-          + `${Math.floor(MAX_IMAGE_BASE64_BYTES / (1024 * 1024))} MB base64 limit. `
-          + `Resize or compress the image and re-attach it.]`
+          `[Image attachment omitted: normalized payload exceeds the ` +
+            `${Math.floor(MAX_IMAGE_BASE64_BYTES / (1024 * 1024))} MB base64 limit. ` +
+            `Resize or compress the image and re-attach it.]`,
         );
         continue;
       }
       imageParts.push({
         type: "image_url",
-        image_url: { url: imageUrl }
+        image_url: { url: imageUrl },
       });
       continue;
     }
@@ -3568,14 +3460,14 @@ async function convertMessage(
     // Other families (DeepSeek, Kimi, GLM, Qwen, MiniMax) tolerate the echo
     // and keep it for cross-turn reasoning continuity.
     const shouldOmitReasoningEcho = rawModelId !== undefined && /^mimo-/i.test(rawModelId);
-    return finish([{
-      role,
-      content: typeof content === "string" ? content || null : content,
-      reasoning_content: shouldOmitReasoningEcho
-        ? undefined
-        : reasoningForToolCalls(toolCalls, reasoningContentByToolCallId),
-      tool_calls: toolCalls
-    }]);
+    return finish([
+      {
+        role,
+        content: typeof content === "string" ? content || null : content,
+        reasoning_content: shouldOmitReasoningEcho ? undefined : reasoningForToolCalls(toolCalls, reasoningContentByToolCallId),
+        tool_calls: toolCalls,
+      },
+    ]);
   }
 
   if (toolResults.length) {
@@ -3603,10 +3495,7 @@ function dataPartToBase64(data: Uint8Array): string {
   return output;
 }
 
-function reasoningForToolCalls(
-  toolCalls: OpenAiToolCall[],
-  reasoningContentByToolCallId: ReadonlyMap<string, string>
-): string | undefined {
+function reasoningForToolCalls(toolCalls: OpenAiToolCall[], reasoningContentByToolCallId: ReadonlyMap<string, string>): string | undefined {
   const reasoning = toolCalls
     .map((toolCall) => reasoningContentByToolCallId.get(toolCall.id))
     .filter((value): value is string => Boolean(value?.trim()));
@@ -3621,14 +3510,11 @@ function messageText(message: vscode.LanguageModelChatRequestMessage): string {
 function estimateChatMessageTokenCount(message: vscode.LanguageModelChatRequestMessage): number {
   const role = typeof message.role === "string" ? message.role : String(message.role);
   const name = typeof message.name === "string" ? message.name : "";
-  const contentTokens = message.content
-    .map(partToTokenCount)
-    .reduce((total, count) => total + count, 0);
+  const contentTokens = message.content.map(partToTokenCount).reduce((total, count) => total + count, 0);
 
-  return MESSAGE_TOKEN_OVERHEAD
-    + estimateTokenCount(role)
-    + (name ? MESSAGE_NAME_TOKEN_OVERHEAD + estimateTokenCount(name) : 0)
-    + contentTokens;
+  return (
+    MESSAGE_TOKEN_OVERHEAD + estimateTokenCount(role) + (name ? MESSAGE_NAME_TOKEN_OVERHEAD + estimateTokenCount(name) : 0) + contentTokens
+  );
 }
 
 function partToTokenCount(part: vscode.LanguageModelInputPart | unknown): number {
@@ -3637,19 +3523,14 @@ function partToTokenCount(part: vscode.LanguageModelInputPart | unknown): number
   }
 
   if (part instanceof vscode.LanguageModelToolResultPart) {
-    const contentTokens = part.content
-      .map(partToTokenCount)
-      .reduce((total, count) => total + count, 0);
-    return TOOL_RESULT_TOKEN_OVERHEAD
-      + estimateTokenCount(part.callId)
-      + contentTokens;
+    const contentTokens = part.content.map(partToTokenCount).reduce((total, count) => total + count, 0);
+    return TOOL_RESULT_TOKEN_OVERHEAD + estimateTokenCount(part.callId) + contentTokens;
   }
 
   if (part instanceof vscode.LanguageModelToolCallPart) {
-    return TOOL_CALL_TOKEN_OVERHEAD
-      + estimateTokenCount(part.callId)
-      + estimateTokenCount(part.name)
-      + estimateStructuredTokenCount(part.input);
+    return (
+      TOOL_CALL_TOKEN_OVERHEAD + estimateTokenCount(part.callId) + estimateTokenCount(part.name) + estimateStructuredTokenCount(part.input)
+    );
   }
 
   if (part instanceof vscode.LanguageModelDataPart) {
@@ -3728,10 +3609,12 @@ function normalizeMessages(messages: ApiMessage[]): ApiMessage[] {
     const msgHasToolCalls = !!(message.tool_calls?.length || message.tool_call_id);
 
     if (
-      previous?.role === message.role
-      && message.role !== "tool"
-      && prevIsString && msgIsString
-      && !prevHasToolCalls && !msgHasToolCalls
+      previous?.role === message.role &&
+      message.role !== "tool" &&
+      prevIsString &&
+      msgIsString &&
+      !prevHasToolCalls &&
+      !msgHasToolCalls
     ) {
       previous.content = `${prevContent ?? ""}\n\n${msgContent ?? ""}`.trim();
     } else {
@@ -3742,7 +3625,7 @@ function normalizeMessages(messages: ApiMessage[]): ApiMessage[] {
   if (normalized[0]?.role === "assistant") {
     normalized.unshift({
       role: "user",
-      content: "Continue the conversation based on the prior assistant message."
+      content: "Continue the conversation based on the prior assistant message.",
     });
   }
 
@@ -3750,10 +3633,7 @@ function normalizeMessages(messages: ApiMessage[]): ApiMessage[] {
 }
 
 function messagesHaveImages(messages: readonly ApiMessage[]): boolean {
-  return messages.some((message) =>
-    Array.isArray(message.content)
-    && message.content.some((part) => part.type === "image_url")
-  );
+  return messages.some((message) => Array.isArray(message.content) && message.content.some((part) => part.type === "image_url"));
 }
 
 /**
@@ -3863,10 +3743,7 @@ function hasMessagePayload(message: ApiMessage): boolean {
 // Accepts optional metadata for dynamic fallback: any model with
 // `reasoning: true` in its resolved metadata gets a generic off/on schema
 // even if no hardcoded family match exists.
-function modelConfigurationSchema(
-  modelId: string,
-  metadata?: ResolvedModelMetadata,
-): vscode.LanguageModelConfigurationSchema | undefined {
+function modelConfigurationSchema(modelId: string, metadata?: ResolvedModelMetadata): vscode.LanguageModelConfigurationSchema | undefined {
   const properties: Record<string, unknown> = {};
 
   // --- Thinking / Reasoning Effort ---
@@ -3880,18 +3757,16 @@ function modelConfigurationSchema(
   }
 
   // --- Context Size (tiered pricing) ---
-  const contextSizeOptions = metadata
-    ? getContextSizeOptionsForModel(modelId, metadata.cost, metadata.contextWindow)
-    : undefined;
+  const contextSizeOptions = metadata ? getContextSizeOptionsForModel(modelId, metadata.cost, metadata.contextWindow) : undefined;
   if (contextSizeOptions && contextSizeOptions.length > 0) {
     properties.contextSize = {
       type: "number",
       title: "Context Size",
-      enum: contextSizeOptions.map(o => o.value),
-      enumItemLabels: contextSizeOptions.map(o => o.label),
-      enumDescriptions: contextSizeOptions.map(o => o.description),
-      default: contextSizeOptions.find(o => o.isDefault)?.value ?? contextSizeOptions[0].value,
-      group: "tokens"
+      enum: contextSizeOptions.map((o) => o.value),
+      enumItemLabels: contextSizeOptions.map((o) => o.label),
+      enumDescriptions: contextSizeOptions.map((o) => o.description),
+      default: contextSizeOptions.find((o) => o.isDefault)?.value ?? contextSizeOptions[0].value,
+      group: "tokens",
     };
   }
 
@@ -3943,16 +3818,8 @@ function getSettings(): ApiSettings {
     maxOutputTokensOverride: config.get("maxTokens", 0),
     maxInputTokensOverride: config.get("maxInputTokens", 0),
     debugReasoning: config.get("debugReasoning", false),
-    requestTimeoutMs:
-      Math.max(config.get("requestTimeoutSeconds", DEFAULT_REQUEST_TIMEOUT_MS / 1000), 1) * 1000,
-    streamIdleTimeoutMs:
-      Math.max(
-        config.get(
-          "streamIdleTimeoutSeconds",
-          DEFAULT_STREAM_IDLE_TIMEOUT_MS / 1000,
-        ),
-        1,
-      ) * 1000,
+    requestTimeoutMs: Math.max(config.get("requestTimeoutSeconds", DEFAULT_REQUEST_TIMEOUT_MS / 1000), 1) * 1000,
+    streamIdleTimeoutMs: Math.max(config.get("streamIdleTimeoutSeconds", DEFAULT_STREAM_IDLE_TIMEOUT_MS / 1000), 1) * 1000,
     thinking: {
       deepseek: config.get<ThinkingSettings["deepseek"]>("thinking.deepseek", "off"),
       glm: config.get<ThinkingSettings["glm"]>("thinking.glm", "off"),
@@ -3970,8 +3837,6 @@ function getSettings(): ApiSettings {
 // buildThinkingPayload and buildQwenAnthropicThinkingPayload are imported from
 // ./thinking.ts (pure, testable).
 
-
-
 function modelLimits(
   metadata: ResolvedModelMetadata,
   settings = getSettings(),
@@ -3980,9 +3845,7 @@ function modelLimits(
 ): ModelLimits {
   const baseContextWindow = positiveOverride(settings.maxInputTokensOverride) ?? metadata.contextWindow;
   // If the user selected a specific context size tier, cap the window to that
-  const contextWindow = contextSizeOverride !== undefined
-    ? Math.min(baseContextWindow, contextSizeOverride)
-    : baseContextWindow;
+  const contextWindow = contextSizeOverride !== undefined ? Math.min(baseContextWindow, contextSizeOverride) : baseContextWindow;
   const maxOutputTokens = positiveOverride(settings.maxOutputTokensOverride) ?? metadata.maxOutputTokens;
   // Cap output so that prompt + output never exceeds the context window.
   // When promptTokens is known (from message normalization), use the actual
@@ -4007,7 +3870,7 @@ function modelLimits(
     maxOutputTokens: apiMaxOutputTokens,
     advertisedContextWindow,
     advertisedMaxInputTokens: Math.max(1, advertisedContextWindow - advertisedMaxOutputTokens),
-    advertisedMaxOutputTokens
+    advertisedMaxOutputTokens,
   };
 }
 
@@ -4080,11 +3943,7 @@ function formatModalityBadges(metadata: ResolvedModelMetadata): string {
   return badges.join(" · ");
 }
 
-function shouldHideDeprecatedModel(
-  modelId: string,
-  vendor: ProviderDefinition["vendor"],
-  snapshot: CachedModelMetadataSnapshot,
-): boolean {
+function shouldHideDeprecatedModel(modelId: string, vendor: ProviderDefinition["vendor"], snapshot: CachedModelMetadataSnapshot): boolean {
   if (resolveBaseVendor(vendor) !== ZEN_VENDOR) {
     return false;
   }
@@ -4107,10 +3966,7 @@ function isFreeZenModel(modelId: string): boolean {
 }
 
 function isFreeModel(modelId: string, vendor: ProviderDefinition["vendor"]): boolean {
-  return (
-    FREE_ZEN_MODEL_IDS.has(modelId) ||
-    modelId.endsWith("-free")
-  );
+  return FREE_ZEN_MODEL_IDS.has(modelId) || modelId.endsWith("-free");
 }
 
 /**
@@ -4130,24 +3986,21 @@ async function proxyVision(
   // 3. Name or id substring (e.g. "mimo-v2.5" or "Mimo V2.5")
   // Filter out agent-host variants — they use a different transport and
   // don't have vision support. Prefer non-agent models.
-  const nonAgent = (models: readonly vscode.LanguageModelChat[]) =>
-    models.filter(m => !m.id.includes("-agent:"));
+  const nonAgent = (models: readonly vscode.LanguageModelChat[]) => models.filter((m) => !m.id.includes("-agent:"));
 
   let visionModels = nonAgent(await vscode.lm.selectChatModels({ id: visionModelId }));
   if (!visionModels || visionModels.length === 0) {
     // Try matching by name substring across all providers
     const allVisible = nonAgent(await vscode.lm.selectChatModels({}));
     visionModels = allVisible.filter(
-      m => m.id.toLowerCase().includes(visionModelId.toLowerCase())
-        || m.name.toLowerCase().includes(visionModelId.toLowerCase())
-        || m.family.toLowerCase().includes(visionModelId.toLowerCase()),
+      (m) =>
+        m.id.toLowerCase().includes(visionModelId.toLowerCase()) ||
+        m.name.toLowerCase().includes(visionModelId.toLowerCase()) ||
+        m.family.toLowerCase().includes(visionModelId.toLowerCase()),
     );
   }
   if (!visionModels || visionModels.length === 0) {
-    throw new Error(
-      `Vision model "${visionModelId}" not found. ` +
-      `Run "OpenCode Go: Configure Vision Proxy" to see available models.`,
-    );
+    throw new Error(`Vision model "${visionModelId}" not found. ` + `Run "OpenCode Go: Configure Vision Proxy" to see available models.`);
   }
 
   // All models that matched are candidates. `selectChatModels` returns
@@ -4170,12 +4023,14 @@ async function proxyVision(
       }
     }
     if (parts.length > 0) {
-      requestMessages.push(new vscode.LanguageModelChatMessage(
-        msg.role === vscode.LanguageModelChatMessageRole.Assistant
-          ? vscode.LanguageModelChatMessageRole.Assistant
-          : vscode.LanguageModelChatMessageRole.User,
-        parts,
-      ));
+      requestMessages.push(
+        new vscode.LanguageModelChatMessage(
+          msg.role === vscode.LanguageModelChatMessageRole.Assistant
+            ? vscode.LanguageModelChatMessageRole.Assistant
+            : vscode.LanguageModelChatMessageRole.User,
+          parts,
+        ),
+      );
     }
   }
 
@@ -4218,8 +4073,7 @@ function isVisionProxyEnabled(): boolean {
  */
 async function showVisionProxyPicker(context: vscode.ExtensionContext): Promise<void> {
   const currentModelId = context.globalState.get<string>(VISION_PROXY_MODEL_ID_KEY, "");
-  const currentPrompt = context.globalState.get<string>(VISION_PROXY_PROMPT_KEY, "")
-    || DEFAULT_VISION_PROXY_PROMPT;
+  const currentPrompt = context.globalState.get<string>(VISION_PROXY_PROMPT_KEY, "") || DEFAULT_VISION_PROXY_PROMPT;
 
   // --- Build the set of vision-capable model IDs ---
   const visionCapableIds = new Set<string>();
@@ -4238,31 +4092,27 @@ async function showVisionProxyPicker(context: vscode.ExtensionContext): Promise<
   }
 
   // --- Build QuickPick items from available models ---
-  const allModels = (await vscode.lm.selectChatModels({}))
-    .filter(m => !m.id.includes("-agent:"));
+  const allModels = (await vscode.lm.selectChatModels({})).filter((m) => !m.id.includes("-agent:"));
 
   const modelItems = allModels
-    .map(m => {
+    .map((m) => {
       const rawId = resolveRawModelId(m.id);
       const vendor = resolveVendorFromId(m.id);
       const lookupId = `${vendor}:${rawId}`;
       const fromLookup = visionCapableIds.has(lookupId);
-      const fromName = [...visionCapableIds].some(id =>
-        m.id.includes(id.replace(/^(opencodego|opencodezen|copilot):/, "")));
+      const fromName = [...visionCapableIds].some((id) => m.id.includes(id.replace(/^(opencodego|opencodezen|copilot):/, "")));
       const supportsVision = fromLookup || fromName;
       return {
         label: m.name,
         description: supportsVision ? "$(eye)" : "",
-        detail: supportsVision
-          ? (m.id === currentModelId ? "currently configured" : "vision-capable")
-          : "",
+        detail: supportsVision ? (m.id === currentModelId ? "currently configured" : "vision-capable") : "",
         picked: m.id === currentModelId,
         _id: m.id,
         _kind: "model" as const,
         _supportsVision: supportsVision,
       };
     })
-    .filter(m => m._supportsVision);
+    .filter((m) => m._supportsVision);
 
   if (modelItems.length === 0) {
     vscode.window.showInformationMessage(
@@ -4289,7 +4139,11 @@ async function showVisionProxyPicker(context: vscode.ExtensionContext): Promise<
   }> = [
     { label: "$(circle-slash) None (disable)", detail: currentModelId ? "" : "currently selected", picked: !currentModelId, _kind: "none" },
     { label: "", kind: vscode.QuickPickItemKind.Separator, _kind: "separator" },
-    { label: "$(edit) Customize description prompt...", description: "$(info) Sets how the vision model describes images", _kind: "prompt" },
+    {
+      label: "$(edit) Customize description prompt...",
+      description: "$(info) Sets how the vision model describes images",
+      _kind: "prompt",
+    },
     { label: "", kind: vscode.QuickPickItemKind.Separator, _kind: "separator" },
     ...modelItems,
   ];
@@ -4309,7 +4163,7 @@ async function showVisionProxyPicker(context: vscode.ExtensionContext): Promise<
       prompt: "Prompt sent to the vision model to describe the image.",
       value: currentPrompt,
       placeHolder: DEFAULT_VISION_PROXY_PROMPT,
-      validateInput: (value: string) => value.trim() ? undefined : "Prompt cannot be empty.",
+      validateInput: (value: string) => (value.trim() ? undefined : "Prompt cannot be empty."),
     });
     if (newPrompt === undefined) return; // cancelled
     await context.globalState.update(VISION_PROXY_PROMPT_KEY, newPrompt.trim());
@@ -4371,9 +4225,7 @@ function modelPricingFields(
   if (cost) {
     const inputCredits = Math.round(cost.input * 100);
     const outputCredits = Math.round(cost.output * 100);
-    const cacheCredits = cost.cache_read !== undefined
-      ? Math.round(cost.cache_read * 100)
-      : undefined;
+    const cacheCredits = cost.cache_read !== undefined ? Math.round(cost.cache_read * 100) : undefined;
 
     const fmt = (v: number) => `$${v.toFixed(v < 0.1 ? 2 : 1)}`;
     return {

@@ -24,7 +24,7 @@ The previous conclusion in doc `23-*` (dated 2026-06-15) was that this is **bloc
 
 1. `LanguageModelThinkingPart` **is available** in the VS Code runtime our extension targets (`engines.vscode: ^1.125.0`). The API shipped to VS Code in August 2025 (PR [#259939](https://github.com/microsoft/vscode/pull/259939)).
 2. A shipping Marketplace extension (`Vizards/deepseek-v4-for-copilot` v0.6.2) **already solves this exact problem** for DeepSeek BYOK models using the proposed `LanguageModelThinkingPart` API — with **no `enabledApiProposals` declaration** in `package.json`.
-3. User [@yinhx3](https://github.com/yinhx3) confirmed in issue #71: *"I am also using deepseek-v4-for-copilot for the DeepSeek API, which is able to display reasoning content."*
+3. User [@yinhx3](https://github.com/yinhx3) confirmed in issue #71: _"I am also using deepseek-v4-for-copilot for the DeepSeek API, which is able to display reasoning content."_
 4. The fix is **low-risk and extension-side**: add a type-augmentation `.d.ts`, then emit reasoning through `progress.report(new vscode.LanguageModelThinkingPart(chunk))` in the streaming extractor.
 
 **Priority:** HIGH — two duplicate issues, multiple frustrated users, competitor already shipping the fix.
@@ -33,13 +33,13 @@ The previous conclusion in doc `23-*` (dated 2026-06-15) was that this is **bloc
 
 ## Symptom Matrix
 
-| Aspect | #22 (@hu3bi, 2026-06-08) | #71 (@alexaroth, 2026-07-07) |
-|---|---|---|
-| **Symptom** | `chat.agent.thinkingStyle` (`collapsed` / `collapsedPreview` / `fixedScrolling`) has no effect | "Thinking" section does not show model reasoning |
-| **Expected** | Reasoning rendered as collapsible thinking block (like Copilot-hosted models) | Reasoning shown like native Copilot models |
-| **Reported on** | Any OpenCode model with reasoning | Any OpenCode Go/Zen model |
-| **Cross-link** | #71 mentions #22 as "upstream bug" | yinhx3 links to #22 |
-| **User tone** | Detailed, constructive | Frustrated — *"this extension is negatively affecting results by a huge margin"* |
+| Aspect          | #22 (@hu3bi, 2026-06-08)                                                                       | #71 (@alexaroth, 2026-07-07)                                                     |
+| --------------- | ---------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| **Symptom**     | `chat.agent.thinkingStyle` (`collapsed` / `collapsedPreview` / `fixedScrolling`) has no effect | "Thinking" section does not show model reasoning                                 |
+| **Expected**    | Reasoning rendered as collapsible thinking block (like Copilot-hosted models)                  | Reasoning shown like native Copilot models                                       |
+| **Reported on** | Any OpenCode model with reasoning                                                              | Any OpenCode Go/Zen model                                                        |
+| **Cross-link**  | #71 mentions #22 as "upstream bug"                                                             | yinhx3 links to #22                                                              |
+| **User tone**   | Detailed, constructive                                                                         | Frustrated — _"this extension is negatively affecting results by a huge margin"_ |
 
 Both report the **identical** root behavior: reasoning is either invisible or rendered as flat plain text, never as a styled thinking block.
 
@@ -53,7 +53,7 @@ In `src/streaming.ts`, the `OpenAiResponseExtractor` class extracts reasoning de
 // src/streaming.ts — extractStreamParts (~line 838)
 const reasoning = extractReasoningFromDelta(delta);
 if (reasoning) {
-  this.reasoningContent += reasoning;   // ← stored, NOT reported to progress
+  this.reasoningContent += reasoning; // ← stored, NOT reported to progress
 }
 ```
 
@@ -62,7 +62,7 @@ The accumulated reasoning reaches the UI only via `flushReasoningFallback()` (~l
 ```typescript
 // src/streaming.ts — flushReasoningFallback (~line 887)
 if (this.emittedTextLength > 0 || this.emittedToolCallsCount > 0) {
-  this.reasoningContent = "";   // ← DI-DROPPED SILENTLY when text/tool present
+  this.reasoningContent = ""; // ← DI-DROPPED SILENTLY when text/tool present
   return;
 }
 // …otherwise emitted as a plain LanguageModelTextPart (not a thinking part)
@@ -82,12 +82,12 @@ Doc `23-*` (2026-06-15) concluded this was blocked on `microsoft/vscode#318211`.
 
 The `languageModelThinkingPart` proposal was added to the VS Code repo on **2026-08-06** (commit history for `src/vscode-dts/vscode.proposed.languageModelThinkingPart.d.ts`):
 
-| Date | PR | Change |
-|---|---|---|
-| 2025-08-06 | [#259939](https://github.com/microsoft/vscode/pull/259939) "chain of thought API" | Initial addition |
-| 2025-08-26 | [#263358](https://github.com/microsoft/vscode/pull/263358) | Shape update for responses API |
-| 2025-10-14 | [#265537](https://github.com/microsoft/vscode/pull/265537) | Finalize `languageModelDataPart` + tools (ThinkingPart stays proposed) |
-| 2026-06-16 | [#321391](https://github.com/microsoft/vscode/pull/321391) | Remove API version concept |
+| Date       | PR                                                                                | Change                                                                 |
+| ---------- | --------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| 2025-08-06 | [#259939](https://github.com/microsoft/vscode/pull/259939) "chain of thought API" | Initial addition                                                       |
+| 2025-08-26 | [#263358](https://github.com/microsoft/vscode/pull/263358)                        | Shape update for responses API                                         |
+| 2025-10-14 | [#265537](https://github.com/microsoft/vscode/pull/265537)                        | Finalize `languageModelDataPart` + tools (ThinkingPart stays proposed) |
+| 2026-06-16 | [#321391](https://github.com/microsoft/vscode/pull/321391)                        | Remove API version concept                                             |
 
 The doc `23-*` investigation ran against **VS Code 1.124.2** and correctly noted the class was "referenced but not defined" in our local `.d.ts`. But it conflated two separate things: (a) our local `.d.ts` being incomplete, and (b) the API being absent from VS Code. Only (a) was true; the API **is** present in the runtime.
 
@@ -101,9 +101,7 @@ Our `engines.vscode` is `^1.125.0`, well past the August 2025 ship date. `typeof
   ```typescript
   function handleThinking(text, state, progress) {
     state.accumulatedReasoning += text;
-    progress.report(
-      new vscode.LanguageModelThinkingPart(text) as unknown as vscode.LanguageModelResponsePart,
-    );
+    progress.report(new vscode.LanguageModelThinkingPart(text) as unknown as vscode.LanguageModelResponsePart);
   }
   ```
 - **`vscode.proposed.languageModelThinkingPart.d.ts`** — type augmentation copied from the VS Code repo via `npx @vscode/dts dev`. Defines the class fully.
@@ -113,7 +111,7 @@ Our `engines.vscode` is `^1.125.0`, well past the August 2025 ship date. `typeof
   ```typescript
   function isLanguageModelThinkingPart(part: unknown): part is vscode.LanguageModelThinkingPart {
     return (
-      typeof (vscode as Record<string, unknown>).LanguageModelThinkingPart === 'function' &&
+      typeof (vscode as Record<string, unknown>).LanguageModelThinkingPart === "function" &&
       part instanceof vscode.LanguageModelThinkingPart
     );
   }
@@ -132,7 +130,7 @@ The DeepSeek-v4 extension, which uses the same in-process provider API we do, ha
 Source: `src/vscode-dts/vscode.proposed.languageModelThinkingPart.d.ts` on VS Code `main` (109 lines, latest commit 2026-06-16).
 
 ```typescript
-declare module 'vscode' {
+declare module "vscode" {
   /**
    * A language model response part containing thinking/reasoning content.
    * Thinking tokens represent the model's internal reasoning process that
@@ -181,10 +179,8 @@ Wrap the emit in a capability check so the extension degrades gracefully on hypo
 
 ```typescript
 const ThinkingPartCtor = (vscode as { LanguageModelThinkingPart?: unknown }).LanguageModelThinkingPart;
-if (typeof ThinkingPartCtor === 'function') {
-  progress.report(
-    new (ThinkingPartCtor as new (v: string) => vscode.LanguageModelResponsePart2)(chunk),
-  );
+if (typeof ThinkingPartCtor === "function") {
+  progress.report(new (ThinkingPartCtor as new (v: string) => vscode.LanguageModelResponsePart2)(chunk));
 } else {
   // Fallback: keep current accumulate + flushReasoningFallback behavior
   this.reasoningContent += chunk;
@@ -212,12 +208,12 @@ Do **not** add `enabledApiProposals`. DeepSeek-v4 proves it is unnecessary for t
 
 ## Risk Assessment
 
-| Risk | Likelihood | Impact | Mitigation |
-|---|---|---|---|
-| VS Code `<1.102` user hits `undefined` constructor | Very low — our floor is `1.125.0` | Crash | Runtime guard (Step 3) |
-| Copilot Chat doesn't render thinking part in some UI mode (agent vs ask) | Low — DeepSeek-v4 works in both | Partial fix | Manual test per mode (Step 6.2) |
-| Type augmentation conflicts with future `@types/vscode` | Low — proposed API, not in stable types | Compile error | File is self-contained, can be deleted once API graduates |
-| Tool-call replication breaks | Low — callback untouched | Multi-turn regressions | Keep `onReasoningContent` wiring intact |
+| Risk                                                                     | Likelihood                              | Impact                 | Mitigation                                                |
+| ------------------------------------------------------------------------ | --------------------------------------- | ---------------------- | --------------------------------------------------------- |
+| VS Code `<1.102` user hits `undefined` constructor                       | Very low — our floor is `1.125.0`       | Crash                  | Runtime guard (Step 3)                                    |
+| Copilot Chat doesn't render thinking part in some UI mode (agent vs ask) | Low — DeepSeek-v4 works in both         | Partial fix            | Manual test per mode (Step 6.2)                           |
+| Type augmentation conflicts with future `@types/vscode`                  | Low — proposed API, not in stable types | Compile error          | File is self-contained, can be deleted once API graduates |
+| Tool-call replication breaks                                             | Low — callback untouched                | Multi-turn regressions | Keep `onReasoningContent` wiring intact                   |
 
 ---
 
@@ -250,10 +246,10 @@ Users who want reasoning **hidden entirely** can still set `stripThinkTags: "alw
 
 ### Files changed
 
-| File | Change |
-|------|--------|
-| `src/vscode.proposed.languageModelThinkingPart.d.ts` | **NEW** — type augmentation for the proposed `LanguageModelThinkingPart` class (copied from VS Code repo `src/vscode-dts/vscode.proposed.languageModelThinkingPart.d.ts`). |
-| `src/streaming.ts` | Added `thinkingPartConstructor` module-level constant (runtime guard) + `emitThinkingPart()` helper. Extended `OpenAiResponseExtractor` and `AnthropicResponseExtractor` constructors to accept `progress` + `localRequestId`. Added `handleReasoning()` method to both extractors: accumulates reasoning for tool-call replication AND streams it live via `LanguageModelThinkingPart`. Replaced all 9 `this.reasoningContent +=` sites in the extractors with `this.handleReasoning()`. Refactored both `flushReasoningFallback()` methods to early-return when the thinking part API is available (reasoning already streamed live). Updated all 4 transport call sites (`streamChatCompletions`, `streamAnthropicMessages`, `streamResponsesApi`, `streamGoogleGenerateContent`) to pass `progress` + `localRequestId` to the extractor. |
+| File                                                 | Change                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/vscode.proposed.languageModelThinkingPart.d.ts` | **NEW** — type augmentation for the proposed `LanguageModelThinkingPart` class (copied from VS Code repo `src/vscode-dts/vscode.proposed.languageModelThinkingPart.d.ts`).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| `src/streaming.ts`                                   | Added `thinkingPartConstructor` module-level constant (runtime guard) + `emitThinkingPart()` helper. Extended `OpenAiResponseExtractor` and `AnthropicResponseExtractor` constructors to accept `progress` + `localRequestId`. Added `handleReasoning()` method to both extractors: accumulates reasoning for tool-call replication AND streams it live via `LanguageModelThinkingPart`. Replaced all 9 `this.reasoningContent +=` sites in the extractors with `this.handleReasoning()`. Refactored both `flushReasoningFallback()` methods to early-return when the thinking part API is available (reasoning already streamed live). Updated all 4 transport call sites (`streamChatCompletions`, `streamAnthropicMessages`, `streamResponsesApi`, `streamGoogleGenerateContent`) to pass `progress` + `localRequestId` to the extractor. |
 
 ### What was NOT changed (by design)
 
@@ -312,6 +308,7 @@ grep -n '"vscode"' package.json
 ```
 
 External verification (web research):
+
 - VS Code commit history for `src/vscode-dts/vscode.proposed.languageModelThinkingPart.d.ts` → API added 2025-08-06.
 - `Vizards/deepseek-v4-for-copilot` `package.json` → no `enabledApiProposals`, engine `^1.116.0`.
 - `Vizards/deepseek-v4-for-copilot` `src/provider/stream.ts` lines 215–224 → working `LanguageModelThinkingPart` emit.

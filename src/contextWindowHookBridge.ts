@@ -4,12 +4,9 @@ import type { UsageSnapshot } from "./usage";
 type ContextWindowHookModule = typeof import("./contextWindowHook.js");
 
 let loadedContextWindowHookModule: ContextWindowHookModule | null = null;
-let loadingContextWindowHookModule:
-  | Promise<ContextWindowHookModule | null>
-  | undefined;
+let loadingContextWindowHookModule: Promise<ContextWindowHookModule | null> | undefined;
 
-let reportUsageImpl = (_localRequestId: string, _usage: UsageSnapshot): boolean =>
-  false;
+let reportUsageImpl = (_localRequestId: string, _usage: UsageSnapshot): boolean => false;
 let reportProgressImpl = (
   _localRequestId: string,
   progress: Progress<LanguageModelResponsePart2>,
@@ -18,14 +15,10 @@ let reportProgressImpl = (
   progress.report(part);
 };
 let clearRequestImpl = (_localRequestId: string): void => {};
-let setOutputBufferImpl = (
-  _localRequestId: string,
-  _outputBuffer: number,
-): void => {};
+let setOutputBufferImpl = (_localRequestId: string, _outputBuffer: number): void => {};
 
 function installNoopImplementations(): void {
-  reportUsageImpl = (_localRequestId: string, _usage: UsageSnapshot): boolean =>
-    false;
+  reportUsageImpl = (_localRequestId: string, _usage: UsageSnapshot): boolean => false;
   reportProgressImpl = (
     _localRequestId: string,
     progress: Progress<LanguageModelResponsePart2>,
@@ -34,10 +27,7 @@ function installNoopImplementations(): void {
     progress.report(part);
   };
   clearRequestImpl = (_localRequestId: string): void => {};
-  setOutputBufferImpl = (
-    _localRequestId: string,
-    _outputBuffer: number,
-  ): void => {};
+  setOutputBufferImpl = (_localRequestId: string, _outputBuffer: number): void => {};
 }
 
 function installHookImplementations(hookModule: ContextWindowHookModule): void {
@@ -47,9 +37,7 @@ function installHookImplementations(hookModule: ContextWindowHookModule): void {
   setOutputBufferImpl = hookModule.setContextWindowOutputBufferForRequest;
 }
 
-async function loadContextWindowHookModule(
-  logDiagnostic?: (message: string) => void,
-): Promise<ContextWindowHookModule | null> {
+async function loadContextWindowHookModule(logDiagnostic?: (message: string) => void): Promise<ContextWindowHookModule | null> {
   if (loadedContextWindowHookModule) {
     return loadedContextWindowHookModule;
   }
@@ -73,10 +61,7 @@ async function loadContextWindowHookModule(
   return hookModule;
 }
 
-export function reportUsageToContextWindowForRequest(
-  localRequestId: string,
-  usage: UsageSnapshot,
-): boolean {
+export function reportUsageToContextWindowForRequest(localRequestId: string, usage: UsageSnapshot): boolean {
   return reportUsageImpl(localRequestId, usage);
 }
 
@@ -92,16 +77,11 @@ export function clearContextWindowRequest(localRequestId: string): void {
   clearRequestImpl(localRequestId);
 }
 
-export function setContextWindowOutputBufferForRequest(
-  localRequestId: string,
-  outputBuffer: number,
-): void {
+export function setContextWindowOutputBufferForRequest(localRequestId: string, outputBuffer: number): void {
   setOutputBufferImpl(localRequestId, outputBuffer);
 }
 
-export async function initializeContextWindowHookBridge(
-  logDiagnostic?: (message: string) => void,
-): Promise<boolean> {
+export async function initializeContextWindowHookBridge(logDiagnostic?: (message: string) => void): Promise<boolean> {
   const hookModule = await loadContextWindowHookModule(logDiagnostic);
   if (!hookModule) {
     installNoopImplementations();

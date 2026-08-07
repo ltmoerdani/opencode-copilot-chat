@@ -15,10 +15,10 @@ This document covers **Phase 2** of the 2026-05-17 session: investigating why th
 
 The session phases are documented separately:
 
-| Phase | Document | Scope | Status |
-|---|---|---|---|
-| 1 — Feature | `05-20260517-thinking-mode-picker-configuration.md` | Settings, payload mapping, `configurationSchema`, per-request override | ✅ Solved |
-| 2 — Issue → Resolution | **This document (`06-*`)** | Native submenu not appearing → warm-up fix, provider fixes (Kimi tool schema, Qwen routing, stream parser), v0.1.4 release | ✅ Solved |
+| Phase                  | Document                                            | Scope                                                                                                                      | Status    |
+| ---------------------- | --------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- | --------- |
+| 1 — Feature            | `05-20260517-thinking-mode-picker-configuration.md` | Settings, payload mapping, `configurationSchema`, per-request override                                                     | ✅ Solved |
+| 2 — Issue → Resolution | **This document (`06-*`)**                          | Native submenu not appearing → warm-up fix, provider fixes (Kimi tool schema, Qwen routing, stream parser), v0.1.4 release | ✅ Solved |
 
 The original chat session happened on **2026-05-17 Asia/Jakarta** and continued into the release/test wrap-up on **2026-05-18 Asia/Jakarta**. This document is intentionally backdated to the original implementation date because the feature and verification work belong to the `0.1.4` release line.
 
@@ -45,12 +45,12 @@ OpenCode Go                         OpenCode Go / DeepSeek V4 Flash
 
 Rejected alternatives:
 
-| Alternative | Reason Rejected |
-|---|---|
-| Status bar item | Not native and visually separate from the model picker |
-| Topbar/toolbar control | Not consistent with Copilot's model picker |
-| Manual Quick Pick only | Useful as fallback, but not the requested UX |
-| Settings editor only | Too far from the chat/model selection workflow |
+| Alternative            | Reason Rejected                                        |
+| ---------------------- | ------------------------------------------------------ |
+| Status bar item        | Not native and visually separate from the model picker |
+| Topbar/toolbar control | Not consistent with Copilot's model picker             |
+| Manual Quick Pick only | Useful as fallback, but not the requested UX           |
+| Settings editor only   | Too far from the chat/model selection workflow         |
 
 ---
 
@@ -62,11 +62,11 @@ Rejected alternatives:
 
 **Confirmed evidence:**
 
-| Evidence | Meaning |
-|---|---|
-| `Off` / `Off, Auto` labels appeared beside model rows | VS Code received and read `configurationSchema` |
-| Hover panel showed model description and max context | Model rows used the normal Copilot picker hover path |
-| No radio list appeared until diagnostics ran | Metadata/actions were not warmed before the picker opened |
+| Evidence                                              | Meaning                                                   |
+| ----------------------------------------------------- | --------------------------------------------------------- |
+| `Off` / `Off, Auto` labels appeared beside model rows | VS Code received and read `configurationSchema`           |
+| Hover panel showed model description and max context  | Model rows used the normal Copilot picker hover path      |
+| No radio list appeared until diagnostics ran          | Metadata/actions were not warmed before the picker opened |
 
 **Status:** Investigated further.
 
@@ -91,13 +91,13 @@ provideLanguageModelChatInformation()
 
 **Important findings:**
 
-| Area | Finding |
-|---|---|
-| `configurationSchema` forwarding | Forwarded from extension host without the expected UBB-only check |
-| `getModelConfigurationActions()` | Creates submenu actions from enum schema properties |
-| PRU vs UBB | Built-in inline chips and "Configurable" hover sections are UBB-gated, but PRU can still use submenu actions |
-| Chevron visibility | The chevron can be hidden when hover content exists, but the panel can still include submenu actions |
-| Request value | VS Code forwards the selected radio value through `options.modelConfiguration` |
+| Area                             | Finding                                                                                                      |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `configurationSchema` forwarding | Forwarded from extension host without the expected UBB-only check                                            |
+| `getModelConfigurationActions()` | Creates submenu actions from enum schema properties                                                          |
+| PRU vs UBB                       | Built-in inline chips and "Configurable" hover sections are UBB-gated, but PRU can still use submenu actions |
+| Chevron visibility               | The chevron can be hidden when hover content exists, but the panel can still include submenu actions         |
+| Request value                    | VS Code forwards the selected radio value through `options.modelConfiguration`                               |
 
 **Status:** Source path existed, but runtime still needed proof.
 
@@ -110,8 +110,8 @@ provideLanguageModelChatInformation()
 **Discovery:** The diagnostics command called:
 
 ```ts
-vscode.lm.selectChatModels({ vendor: GO_VENDOR })
-vscode.lm.selectChatModels({ vendor: ZEN_VENDOR })
+vscode.lm.selectChatModels({ vendor: GO_VENDOR });
+vscode.lm.selectChatModels({ vendor: ZEN_VENDOR });
 ```
 
 That query forced VS Code to ask the provider for model information and populate the internal model/action cache before the picker was opened.
@@ -124,10 +124,7 @@ That query forced VS Code to ask the provider for model information and populate
 void warmModelPickerMetadata();
 
 async function warmModelPickerMetadata(): Promise<void> {
-  await Promise.allSettled([
-    vscode.lm.selectChatModels({ vendor: GO_VENDOR }),
-    vscode.lm.selectChatModels({ vendor: ZEN_VENDOR })
-  ]);
+  await Promise.allSettled([vscode.lm.selectChatModels({ vendor: GO_VENDOR }), vscode.lm.selectChatModels({ vendor: ZEN_VENDOR })]);
 }
 ```
 
@@ -141,17 +138,17 @@ async function warmModelPickerMetadata(): Promise<void> {
 
 **Fix:** Shorten descriptions to Copilot-like phrases:
 
-| Family | Option | Description |
-|---|---|---|
-| DeepSeek | `Off` | `Fastest responses` |
-| DeepSeek | `High` | `More reasoning` |
-| DeepSeek | `Max` | `Maximum reasoning` |
-| GLM / Kimi | `Off` | `Fastest responses` |
-| GLM / Kimi | `On` | `Enable thinking` |
-| Qwen | `Off` | `Fastest responses` |
-| Qwen | `Auto` | `Model decides` |
-| Qwen | `On` | `Enable thinking` |
-| Qwen budget | `Auto` | `Provider default` |
+| Family      | Option                       | Description                                     |
+| ----------- | ---------------------------- | ----------------------------------------------- |
+| DeepSeek    | `Off`                        | `Fastest responses`                             |
+| DeepSeek    | `High`                       | `More reasoning`                                |
+| DeepSeek    | `Max`                        | `Maximum reasoning`                             |
+| GLM / Kimi  | `Off`                        | `Fastest responses`                             |
+| GLM / Kimi  | `On`                         | `Enable thinking`                               |
+| Qwen        | `Off`                        | `Fastest responses`                             |
+| Qwen        | `Auto`                       | `Model decides`                                 |
+| Qwen        | `On`                         | `Enable thinking`                               |
+| Qwen budget | `Auto`                       | `Provider default`                              |
 | Qwen budget | `4K` / `16K` / `32K` / `80K` | `Small` / `Medium` / `Large` / `Maximum budget` |
 
 **Result:** The panel looked closer to GitHub Copilot's native model picker and avoided long-line overlap.
@@ -162,26 +159,26 @@ async function warmModelPickerMetadata(): Promise<void> {
 
 **Manual test scenarios were defined for:**
 
-| # | Scenario | Expected Result |
-|---|---|---|
-| 1 | Fresh reload | Submenu appears without running diagnostics |
-| 2 | Persistent selection | Selected effort persists across picker reopen/reload |
-| 3 | DeepSeek payload | `High` / `Max` become `reasoning_effort`, `Off` sends no field |
-| 4 | GLM/Kimi payload | `On` / `Off` become `thinking: { type }` |
-| 5 | Qwen payload | `Auto` + budget maps to Qwen thinking fields |
-| 6 | Scope per model | Changing one model does not globally change another model |
-| 7 | Non-thinking models | No Thinking section appears |
-| 8 | No diagnostics dependency | Submenu still appears after reload |
-| 9 | Visual regression | Text does not overlap |
-| 10 | Full VS Code restart | Submenu and persisted values survive |
+| #   | Scenario                  | Expected Result                                                |
+| --- | ------------------------- | -------------------------------------------------------------- |
+| 1   | Fresh reload              | Submenu appears without running diagnostics                    |
+| 2   | Persistent selection      | Selected effort persists across picker reopen/reload           |
+| 3   | DeepSeek payload          | `High` / `Max` become `reasoning_effort`, `Off` sends no field |
+| 4   | GLM/Kimi payload          | `On` / `Off` become `thinking: { type }`                       |
+| 5   | Qwen payload              | `Auto` + budget maps to Qwen thinking fields                   |
+| 6   | Scope per model           | Changing one model does not globally change another model      |
+| 7   | Non-thinking models       | No Thinking section appears                                    |
+| 8   | No diagnostics dependency | Submenu still appears after reload                             |
+| 9   | Visual regression         | Text does not overlap                                          |
+| 10  | Full VS Code restart      | Submenu and persisted values survive                           |
 
 **DeepSeek verification passed:**
 
-| Picker Choice | Observed `modelConfiguration` | Observed payload |
-|---|---|---|
-| `High` | `{ "reasoningEffort": "high" }` | `{ "reasoning_effort": "high" }` |
-| `Max` | `{ "reasoningEffort": "max" }` | `{ "reasoning_effort": "max" }` |
-| `Off` | `{ "reasoningEffort": "off" }` | `{}` |
+| Picker Choice | Observed `modelConfiguration`   | Observed payload                 |
+| ------------- | ------------------------------- | -------------------------------- |
+| `High`        | `{ "reasoningEffort": "high" }` | `{ "reasoning_effort": "high" }` |
+| `Max`         | `{ "reasoningEffort": "max" }`  | `{ "reasoning_effort": "max" }`  |
+| `Off`         | `{ "reasoningEffort": "off" }`  | `{}`                             |
 
 **Result:** Native UI and request override worked end-to-end for DeepSeek.
 
@@ -200,12 +197,12 @@ At path 'properties.variantOptions': conflicting keywords found after $ref expan
 
 **Fix:** Sanitize tool schemas before forwarding them:
 
-| Sanitizer Behavior | Purpose |
-|---|---|
-| Dereference local `#/...` `$ref` values | Avoid provider-side conflicting keyword expansion |
-| Remove `$schema`, `$id`, `$ref`, `$defs`, `definitions` | Keep only provider-compatible schema |
-| Preserve `type`, `properties`, `required`, `items`, `enum`, `description`, and common bounds | Maintain useful parameter validation |
-| Apply to OpenAI-style and Anthropic-style tool definitions | Keep provider behavior consistent |
+| Sanitizer Behavior                                                                           | Purpose                                           |
+| -------------------------------------------------------------------------------------------- | ------------------------------------------------- |
+| Dereference local `#/...` `$ref` values                                                      | Avoid provider-side conflicting keyword expansion |
+| Remove `$schema`, `$id`, `$ref`, `$defs`, `definitions`                                      | Keep only provider-compatible schema              |
+| Preserve `type`, `properties`, `required`, `items`, `enum`, `description`, and common bounds | Maintain useful parameter validation              |
+| Apply to OpenAI-style and Anthropic-style tool definitions                                   | Keep provider behavior consistent                 |
 
 **Result:** Kimi `On` and `Off` requests succeeded after sanitizer deployment.
 
@@ -256,10 +253,10 @@ https://opencode.ai/zen/go/v1/chat/completions
 
 **Result:** Qwen `Auto + 16K` produced text and tool calls successfully:
 
-| Test | Result |
-|---|---|
-| Qwen first request | `textChars=68`, `toolCalls=2`, request completed |
-| Qwen follow-up | `textChars=896`, `toolCalls=0`, request completed |
+| Test               | Result                                            |
+| ------------------ | ------------------------------------------------- |
+| Qwen first request | `textChars=68`, `toolCalls=2`, request completed  |
+| Qwen follow-up     | `textChars=896`, `toolCalls=0`, request completed |
 
 ---
 
@@ -269,12 +266,12 @@ https://opencode.ai/zen/go/v1/chat/completions
 
 **Action:** Consolidated all fixes back into the `0.1.4` release line:
 
-| File | Change |
-|---|---|
-| `package.json` | Version set to `0.1.4` |
-| `package-lock.json` | Root and package version set to `0.1.4` |
-| `CHANGELOG.md` | Intermediate `0.1.6` / `0.1.7` sections merged into `0.1.4` |
-| `opencode-copilot-chat-0.1.4.vsix` | Rebuilt final local VSIX |
+| File                               | Change                                                      |
+| ---------------------------------- | ----------------------------------------------------------- |
+| `package.json`                     | Version set to `0.1.4`                                      |
+| `package-lock.json`                | Root and package version set to `0.1.4`                     |
+| `CHANGELOG.md`                     | Intermediate `0.1.6` / `0.1.7` sections merged into `0.1.4` |
+| `opencode-copilot-chat-0.1.4.vsix` | Rebuilt final local VSIX                                    |
 
 **Final local build verification:**
 
@@ -296,13 +293,13 @@ code --install-extension opencode-copilot-chat-0.1.4.vsix --force
 
 ## Root Cause Summary
 
-| Issue | Root Cause | Fix |
-|---|---|---|
-| Native submenu appeared only after diagnostics | Provider model metadata/actions were not warmed before picker use | Call `vscode.lm.selectChatModels()` silently on activation |
-| Long hover-panel text | Enum descriptions were too verbose | Use short Copilot-like descriptions |
-| Kimi/Moonshot 400 | Tool schemas contained unsupported `$ref`/definition structures | Sanitize tool schemas before forwarding |
-| Qwen 401 | Qwen was routed to `/messages`, which rejected the current key path | Use `/chat/completions` for Qwen |
-| Qwen 200 but no visible output | Parser assumed the wrong stream shape | Hybrid OpenAI/Anthropic stream parser |
+| Issue                                          | Root Cause                                                          | Fix                                                        |
+| ---------------------------------------------- | ------------------------------------------------------------------- | ---------------------------------------------------------- |
+| Native submenu appeared only after diagnostics | Provider model metadata/actions were not warmed before picker use   | Call `vscode.lm.selectChatModels()` silently on activation |
+| Long hover-panel text                          | Enum descriptions were too verbose                                  | Use short Copilot-like descriptions                        |
+| Kimi/Moonshot 400                              | Tool schemas contained unsupported `$ref`/definition structures     | Sanitize tool schemas before forwarding                    |
+| Qwen 401                                       | Qwen was routed to `/messages`, which rejected the current key path | Use `/chat/completions` for Qwen                           |
+| Qwen 200 but no visible output                 | Parser assumed the wrong stream shape                               | Hybrid OpenAI/Anthropic stream parser                      |
 
 ---
 
@@ -310,30 +307,30 @@ code --install-extension opencode-copilot-chat-0.1.4.vsix --force
 
 The final `0.1.4` implementation provides:
 
-| Capability | Status |
-|---|---|
-| Native VS Code model picker radio list for thinking-capable models | ✅ Done |
-| Automatic provider metadata warm-up without diagnostics command | ✅ Done |
+| Capability                                                                | Status  |
+| ------------------------------------------------------------------------- | ------- |
+| Native VS Code model picker radio list for thinking-capable models        | ✅ Done |
+| Automatic provider metadata warm-up without diagnostics command           | ✅ Done |
 | Persisted per-model selection through VS Code model configuration storage | ✅ Done |
-| Per-request override via `options.modelConfiguration` | ✅ Done |
-| DeepSeek payload mapping | ✅ Done |
-| GLM/Kimi payload mapping | ✅ Done |
-| Qwen effort and budget mapping | ✅ Done |
-| Kimi/Moonshot tool schema compatibility | ✅ Done |
-| Qwen Go endpoint routing and stream parsing | ✅ Done |
-| Visual polish matching Copilot style more closely | ✅ Done |
+| Per-request override via `options.modelConfiguration`                     | ✅ Done |
+| DeepSeek payload mapping                                                  | ✅ Done |
+| GLM/Kimi payload mapping                                                  | ✅ Done |
+| Qwen effort and budget mapping                                            | ✅ Done |
+| Kimi/Moonshot tool schema compatibility                                   | ✅ Done |
+| Qwen Go endpoint routing and stream parsing                               | ✅ Done |
+| Visual polish matching Copilot style more closely                         | ✅ Done |
 
 ---
 
 ## Files Changed
 
-| File | Role |
-|---|---|
-| `src/extension.ts` | Native model picker schema, activation warm-up, request override handling, Thinking payload mapping, tool schema sanitizer, Qwen hybrid stream parser |
-| `src/vscode.proposed.chatProvider.d.ts` | Proposed API typing for `configurationSchema`, enum descriptions, and `modelConfiguration` |
-| `package.json` | Release version, commands, configuration contributions |
-| `package-lock.json` | Release version synchronization |
-| `CHANGELOG.md` | `0.1.4` release notes |
+| File                                    | Role                                                                                                                                                  |
+| --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/extension.ts`                      | Native model picker schema, activation warm-up, request override handling, Thinking payload mapping, tool schema sanitizer, Qwen hybrid stream parser |
+| `src/vscode.proposed.chatProvider.d.ts` | Proposed API typing for `configurationSchema`, enum descriptions, and `modelConfiguration`                                                            |
+| `package.json`                          | Release version, commands, configuration contributions                                                                                                |
+| `package-lock.json`                     | Release version synchronization                                                                                                                       |
+| `CHANGELOG.md`                          | `0.1.4` release notes                                                                                                                                 |
 
 ---
 
@@ -341,23 +338,23 @@ The final `0.1.4` implementation provides:
 
 ### Native UI
 
-| Scenario | Result |
-|---|---|
-| Fresh reload | ✅ Pass |
-| Persistent selection | ✅ Pass |
+| Scenario                  | Result  |
+| ------------------------- | ------- |
+| Fresh reload              | ✅ Pass |
+| Persistent selection      | ✅ Pass |
 | No diagnostics dependency | ✅ Pass |
-| Full VS Code restart | ✅ Pass |
-| Visual regression | ✅ Pass |
-| Scope per model | ✅ Pass |
-| Non-thinking models | ✅ Pass |
+| Full VS Code restart      | ✅ Pass |
+| Visual regression         | ✅ Pass |
+| Scope per model           | ✅ Pass |
+| Non-thinking models       | ✅ Pass |
 
 ### Provider Requests
 
-| Provider / Family | Scenario | Result |
-|---|---|---|
-| DeepSeek | `Off` / `High` / `Max` | ✅ Correct `reasoning_effort` behavior |
-| Kimi | `Off` / `On` | ✅ Works after tool schema sanitizer |
-| Qwen | `Auto + 16K` | ✅ Uses `/chat/completions`, returns parsed text |
+| Provider / Family | Scenario               | Result                                           |
+| ----------------- | ---------------------- | ------------------------------------------------ |
+| DeepSeek          | `Off` / `High` / `Max` | ✅ Correct `reasoning_effort` behavior           |
+| Kimi              | `Off` / `On`           | ✅ Works after tool schema sanitizer             |
+| Qwen              | `Auto + 16K`           | ✅ Uses `/chat/completions`, returns parsed text |
 
 ### Build and Install
 
@@ -379,14 +376,14 @@ After implementation, a response was prepared for GitHub issue `ltmoerdani/openc
 
 ## Lessons Learned
 
-| # | Lesson | Detail |
-|---|---|---|
-| 1 | Runtime verification beats source-only assumptions | VS Code source showed the path, but diagnostics revealed the missing metadata warm-up |
-| 2 | Native UI can be present without an obvious chevron | Hover content can hide the chevron while still allowing the panel to render radio actions |
-| 3 | `modelConfiguration` is the request contract | Native picker choices must be read from `options.modelConfiguration` |
-| 4 | Provider validators differ | Kimi/Moonshot requires safer tool schemas than Copilot may provide |
-| 5 | Endpoint and parser are separate concerns | Qwen needed `/chat/completions` for auth but hybrid parsing for stream compatibility |
-| 6 | Release version discipline matters | Intermediate local VSIX versions must be folded back into the intended marketplace version before release |
+| #   | Lesson                                              | Detail                                                                                                    |
+| --- | --------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| 1   | Runtime verification beats source-only assumptions  | VS Code source showed the path, but diagnostics revealed the missing metadata warm-up                     |
+| 2   | Native UI can be present without an obvious chevron | Hover content can hide the chevron while still allowing the panel to render radio actions                 |
+| 3   | `modelConfiguration` is the request contract        | Native picker choices must be read from `options.modelConfiguration`                                      |
+| 4   | Provider validators differ                          | Kimi/Moonshot requires safer tool schemas than Copilot may provide                                        |
+| 5   | Endpoint and parser are separate concerns           | Qwen needed `/chat/completions` for auth but hybrid parsing for stream compatibility                      |
+| 6   | Release version discipline matters                  | Intermediate local VSIX versions must be folded back into the intended marketplace version before release |
 
 ---
 

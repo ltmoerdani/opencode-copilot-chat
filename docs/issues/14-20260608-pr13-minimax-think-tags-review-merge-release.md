@@ -33,28 +33,28 @@ The OpenCode Go/Zen proxy passes through model output as-is. MiniMax's API choic
 
 PR #13 adds a configurable think-tag stripping pipeline:
 
-| Component | Detail |
-|-----------|--------|
-| `processThinkTagsStream()` | Streaming handler in both extractors with partial-tag buffering (`thinkOpenBuffer`) across SSE chunks |
-| `stripThinkTags()` | Synchronous non-streaming fallback that removes tags and discards inner content |
-| `shouldStripThinkTags()` / `resolveStripThinkTags()` | Config resolution: `"auto"` (only known models), `"always"` (all models), `"never"` (disabled) |
-| `KNOWN_INLINE_THINK_MODELS` | Conservative regex list — currently only `/^minimax-/i` |
-| `flushReasoningFallback()` update | Flushes unclosed `অসমীয়া` buffer at stream end |
-| `opencodego.stripThinkTags` setting | New VS Code configuration with `"auto"` default |
+| Component                                            | Detail                                                                                                |
+| ---------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `processThinkTagsStream()`                           | Streaming handler in both extractors with partial-tag buffering (`thinkOpenBuffer`) across SSE chunks |
+| `stripThinkTags()`                                   | Synchronous non-streaming fallback that removes tags and discards inner content                       |
+| `shouldStripThinkTags()` / `resolveStripThinkTags()` | Config resolution: `"auto"` (only known models), `"always"` (all models), `"never"` (disabled)        |
+| `KNOWN_INLINE_THINK_MODELS`                          | Conservative regex list — currently only `/^minimax-/i`                                               |
+| `flushReasoningFallback()` update                    | Flushes unclosed `অসমীয়া` buffer at stream end                                                       |
+| `opencodego.stripThinkTags` setting                  | New VS Code configuration with `"auto"` default                                                       |
 
 ---
 
 ## Changes
 
-| # | Change | Files | Impact |
-|---|--------|-------|--------|
-| P0 | `processThinkTagsStream()` for OpenAI extractor | `src/streaming.ts` | Strips `অসমীয়া` tags with partial-tag buffering across SSE chunks |
-| P1 | `processThinkTagsStream()` for Anthropic extractor | `src/streaming.ts` | Same logic for Anthropic SSE event types (`content_block_start`, `content_block_delta`) |
-| P2 | `stripThinkTags()` non-streaming helper | `src/streaming.ts` | Strips tags from non-streaming response bodies |
-| P3 | `KNOWN_INLINE_THINK_MODELS` + `shouldStripThinkTags()` | `src/streaming.ts` | Config-gated model detection |
-| P4 | `stripThinkTags` in `ApiSettings` | `src/extension.ts` | Reads config, passes to all 4 streaming callers |
-| P5 | `opencodego.stripThinkTags` setting | `package.json` | `"never"` / `"auto"` / `"always"` with `"auto"` default |
-| P6 | CHANGELOG entry | `CHANGELOG.md` | Unreleased section (later versioned to 0.2.2) |
+| #   | Change                                                 | Files              | Impact                                                                                  |
+| --- | ------------------------------------------------------ | ------------------ | --------------------------------------------------------------------------------------- |
+| P0  | `processThinkTagsStream()` for OpenAI extractor        | `src/streaming.ts` | Strips `অসমীয়া` tags with partial-tag buffering across SSE chunks                      |
+| P1  | `processThinkTagsStream()` for Anthropic extractor     | `src/streaming.ts` | Same logic for Anthropic SSE event types (`content_block_start`, `content_block_delta`) |
+| P2  | `stripThinkTags()` non-streaming helper                | `src/streaming.ts` | Strips tags from non-streaming response bodies                                          |
+| P3  | `KNOWN_INLINE_THINK_MODELS` + `shouldStripThinkTags()` | `src/streaming.ts` | Config-gated model detection                                                            |
+| P4  | `stripThinkTags` in `ApiSettings`                      | `src/extension.ts` | Reads config, passes to all 4 streaming callers                                         |
+| P5  | `opencodego.stripThinkTags` setting                    | `package.json`     | `"never"` / `"auto"` / `"always"` with `"auto"` default                                 |
+| P6  | CHANGELOG entry                                        | `CHANGELOG.md`     | Unreleased section (later versioned to 0.2.2)                                           |
 
 **Lines changed:** +293 / −22 across 4 files.
 
@@ -81,6 +81,7 @@ PR #13 adds a configurable think-tag stripping pipeline:
 **Action:** Fetched PR #13 details from GitHub, analyzed code changes, checked CI status.
 
 **Findings:**
+
 - CI: ✅ GitGuardian — no secrets detected
 - Compilation: ✅ TypeScript strict, 0 errors
 - Author: Wallacy (external contributor)
@@ -99,6 +100,7 @@ npm run compile    # 0 errors
 ```
 
 **Verified:**
+
 - All 4 files reviewed (`streaming.ts`, `extension.ts`, `package.json`, `CHANGELOG.md`)
 - Streaming and non-streaming code paths both covered
 - Partial-tag buffering handles edge cases

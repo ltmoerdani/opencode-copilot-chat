@@ -84,6 +84,7 @@ An empty `{}` input is legitimate for tools that take no parameters. The bug was
 ### 4. `src/test/toolCallAccumulator.test.ts` (new)
 
 `node:test` + `assert/strict` (pattern of `src/test/thinking.test.ts`):
+
 - Multi-chunk stream emits **exactly one** complete tool call only when `finish_reason` is `"tool_calls"`.
 - No premature flush on intermediate `finish_reason: null` chunks (the #93 regression).
 - `flushRemaining()` emits the complete call for gateways omitting `finish_reason` (gpt-5.6-luna case).

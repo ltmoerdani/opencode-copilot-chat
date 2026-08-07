@@ -37,6 +37,7 @@ Implemented a real-time Go subscription usage tracker that displays 5-hour rolli
 ### UX Design Decision
 
 User requested a design similar to Copilot's usage indicator:
+
 - **Status bar icon** (bottom-right) — always visible, compact text
 - **Click → Quick Pick panel** — detailed breakdown with progress bars
 
@@ -51,33 +52,33 @@ Warning threshold at >80%: `Go: 27%·83%⚠·75%`
 
 Complete usage tracking module (~500 lines):
 
-| Component | Detail |
-|-----------|--------|
-| `GO_LIMITS` | `$12` (5h rolling), `$30` (weekly Mon–Mon UTC), `$60` (monthly anchor-based) |
-| `GO_MODEL_PRICING` | 18+ models with input/output/cache_read per 1M token prices |
-| `UsageLogEntry` | Per-request: timestamp, modelId, cost, promptTokens, completionTokens, cachedTokens |
-| `estimateCost()` | Calculates USD from token counts × model pricing |
-| `GoUsageTracker` | Main class — record entries, build period summaries, persist to globalState |
-| `record()` | Captures `TransportRequestSummary` data after each Go request |
-| `getSummary()` | Returns `UsageSummary` with session/weekly/monthly periods |
-| `buildSummaryFromTracked()` | Aggregates tracked entries by time window |
-| `buildSummaryFromRows()` | Aggregates SQLite rows (optional enrichment) |
-| `formatGoUsageStatusBarText()` | Compact `Go: XX%·XX%·XX%` format |
-| `formatGoUsageTooltip()` | Multi-line tooltip with dollar amounts and reset times |
-| `buildUsageQuickPickItems()` | Quick Pick items with progress bars |
+| Component                      | Detail                                                                              |
+| ------------------------------ | ----------------------------------------------------------------------------------- |
+| `GO_LIMITS`                    | `$12` (5h rolling), `$30` (weekly Mon–Mon UTC), `$60` (monthly anchor-based)        |
+| `GO_MODEL_PRICING`             | 18+ models with input/output/cache_read per 1M token prices                         |
+| `UsageLogEntry`                | Per-request: timestamp, modelId, cost, promptTokens, completionTokens, cachedTokens |
+| `estimateCost()`               | Calculates USD from token counts × model pricing                                    |
+| `GoUsageTracker`               | Main class — record entries, build period summaries, persist to globalState         |
+| `record()`                     | Captures `TransportRequestSummary` data after each Go request                       |
+| `getSummary()`                 | Returns `UsageSummary` with session/weekly/monthly periods                          |
+| `buildSummaryFromTracked()`    | Aggregates tracked entries by time window                                           |
+| `buildSummaryFromRows()`       | Aggregates SQLite rows (optional enrichment)                                        |
+| `formatGoUsageStatusBarText()` | Compact `Go: XX%·XX%·XX%` format                                                    |
+| `formatGoUsageTooltip()`       | Multi-line tooltip with dollar amounts and reset times                              |
+| `buildUsageQuickPickItems()`   | Quick Pick items with progress bars                                                 |
 
 ### Changes to `src/extension.ts`
 
-| Change | Detail |
-|--------|--------|
-| Import `GoUsageTracker` | Plus formatting and Quick Pick helper functions |
-| Module variables | `goUsageStatusBarItem`, `goUsageTracker` |
-| `activate()` | Initialize tracker, create status bar item, register command |
+| Change                        | Detail                                                                         |
+| ----------------------------- | ------------------------------------------------------------------------------ |
+| Import `GoUsageTracker`       | Plus formatting and Quick Pick helper functions                                |
+| Module variables              | `goUsageStatusBarItem`, `goUsageTracker`                                       |
+| `activate()`                  | Initialize tracker, create status bar item, register command                   |
 | `onTransportSummary` callback | Gate on `this.definition.vendor === GO_VENDOR`, call `goUsageTracker.record()` |
-| `ensureGoUsageStatusBar()` | Creates right-aligned status bar item at priority 94 |
-| `refreshGoUsageStatusBar()` | Updates text/tooltip from tracker summary |
-| `showGoUsagePanel()` | Quick Pick with progress bars, today/yesterday, actions |
-| SQLite reader | Optional enrichment from `~/.local/share/opencode/opencode.db` |
+| `ensureGoUsageStatusBar()`    | Creates right-aligned status bar item at priority 94                           |
+| `refreshGoUsageStatusBar()`   | Updates text/tooltip from tracker summary                                      |
+| `showGoUsagePanel()`          | Quick Pick with progress bars, today/yesterday, actions                        |
+| SQLite reader                 | Optional enrichment from `~/.local/share/opencode/opencode.db`                 |
 
 ### Changes to `package.json`
 
@@ -96,11 +97,11 @@ cost = (billablePrompt × pricing.input + completionTokens × pricing.output
 
 ### Time Window Logic
 
-| Period | Window | Reset Calculation |
-|--------|--------|-------------------|
-| **Session** | Rolling 5 hours | Oldest entry timestamp + 5h |
-| **Weekly** | UTC Monday 00:00 → next UTC Monday 00:00 | Next Monday 00:00 UTC |
-| **Monthly** | Anchor-based (oldest entry date) | Next anchor date cycle |
+| Period      | Window                                   | Reset Calculation           |
+| ----------- | ---------------------------------------- | --------------------------- |
+| **Session** | Rolling 5 hours                          | Oldest entry timestamp + 5h |
+| **Weekly**  | UTC Monday 00:00 → next UTC Monday 00:00 | Next Monday 00:00 UTC       |
+| **Monthly** | Anchor-based (oldest entry date)         | Next anchor date cycle      |
 
 ### Data Persistence
 
@@ -112,12 +113,12 @@ cost = (billablePrompt × pricing.input + completionTokens × pricing.output
 
 ## Files Changed
 
-| File | Change |
-|------|--------|
-| `src/goUsageTracker.ts` | **New** — Complete usage tracking module |
-| `src/extension.ts` | Status bar, command, recording callback, Quick Pick panel |
-| `package.json` | v0.2.0, new command registration |
-| `CHANGELOG.md` | `[0.2.0]` entry |
+| File                    | Change                                                    |
+| ----------------------- | --------------------------------------------------------- |
+| `src/goUsageTracker.ts` | **New** — Complete usage tracking module                  |
+| `src/extension.ts`      | Status bar, command, recording callback, Quick Pick panel |
+| `package.json`          | v0.2.0, new command registration                          |
+| `CHANGELOG.md`          | `[0.2.0]` entry                                           |
 
 ## Verification
 
@@ -180,6 +181,7 @@ opencode.db (SQLite)
 ```
 
 When SQLite is unavailable:
+
 ```
 Tracked entries (globalState)
   → buildSummaryFromTracked() — aggregate estimated costs
@@ -195,8 +197,8 @@ Tracked entries (globalState)
 
 ### Files Changed
 
-| File | Change |
-|------|--------|
+| File                    | Change                                                                                               |
+| ----------------------- | ---------------------------------------------------------------------------------------------------- |
 | `src/goUsageTracker.ts` | `buildSqliteEnrichedSummary()` method, `sqliteAvailable` field, SQLite-first logic in `getSummary()` |
 
 ### Related

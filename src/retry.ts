@@ -116,7 +116,8 @@ const RECOVERABLE_ERROR_PATTERNS: Array<{
   // --- Reasoning effort errors ---
   // "MiniMax M2 only accepts string reasoning_effort values"
   {
-    pattern: /reasoning_effort|reasoning_effort.*(?:string|only accepts|invalid|unsupported)|(?:string|only accepts|invalid|unsupported).*reasoning_effort/i,
+    pattern:
+      /reasoning_effort|reasoning_effort.*(?:string|only accepts|invalid|unsupported)|(?:string|only accepts|invalid|unsupported).*reasoning_effort/i,
     patch: (body) => {
       const next = { ...body };
       delete next.reasoning_effort;
@@ -179,10 +180,7 @@ const RECOVERABLE_ERROR_PATTERNS: Array<{
  * @param body The original request body (will not be mutated)
  * @returns RetryPatch if recoverable, undefined otherwise
  */
-export function analyzeHttp400ForRetry(
-  errorMessage: string,
-  body: Record<string, unknown>,
-): RetryPatch | undefined {
+export function analyzeHttp400ForRetry(errorMessage: string, body: Record<string, unknown>): RetryPatch | undefined {
   for (const { pattern, patch, describe } of RECOVERABLE_ERROR_PATTERNS) {
     const match = errorMessage.match(pattern);
     if (match) {
@@ -208,16 +206,11 @@ export function analyzeHttp400ForRetry(
  *   reports it when no healthy backend is currently reachable for a model).
  * - Anything else (including 500s with unrelated bodies) is permanent.
  */
-export function isTransientServerError(
-  status: number,
-  errorDetail: string,
-): boolean {
+export function isTransientServerError(status: number, errorDetail: string): boolean {
   if (status === 502 || status === 503 || status === 504) {
     return true;
   }
-  return (
-    status >= 500 && /RouterUnavailable/i.test(compactErrorCode(errorDetail))
-  );
+  return status >= 500 && /RouterUnavailable/i.test(compactErrorCode(errorDetail));
 }
 
 function compactErrorCode(value: string): string {

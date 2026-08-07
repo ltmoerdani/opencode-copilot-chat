@@ -33,7 +33,7 @@ MiMo uses `@ai-sdk/openai-compatible`. OpenCode's transform only sends `reasonin
 
 ```typescript
 // OpenCode transform.ts
-return Object.fromEntries(WIDELY_SUPPORTED_EFFORTS.map(effort => [effort, { reasoningEffort: effort }]))
+return Object.fromEntries(WIDELY_SUPPORTED_EFFORTS.map((effort) => [effort, { reasoningEffort: effort }]));
 // reasoningBudget() for @ai-sdk/openai-compatible → returns undefined
 ```
 
@@ -53,11 +53,11 @@ POST https://opencode.ai/zen/go/v1/chat/completions
 
 Related upstream issues:
 
-| Issue | Status | Relevance |
-|-------|--------|-----------|
+| Issue                                                        | Status                  | Relevance                            |
+| ------------------------------------------------------------ | ----------------------- | ------------------------------------ |
 | [#37635](https://github.com/anomalyco/opencode/issues/37635) | 🟡 Open (MrMushrooooom) | Gateway bug — server-side fix needed |
-| [#35209](https://github.com/anomalyco/opencode/issues/35209) | 🟡 Open (StarpTech) | Extended thinking on simple prompts |
-| [#36354](https://github.com/anomalyco/opencode/issues/36354) | 🟡 Open (jlongster) | MiMo / DeepSeek tool-call errors |
+| [#35209](https://github.com/anomalyco/opencode/issues/35209) | 🟡 Open (StarpTech)     | Extended thinking on simple prompts  |
+| [#36354](https://github.com/anomalyco/opencode/issues/36354) | 🟡 Open (jlongster)     | MiMo / DeepSeek tool-call errors     |
 
 ---
 
@@ -68,7 +68,7 @@ Related upstream issues:
 Added a `budget_tokens` field alongside `reasoning_effort` to cap reasoning token generation:
 
 | Effort | `reasoning_effort` | `budget_tokens` |
-|--------|-------------------|-----------------|
+| ------ | ------------------ | --------------- |
 | low    | `"low"`            | 8 192           |
 | medium | `"medium"`         | 16 384          |
 | high   | `"high"`           | 32 768          |
@@ -97,13 +97,13 @@ When `reasoning_effort` IS present (MiMo thinking ON), `reasoning_content` is ge
 
 Without the condition check, the workaround would break all models:
 
-| Model | Go gateway? | reasoning_effort in body? | Workaround active? | Result |
-|-------|------------|--------------------------|--------------------|----|
-| MiMo thinking OFF | ✅ | ❌ | ✅ | `reasoning_content` → visible text (fix) |
-| MiMo thinking ON | ✅ | ✅ | ❌ | `reasoning_content` → thinking panel (correct) |
-| DeepSeek (any) | ✅ | ✅ | ❌ | `reasoning_content` → thinking panel (correct) |
-| GLM, Kimi, Qwen | ✅ | varies | varies | Same logic applies |
-| Any model on Zen | ❌ | n/a | ❌ | Untouched |
+| Model             | Go gateway? | reasoning_effort in body? | Workaround active? | Result                                         |
+| ----------------- | ----------- | ------------------------- | ------------------ | ---------------------------------------------- |
+| MiMo thinking OFF | ✅          | ❌                        | ✅                 | `reasoning_content` → visible text (fix)       |
+| MiMo thinking ON  | ✅          | ✅                        | ❌                 | `reasoning_content` → thinking panel (correct) |
+| DeepSeek (any)    | ✅          | ✅                        | ❌                 | `reasoning_content` → thinking panel (correct) |
+| GLM, Kimi, Qwen   | ✅          | varies                    | varies             | Same logic applies                             |
+| Any model on Zen  | ❌          | n/a                       | ❌                 | Untouched                                      |
 
 ---
 
@@ -137,9 +137,9 @@ This workaround can be removed once upstream [#37635](https://github.com/anomaly
 
 ## Files changed
 
-| File | Change |
-|------|--------|
-| `src/thinking.ts` | `buildThinkingPayload()` — `budget_tokens` per MiMo effort level |
-| `src/retry.ts` | `analyzeHttp400ForRetry()` — handler for `budget_tokens` rejection |
+| File               | Change                                                                                                                               |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `src/thinking.ts`  | `buildThinkingPayload()` — `budget_tokens` per MiMo effort level                                                                     |
+| `src/retry.ts`     | `analyzeHttp400ForRetry()` — handler for `budget_tokens` rejection                                                                   |
 | `src/streaming.ts` | `OpenAiResponseExtractor` — `treatReasoningAsContent` constructor param, `shouldSuppressThinkingEmit()`, suffix-repetition detection |
-| `src/streaming.ts` | `streamChatCompletions()` — Go gateway detection via URL + body check |
+| `src/streaming.ts` | `streamChatCompletions()` — Go gateway detection via URL + body check                                                                |

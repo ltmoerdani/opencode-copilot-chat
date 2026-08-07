@@ -46,17 +46,18 @@ When the upstream returns HTTP 400, the extension now:
 
 **Handled error patterns:**
 
-| Error Message Pattern | Action |
-|----------------------|--------|
-| `invalid thinking: only type=enabled` | Force `thinking.type: "enabled"` |
-| `invalid thinking: only type=disabled` | Remove `thinking` field |
-| `invalid thinking` (generic) | Remove `thinking` field |
-| `invalid temperature` | Remove `temperature` field |
-| `Extra inputs are not permitted, field: enable_thinking` | Remove `enable_thinking` |
-| `reasoning_effort` rejected | Remove `reasoning_effort` |
-| `Extra inputs are not permitted, field: '<field>'` | Remove the specified field |
+| Error Message Pattern                                    | Action                           |
+| -------------------------------------------------------- | -------------------------------- |
+| `invalid thinking: only type=enabled`                    | Force `thinking.type: "enabled"` |
+| `invalid thinking: only type=disabled`                   | Remove `thinking` field          |
+| `invalid thinking` (generic)                             | Remove `thinking` field          |
+| `invalid temperature`                                    | Remove `temperature` field       |
+| `Extra inputs are not permitted, field: enable_thinking` | Remove `enable_thinking`         |
+| `reasoning_effort` rejected                              | Remove `reasoning_effort`        |
+| `Extra inputs are not permitted, field: '<field>'`       | Remove the specified field       |
 
 **Key constraints:**
+
 - At most **1 retry** per request (no infinite loops)
 - Only HTTP 400 is retried (not 401, 429, 5xx)
 - Each retry is logged to the Output panel for debugging
@@ -67,6 +68,7 @@ When the upstream returns HTTP 400, the extension now:
 A standalone Node.js script that tests all models against the OpenCode API before release.
 
 **Features:**
+
 - Fetches live model list from `models.dev` (no hardcoded model list)
 - Tests each model's parameter acceptance (temperature, thinking, reasoning_effort)
 - Detects recoverable 400 errors and verifies retry patch works
@@ -93,18 +95,18 @@ npx tsx scripts/validate-models.mts --dry-run
 
 **Flags:**
 
-| Flag | Default | Description |
-|------|---------|-------------|
-| `--api-key` | `$OPENCODE_API_KEY` | API key for OpenCode |
-| `--go` | `true` | Include OpenCode Go models |
-| `--zen-free` | `true` | Include Zen free models |
-| `--zen-paid` | `false` | Include Zen paid models |
-| `--families` | all | Filter by family (gpt,claude,deepseek,kimi,glm,minimax,qwen,mimo) |
-| `--models` | all | Specific model IDs (comma-separated) |
-| `--skip-models` | none | Exclude model IDs (comma-separated) |
-| `--dry-run` | `false` | Print models without sending requests |
-| `--json` | `false` | Output as JSON |
-| `--timeout` | `30000` | Request timeout in ms |
+| Flag            | Default             | Description                                                       |
+| --------------- | ------------------- | ----------------------------------------------------------------- |
+| `--api-key`     | `$OPENCODE_API_KEY` | API key for OpenCode                                              |
+| `--go`          | `true`              | Include OpenCode Go models                                        |
+| `--zen-free`    | `true`              | Include Zen free models                                           |
+| `--zen-paid`    | `false`             | Include Zen paid models                                           |
+| `--families`    | all                 | Filter by family (gpt,claude,deepseek,kimi,glm,minimax,qwen,mimo) |
+| `--models`      | all                 | Specific model IDs (comma-separated)                              |
+| `--skip-models` | none                | Exclude model IDs (comma-separated)                               |
+| `--dry-run`     | `false`             | Print models without sending requests                             |
+| `--json`        | `false`             | Output as JSON                                                    |
+| `--timeout`     | `30000`             | Request timeout in ms                                             |
 
 **npm scripts:**
 
@@ -161,36 +163,40 @@ This means the extension re-fetches model metadata from models.dev every hour in
 
 ## Files Changed
 
-| File | Change |
-|------|--------|
-| `src/retry.ts` | **New** — `analyzeHttp400ForRetry()` function with error pattern matching |
-| `src/streaming.ts` | Modified — integrated retry logic around fetch call |
-| `src/metadata.ts` | Modified — cache TTL reduced from 6h to 1h |
-| `src/test/retry.test.ts` | **New** — 8 unit tests for retry logic |
-| `scripts/validate-models.mts` | **New** — standalone validation script |
-| `package.json` | Modified — added `validate-models` and `prepackage` scripts |
-| `tsconfig.json` | Modified — excluded `scripts/` from compilation |
+| File                          | Change                                                                    |
+| ----------------------------- | ------------------------------------------------------------------------- |
+| `src/retry.ts`                | **New** — `analyzeHttp400ForRetry()` function with error pattern matching |
+| `src/streaming.ts`            | Modified — integrated retry logic around fetch call                       |
+| `src/metadata.ts`             | Modified — cache TTL reduced from 6h to 1h                                |
+| `src/test/retry.test.ts`      | **New** — 8 unit tests for retry logic                                    |
+| `scripts/validate-models.mts` | **New** — standalone validation script                                    |
+| `package.json`                | Modified — added `validate-models` and `prepackage` scripts               |
+| `tsconfig.json`               | Modified — excluded `scripts/` from compilation                           |
 
 ---
 
 ## Test Coverage
 
 **Unit tests (`npm test`):** 40 tests passing
+
 - `src/test/retry.test.ts` — 8 tests for `analyzeHttp400ForRetry()` (pure function)
 - `src/test/thinking.test.ts` — 24 tests for thinking payloads (pure functions)
 - `src/test/metadata.test.ts` — 8 tests for metadata resolution (pure functions)
 
 **E2E tests (`npm run test-retry`):** 7 tests passing ✅ PROVEN
+
 - Mock server simulates OpenCode API behavior
 - Tests full flow: HTTP 400 → `analyzeHttp400ForRetry()` → patch body → retry → HTTP 200
 - Covers: thinking.type rejection, invalid temperature, reasoning_effort, generic extra fields
 
 **Live API validation (`npm run validate-models`):** 89/89 tests passing ✅ PROVEN
+
 - Reuses extension's exact logic (`buildThinkingPayload`, `resolveModelRouting`, `buildOpenCodeGatewayAuthHeaders`)
 - Tests ALL thinking/reasoning parameter combinations for each model
 - 18 models (13 Go + 5 Zen free) validated against live OpenCode API
 
 **Key findings from live validation:**
+
 - DeepSeek `reasoning_effort` low/medium/high/max — **all work** ✅
 - Kimi K2.7 `thinking=disabled` — handled by gateway (returns 200, not 400)
 - MiniMax M2.7 `thinking` enabled/disabled — works ✅
@@ -215,6 +221,7 @@ The retry mechanism only triggers when the upstream API returns HTTP 400. If all
 ## Why Not Just Reduce Cache TTL?
 
 Reducing the cache TTL (6h → 1h) helps detect API changes faster, but it doesn't solve the problem:
+
 - A provider can change their API between cache refreshes
 - The user would still see HTTP 400 errors until the next refresh
 - There's no guarantee models.dev updates immediately

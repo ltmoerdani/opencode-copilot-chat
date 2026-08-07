@@ -68,10 +68,7 @@ export class ToolCallAccumulator {
         continue;
       }
 
-      const index =
-        typeof toolCall.index === "number"
-          ? toolCall.index
-          : this.pending.size;
+      const index = typeof toolCall.index === "number" ? toolCall.index : this.pending.size;
       const pending = this.pending.get(index) ?? {
         id: "",
         name: "",

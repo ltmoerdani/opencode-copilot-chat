@@ -63,12 +63,12 @@ are attaching larger images than before.
 
 ### Observed behavior
 
-| Path | Worked? |
-|------|---------|
-| Top-level paste/drag small image (< 1 MB) | ✅ Yes |
-| Top-level paste/drag large image (> 2 MB) | ❌ No — `400 Upstream request failed` |
-| MCP tool result image (any size) | ✅ Yes — guarded by `MAX_TOOL_RESULT_IMAGE_BYTES` (1 MB) since PR #79 |
-| Built-in Copilot model + same image | ✅ Yes |
+| Path                                      | Worked?                                                               |
+| ----------------------------------------- | --------------------------------------------------------------------- |
+| Top-level paste/drag small image (< 1 MB) | ✅ Yes                                                                |
+| Top-level paste/drag large image (> 2 MB) | ❌ No — `400 Upstream request failed`                                 |
+| MCP tool result image (any size)          | ✅ Yes — guarded by `MAX_TOOL_RESULT_IMAGE_BYTES` (1 MB) since PR #79 |
+| Built-in Copilot model + same image       | ✅ Yes                                                                |
 
 ### Error signature
 
@@ -108,7 +108,7 @@ if (part instanceof vscode.LanguageModelDataPart && part.mimeType.startsWith("im
   const base64 = dataPartToBase64(part.data);
   imageParts.push({
     type: "image_url",
-    image_url: { url: `data:${part.mimeType};base64,${base64}` }
+    image_url: { url: `data:${part.mimeType};base64,${base64}` },
   });
   continue;
 }
@@ -126,7 +126,9 @@ PR #79 (`ec92a44`) introduced a hard cap for images nested inside
 const MAX_TOOL_RESULT_IMAGE_BYTES = 1_000_000; // 1 MB raw bytes
 
 if (resultPart.data.byteLength > MAX_TOOL_RESULT_IMAGE_BYTES) {
-  toolTextParts.push(`[Image attachment omitted: ${resultPart.data.byteLength} bytes exceeds the ${MAX_TOOL_RESULT_IMAGE_BYTES}-byte limit for tool results. ...]`);
+  toolTextParts.push(
+    `[Image attachment omitted: ${resultPart.data.byteLength} bytes exceeds the ${MAX_TOOL_RESULT_IMAGE_BYTES}-byte limit for tool results. ...]`,
+  );
   continue;
 }
 ```
@@ -135,9 +137,9 @@ But the **top-level** path — which is the more common entry point for user
 images — was overlooked. Doc `docs/features/12-20260720-mcp-tool-result-image-support.md`
 Limitations #3 explicitly acknowledged this:
 
-> *"Top-level image attachments still have no size cap. Only tool-result images
+> _"Top-level image attachments still have no size cap. Only tool-result images
 > are bounded. Consistent limit can be added in a follow-up if users hit
-> oversized pasted images."*
+> oversized pasted images."_
 
 This is that follow-up.
 
@@ -146,10 +148,10 @@ This is that follow-up.
 `git log -L 3336,3341:src/extension.ts` confirms the top-level image handler
 **never** had a size guard:
 
-| Commit | Date | Change |
-|--------|------|--------|
-| `dee9634` | Initial | First vision support — base64 encode, no size check |
-| `d0032ed` | Early | Refactor `btoa` → `dataPartToBase64` (still no size check) |
+| Commit    | Date       | Change                                                              |
+| --------- | ---------- | ------------------------------------------------------------------- |
+| `dee9634` | Initial    | First vision support — base64 encode, no size check                 |
+| `d0032ed` | Early      | Refactor `btoa` → `dataPartToBase64` (still no size check)          |
 | `ec92a44` | 2026-07-20 | Added `MAX_TOOL_RESULT_IMAGE_BYTES` — but **only** for tool results |
 
 No subsequent commit modified the top-level image branch. The bug was latent
@@ -161,11 +163,11 @@ since day one; it surfaced now because users are attaching larger images.
 
 ### Provider limits — authoritative sources
 
-| Provider | Per-image limit | Total payload | Source |
-|----------|----------------|---------------|--------|
-| **OpenAI** | (not explicit) | 512 MB, 1500 images | [developers.openai.com/api/docs/guides/images](https://developers.openai.com/api/docs/guides/images) |
-| **Anthropic** | **10 MB base64** (5 MB on Bedrock/Vertex) | 32 MB standard endpoint | [platform.claude.com/docs/en/docs/build-with-claude/vision](https://platform.claude.com/docs/en/docs/build-with-claude/vision) |
-| **OpenCode Go/Zen** | Not published | Not published | [opencode.ai/docs/zen](https://opencode.ai/docs/zen) |
+| Provider            | Per-image limit                           | Total payload           | Source                                                                                                                         |
+| ------------------- | ----------------------------------------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| **OpenAI**          | (not explicit)                            | 512 MB, 1500 images     | [developers.openai.com/api/docs/guides/images](https://developers.openai.com/api/docs/guides/images)                           |
+| **Anthropic**       | **10 MB base64** (5 MB on Bedrock/Vertex) | 32 MB standard endpoint | [platform.claude.com/docs/en/docs/build-with-claude/vision](https://platform.claude.com/docs/en/docs/build-with-claude/vision) |
+| **OpenCode Go/Zen** | Not published                             | Not published           | [opencode.ai/docs/zen](https://opencode.ai/docs/zen)                                                                           |
 
 ### Why upstream auto-resize makes large payloads pointless
 
@@ -212,16 +214,16 @@ Intentionally **more liberal** than `MAX_TOOL_RESULT_IMAGE_BYTES` (1 MB) because
 if (part instanceof vscode.LanguageModelDataPart && part.mimeType.startsWith("image/")) {
   if (part.data.byteLength > MAX_TOP_LEVEL_IMAGE_BYTES) {
     textParts.push(
-      `[Image attachment omitted: ${part.data.byteLength} bytes exceeds the `
-      + `${MAX_TOP_LEVEL_IMAGE_BYTES}-byte limit for top-level attachments. `
-      + `Resize or compress the image to under ${Math.floor(MAX_TOP_LEVEL_IMAGE_BYTES / 1_000_000)} MB and re-attach it.]`
+      `[Image attachment omitted: ${part.data.byteLength} bytes exceeds the ` +
+        `${MAX_TOP_LEVEL_IMAGE_BYTES}-byte limit for top-level attachments. ` +
+        `Resize or compress the image to under ${Math.floor(MAX_TOP_LEVEL_IMAGE_BYTES / 1_000_000)} MB and re-attach it.]`,
     );
     continue;
   }
   const base64 = dataPartToBase64(part.data);
   imageParts.push({
     type: "image_url",
-    image_url: { url: `data:${part.mimeType};base64,${base64}` }
+    image_url: { url: `data:${part.mimeType};base64,${base64}` },
   });
   continue;
 }
@@ -235,12 +237,12 @@ and the suggested fix (resize/compress).
 
 Considered and rejected:
 
-| Option | Verdict | Reason |
-|--------|---------|--------|
-| `sharp` (native binary) | ❌ Rejected | ~30 MB native dep, impractical for VS Code extension packaging, platform-specific builds |
-| `jimp` / pure-JS | ❌ Rejected | Manual impl, quality inconsistency across formats, large dep |
-| Delegate to vision proxy | ❌ Rejected | Would silently consume Copilot quota; vision proxy is for text-only models, not native-vision MiMo |
-| VS Code built-in API | ❌ Not available | `vscode.LanguageModelDataPart` is immutable; no native resize API |
+| Option                   | Verdict          | Reason                                                                                             |
+| ------------------------ | ---------------- | -------------------------------------------------------------------------------------------------- |
+| `sharp` (native binary)  | ❌ Rejected      | ~30 MB native dep, impractical for VS Code extension packaging, platform-specific builds           |
+| `jimp` / pure-JS         | ❌ Rejected      | Manual impl, quality inconsistency across formats, large dep                                       |
+| Delegate to vision proxy | ❌ Rejected      | Would silently consume Copilot quota; vision proxy is for text-only models, not native-vision MiMo |
+| VS Code built-in API     | ❌ Not available | `vscode.LanguageModelDataPart` is immutable; no native resize API                                  |
 
 Upstream models auto-resize to a patch budget anyway, so a client-side resize
 layer adds complexity with no fidelity benefit.
@@ -249,10 +251,10 @@ layer adds complexity with no fidelity benefit.
 
 ## Files Changed
 
-| File | Change | Lines |
-|------|--------|-------|
-| `src/extension.ts` | New constant `MAX_TOP_LEVEL_IMAGE_BYTES = 2_000_000` with JSDoc rationale | +23 |
-| `src/extension.ts` | Size guard in `convertMessage()` top-level image branch with actionable placeholder | +15 |
+| File               | Change                                                                              | Lines |
+| ------------------ | ----------------------------------------------------------------------------------- | ----- |
+| `src/extension.ts` | New constant `MAX_TOP_LEVEL_IMAGE_BYTES = 2_000_000` with JSDoc rationale           | +23   |
+| `src/extension.ts` | Size guard in `convertMessage()` top-level image branch with actionable placeholder | +15   |
 
 **Total:** 1 file, +38 lines, 0 deletions.
 
@@ -260,12 +262,12 @@ layer adds complexity with no fidelity benefit.
 
 ## Code Locations
 
-| Concern | Location |
-|---------|----------|
-| `MAX_TOP_LEVEL_IMAGE_BYTES` constant | `src/extension.ts` (~L582) |
-| Top-level image size guard | `src/extension.ts` `convertMessage()` (~L3359) |
-| `MAX_TOOL_RESULT_IMAGE_BYTES` (tool-result analogue) | `src/extension.ts` (~L559) |
-| Tool-result image size guard | `src/extension.ts` `convertMessage()` (~L3292) |
+| Concern                                              | Location                                       |
+| ---------------------------------------------------- | ---------------------------------------------- |
+| `MAX_TOP_LEVEL_IMAGE_BYTES` constant                 | `src/extension.ts` (~L582)                     |
+| Top-level image size guard                           | `src/extension.ts` `convertMessage()` (~L3359) |
+| `MAX_TOOL_RESULT_IMAGE_BYTES` (tool-result analogue) | `src/extension.ts` (~L559)                     |
+| Tool-result image size guard                         | `src/extension.ts` `convertMessage()` (~L3292) |
 
 ---
 

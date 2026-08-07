@@ -75,31 +75,31 @@ producing multi-MB payloads that get rejected upstream with
 The placeholder text is:
 
 > `[Image attachment omitted: N bytes exceeds the 1000000-byte limit for tool
-> results. Ask the tool to produce a smaller screenshot or save it to a file.]`
+results. Ask the tool to produce a smaller screenshot or save it to a file.]`
 
 ---
 
 ## Per-Transport Behavior
 
-| Transport | Image in tool result | Notes |
-|-----------|----------------------|-------|
-| OpenAI chat-completions | ✅ Native — array content forwarded as-is | Used by Kimi, Mimo, GLM, DeepSeek, Grok on OpenCode Go |
-| Anthropic messages | ✅ Native — `tool_result.content: AnthropicContentBlock[]` | Used by MiniMax M2.5/M2.7, Qwen3.5/3.6/3.7-max |
-| Google Gemini | ✅ Native — `functionResponse.response.parts: [{inlineData}]` | Used by Gemini family (when available on OpenCode) |
-| OpenAI Responses API | ❌ API limit — replaced with placeholder note | `function_call_output.output` is string-only |
+| Transport               | Image in tool result                                          | Notes                                                  |
+| ----------------------- | ------------------------------------------------------------- | ------------------------------------------------------ |
+| OpenAI chat-completions | ✅ Native — array content forwarded as-is                     | Used by Kimi, Mimo, GLM, DeepSeek, Grok on OpenCode Go |
+| Anthropic messages      | ✅ Native — `tool_result.content: AnthropicContentBlock[]`    | Used by MiniMax M2.5/M2.7, Qwen3.5/3.6/3.7-max         |
+| Google Gemini           | ✅ Native — `functionResponse.response.parts: [{inlineData}]` | Used by Gemini family (when available on OpenCode)     |
+| OpenAI Responses API    | ❌ API limit — replaced with placeholder note                 | `function_call_output.output` is string-only           |
 
 ---
 
 ## Code Locations
 
-| Concern | Location |
-|---------|----------|
-| `convertMessage` tool-result image branch | `src/extension.ts` `convertMessage()` |
-| `MAX_TOOL_RESULT_IMAGE_BYTES` constant | `src/extension.ts` (near `IMAGE_TOKEN_ESTIMATE`) |
-| Anthropic tool result content | `src/extension.ts` `anthropicToolResultContent()` |
-| Responses API tool output | `src/extension.ts` `responsesToolOutput()` |
-| Google tool response content | `src/extension.ts` `googleFunctionResponseContent()` |
-| Anthropic content-block type widening | `src/extension.ts` `AnthropicToolResultBlock` |
+| Concern                                   | Location                                             |
+| ----------------------------------------- | ---------------------------------------------------- |
+| `convertMessage` tool-result image branch | `src/extension.ts` `convertMessage()`                |
+| `MAX_TOOL_RESULT_IMAGE_BYTES` constant    | `src/extension.ts` (near `IMAGE_TOKEN_ESTIMATE`)     |
+| Anthropic tool result content             | `src/extension.ts` `anthropicToolResultContent()`    |
+| Responses API tool output                 | `src/extension.ts` `responsesToolOutput()`           |
+| Google tool response content              | `src/extension.ts` `googleFunctionResponseContent()` |
+| Anthropic content-block type widening     | `src/extension.ts` `AnthropicToolResultBlock`        |
 
 ---
 

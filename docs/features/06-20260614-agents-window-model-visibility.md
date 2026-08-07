@@ -21,6 +21,7 @@ OpenCode Go and OpenCode Zen models now appear in the VS Code **Agents window** 
 GitHub Issue #11 requested this feature. The full research investigation (3 options evaluated, VS Code source code analysis) is documented in [`docs/references/01-20260611-agents-window-model-visibility.md`](../references/01-20260611-agents-window-model-visibility.md).
 
 This document covers two implementation approaches:
+
 1. **PR #39** (original) — double registration with `::agent-host` suffix under the same vendor
 2. **Alternative** — separate vendor IDs for agent models (cleaner Manage panel UX)
 
@@ -30,9 +31,9 @@ This document covers two implementation approaches:
 
 VS Code has two chat surfaces with **separate** model pickers:
 
-| Surface | Session Type | Picker Filter |
-|---------|-------------|---------------|
-| **Chat View** | `local` | Shows models WITHOUT `targetChatSessionType` |
+| Surface                             | Session Type | Picker Filter                                                |
+| ----------------------------------- | ------------ | ------------------------------------------------------------ |
+| **Chat View**                       | `local`      | Shows models WITHOUT `targetChatSessionType`                 |
 | **Agents Window** (Copilot CLI tab) | `copilotcli` | Shows ONLY models WITH `targetChatSessionType: "copilotcli"` |
 
 Models registered via `vscode.lm.registerLanguageModelChatProvider()` without `targetChatSessionType` were completely absent from the Agents window. The root cause: VS Code's `filterModelsForSession()` excludes models without a matching `targetChatSessionType` whenever **any** model targets that session type (Copilot's built-in models do).
@@ -47,10 +48,10 @@ PR #39's approach registered each model **twice** under the same vendor. While `
 
 Register each model **twice** from `provideLanguageModelChatInformation()`, using `flatMap`:
 
-| Variant | `id` | `targetChatSessionType` | Visible in |
-|---------|------|--------------------------|------------|
-| General | `opencodego:deepseek-v4-flash` | _(none)_ | Chat view |
-| Agents-window | `opencodego:deepseek-v4-flash::agent-host` | `"copilotcli"` | Agents window > Copilot CLI session |
+| Variant       | `id`                                       | `targetChatSessionType` | Visible in                          |
+| ------------- | ------------------------------------------ | ----------------------- | ----------------------------------- |
+| General       | `opencodego:deepseek-v4-flash`             | _(none)_                | Chat view                           |
+| Agents-window | `opencodego:deepseek-v4-flash::agent-host` | `"copilotcli"`          | Agents window > Copilot CLI session |
 
 **Fix for #41 (PR #42):** Gated the `::agent-host` duplicate behind `opencodego.showInAgentsWindow` (default `false`). When enabled, the duplicate gets an `(Agents)` name suffix.
 
@@ -62,11 +63,11 @@ Register each model **twice** from `provideLanguageModelChatInformation()`, usin
 
 Register agent models under **dedicated vendor IDs** (`opencodego-agent`, `opencodezen-agent`) so each vendor group shows only its variant in the Manage panel.
 
-| Vendor | Models | Visible in |
-|--------|--------|------------|
-| `opencodego` | General models | Chat view, Manage panel |
-| `opencodego-agent` | Agent-only models (`targetChatSessionType: "copilotcli"`) | Agents window, Manage panel (hidden by default) |
-| `opencodezen` | General models | Chat view, Manage panel |
+| Vendor              | Models                                                    | Visible in                                      |
+| ------------------- | --------------------------------------------------------- | ----------------------------------------------- |
+| `opencodego`        | General models                                            | Chat view, Manage panel                         |
+| `opencodego-agent`  | Agent-only models (`targetChatSessionType: "copilotcli"`) | Agents window, Manage panel (hidden by default) |
+| `opencodezen`       | General models                                            | Chat view, Manage panel                         |
 | `opencodezen-agent` | Agent-only models (`targetChatSessionType: "copilotcli"`) | Agents window, Manage panel (hidden by default) |
 
 ### Why This Is Cleaner
@@ -78,10 +79,10 @@ Register agent models under **dedicated vendor IDs** (`opencodego-agent`, `openc
 
 ### Configuration
 
-| Setting | Default | Purpose |
-|---------|---------|---------|
-| `opencodego.agentsWindow` | `true` | Register agent providers at runtime |
-| `opencodego.showAgentModelsInManagePanel` | `false` | Show agent vendors in Manage panel |
+| Setting                                   | Default | Purpose                             |
+| ----------------------------------------- | ------- | ----------------------------------- |
+| `opencodego.agentsWindow`                 | `true`  | Register agent providers at runtime |
+| `opencodego.showAgentModelsInManagePanel` | `false` | Show agent vendors in Manage panel  |
 
 ### Key Implementation Details
 
@@ -120,13 +121,13 @@ Without this setting, the extension will not load in the Agents window process a
 
 ## Files Changed (Approach 2)
 
-| File | Change |
-|------|--------|
-| `package.json` | Added `agentsWindow` and `showAgentModelsInManagePanel` configs; declared agent vendors with `when` clause |
-| `src/extension.ts` | DRY provider definitions via `providerVariant()`; agent registration; BYOK key sync; `baseVendor` getter |
-| `src/providerTypes.ts` | Agent vendor constants, `AllProviderVendor` type, `resolveBaseVendor()` helper |
-| `src/routing.ts` | Uses `resolveBaseVendor()` before vendor comparisons |
-| `src/metadata.ts` | Widened `toEffectiveModelId` vendor parameter |
+| File                   | Change                                                                                                     |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `package.json`         | Added `agentsWindow` and `showAgentModelsInManagePanel` configs; declared agent vendors with `when` clause |
+| `src/extension.ts`     | DRY provider definitions via `providerVariant()`; agent registration; BYOK key sync; `baseVendor` getter   |
+| `src/providerTypes.ts` | Agent vendor constants, `AllProviderVendor` type, `resolveBaseVendor()` helper                             |
+| `src/routing.ts`       | Uses `resolveBaseVendor()` before vendor comparisons                                                       |
+| `src/metadata.ts`      | Widened `toEffectiveModelId` vendor parameter                                                              |
 
 No `enabledApiProposals` needed — `targetChatSessionType` is **stable API**.
 
@@ -153,7 +154,7 @@ return models.flatMap((modelId) => {
   const agentHostInfo: OpenCodeModel = {
     ...sharedFields,
     id: agentHostModelId,
-    targetChatSessionType: "copilotcli"
+    targetChatSessionType: "copilotcli",
   };
 
   return [info, agentHostInfo];
@@ -164,14 +165,14 @@ return models.flatMap((modelId) => {
 
 ## Verification (PR #39, 2026-06-14)
 
-| Check | Result |
-|-------|--------|
-| `tsc` compile | ✅ 0 errors |
-| VSIX build + install | ✅ Models appear in Agents window (Copilot CLI session) model picker |
-| Chat view picker | ✅ Each model shows exactly once (no `::agent-host` entries) |
-| Routing chain | ✅ `::agent-host` suffix stripped by `resolveRawModelId()`; API key + model resolution correct |
-| Marketplace safety | ✅ No `enabledApiProposals` needed |
-| `vsce ls` | ✅ Manifest valid, publishable |
+| Check                | Result                                                                                         |
+| -------------------- | ---------------------------------------------------------------------------------------------- |
+| `tsc` compile        | ✅ 0 errors                                                                                    |
+| VSIX build + install | ✅ Models appear in Agents window (Copilot CLI session) model picker                           |
+| Chat view picker     | ✅ Each model shows exactly once (no `::agent-host` entries)                                   |
+| Routing chain        | ✅ `::agent-host` suffix stripped by `resolveRawModelId()`; API key + model resolution correct |
+| Marketplace safety   | ✅ No `enabledApiProposals` needed                                                             |
+| `vsce ls`            | ✅ Manifest valid, publishable                                                                 |
 
 ### Known Minor Issue (non-blocking)
 
@@ -181,14 +182,14 @@ return models.flatMap((modelId) => {
 
 ## Timeline
 
-| # | Date | Event |
-|---|------|-------|
-| 1 | 2026-06-11 | Research session — 3 options evaluated, Option A recommended ([reference doc](../references/01-20260611-agents-window-model-visibility.md)) |
-| 2 | 2026-06-11 | Issue #11 opened with detailed VS Code source code analysis |
-| 3 | 2026-06-13 | Reference doc completed; Option A documented for implementation |
-| 4 | 2026-06-14 | PR #39 opened by @Marinski — implemented Option A with `flatMap` + `targetChatSessionType: "copilotcli"` |
-| 5 | 2026-06-14 | Local verification: compile + VSIX install + Agents window test — all PASS |
-| 6 | 2026-06-14 | PR #39 merged (merge commit) to main |
+| #   | Date       | Event                                                                                                                                       |
+| --- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | 2026-06-11 | Research session — 3 options evaluated, Option A recommended ([reference doc](../references/01-20260611-agents-window-model-visibility.md)) |
+| 2   | 2026-06-11 | Issue #11 opened with detailed VS Code source code analysis                                                                                 |
+| 3   | 2026-06-13 | Reference doc completed; Option A documented for implementation                                                                             |
+| 4   | 2026-06-14 | PR #39 opened by @Marinski — implemented Option A with `flatMap` + `targetChatSessionType: "copilotcli"`                                    |
+| 5   | 2026-06-14 | Local verification: compile + VSIX install + Agents window test — all PASS                                                                  |
+| 6   | 2026-06-14 | PR #39 merged (merge commit) to main                                                                                                        |
 
 ---
 

@@ -52,11 +52,11 @@ The key requirement was not only to advertise a model context window, but to mak
 
 There were two separate mechanisms involved:
 
-| Mechanism | Purpose | Initial State |
-|---|---|---|
-| `maxInputTokens` / `maxOutputTokens` | Lets VS Code display the model's total context capacity | Already present |
-| `provideTokenCount()` | Lets VS Code estimate tokens for prompt content | Present, but too shallow |
-| Streamed `usage` DataPart | Lets Copilot Chat update the Context Window usage widget from provider metadata | Missing |
+| Mechanism                            | Purpose                                                                         | Initial State            |
+| ------------------------------------ | ------------------------------------------------------------------------------- | ------------------------ |
+| `maxInputTokens` / `maxOutputTokens` | Lets VS Code display the model's total context capacity                         | Already present          |
+| `provideTokenCount()`                | Lets VS Code estimate tokens for prompt content                                 | Present, but too shallow |
+| Streamed `usage` DataPart            | Lets Copilot Chat update the Context Window usage widget from provider metadata | Missing                  |
 
 The first fix focused on `provideTokenCount()` and made the estimator more complete, but that alone did not update the footer. Investigation of another VS Code extension that did update the Context Window showed the missing piece:
 
@@ -69,14 +69,14 @@ Copilot Chat was not relying only on the provider token-count callback. It also 
 PR #6 added OpenCode-specific usage telemetry and an experimental context hook, but its initial usage DataPart MIME was custom:
 
 ```ts
-application/vnd.opencode.usage+json
+application / vnd.opencode.usage + json;
 ```
 
 That MIME is useful for OpenCode internal diagnostics, but it is not the native Copilot Context Window usage channel. The final integration therefore emits both:
 
-| MIME | Consumer |
-|---|---|
-| `usage` | VS Code / Copilot Chat Context Window |
+| MIME                                  | Consumer                                                       |
+| ------------------------------------- | -------------------------------------------------------------- |
+| `usage`                               | VS Code / Copilot Chat Context Window                          |
 | `application/vnd.opencode.usage+json` | OpenCode-specific diagnostics and future internal integrations |
 
 ---
@@ -213,13 +213,13 @@ git merge-tree "$(git merge-base develop origin/main)" develop origin/main
 
 **Key difference between the standalone fix and PR #6:**
 
-| Area | Standalone context fix | PR #6 initial behavior | Final integration |
-|---|---|---|---|
-| Native Copilot Context Window | Emits MIME `usage` | Custom MIME only | Emits MIME `usage` |
-| OpenCode internal telemetry | Not separate | Emits `application/vnd.opencode.usage+json` | Keeps custom MIME |
-| Chat-completions usage | Requests `stream_options.include_usage` | Not present initially | Restored |
-| Token count estimator | Counts tools/data/images | Flattened text only | Restored improved estimator |
-| Context hook | Not needed | Experimental optional hook | Kept as optional supplement |
+| Area                          | Standalone context fix                  | PR #6 initial behavior                      | Final integration           |
+| ----------------------------- | --------------------------------------- | ------------------------------------------- | --------------------------- |
+| Native Copilot Context Window | Emits MIME `usage`                      | Custom MIME only                            | Emits MIME `usage`          |
+| OpenCode internal telemetry   | Not separate                            | Emits `application/vnd.opencode.usage+json` | Keeps custom MIME           |
+| Chat-completions usage        | Requests `stream_options.include_usage` | Not present initially                       | Restored                    |
+| Token count estimator         | Counts tools/data/images                | Flattened text only                         | Restored improved estimator |
+| Context hook                  | Not needed                              | Experimental optional hook                  | Kept as optional supplement |
 
 **Status:** ✅ Strategy chosen: keep PR #6 improvements but preserve native `usage` path as source of truth for the Copilot Context Window.
 
@@ -239,13 +239,13 @@ git merge --no-ff origin/main
 
 **Resolution decisions:**
 
-| File | Resolution |
-|---|---|
-| `CHANGELOG.md` | Kept `0.1.7` release heading and merged PR #6 notes plus native Context Window fix notes |
-| `src/extension.ts` | Kept PR #6 modular structure and restored improved `provideTokenCount()` |
-| `src/chatParts.ts` | Emit both `usage` and `application/vnd.opencode.usage+json` DataParts |
-| `src/streaming.ts` | Report all usage DataParts after stream summary |
-| `package.json` / `package-lock.json` | Keep version `0.1.7` |
+| File                                 | Resolution                                                                               |
+| ------------------------------------ | ---------------------------------------------------------------------------------------- |
+| `CHANGELOG.md`                       | Kept `0.1.7` release heading and merged PR #6 notes plus native Context Window fix notes |
+| `src/extension.ts`                   | Kept PR #6 modular structure and restored improved `provideTokenCount()`                 |
+| `src/chatParts.ts`                   | Emit both `usage` and `application/vnd.opencode.usage+json` DataParts                    |
+| `src/streaming.ts`                   | Report all usage DataParts after stream summary                                          |
+| `package.json` / `package-lock.json` | Keep version `0.1.7`                                                                     |
 
 **Important implementation details:**
 
@@ -255,13 +255,13 @@ export const COPILOT_USAGE_DATA_MIME = "usage";
 ```
 
 ```ts
-stream_options: { include_usage: true }
+stream_options: {
+  include_usage: true;
+}
 ```
 
 ```ts
-return typeof text === "string"
-  ? estimateTokenCount(text)
-  : estimateChatMessageTokenCount(text);
+return typeof text === "string" ? estimateTokenCount(text) : estimateChatMessageTokenCount(text);
 ```
 
 **Verification:**
@@ -305,10 +305,10 @@ git push origin main
 
 **Final relevant commits:**
 
-| Commit | Branch | Purpose |
-|---|---|---|
+| Commit    | Branch    | Purpose                                           |
+| --------- | --------- | ------------------------------------------------- |
 | `5a36933` | `develop` | Merge `main` and preserve context usage reporting |
-| `ca8bbb6` | `main` | Merge `develop` for `0.1.7` context usage release |
+| `ca8bbb6` | `main`    | Merge `develop` for `0.1.7` context usage release |
 
 **Status:** ✅ `main` and `develop` were synchronized for `0.1.7`.
 
@@ -346,23 +346,23 @@ Keep the issue open until `0.1.7` is released and users retest. If general suppo
 
 ## Files Changed
 
-| File | Change |
-|---|---|
-| `src/chatParts.ts` | Added usage DataPart helpers and dual MIME reporting (`usage` + OpenCode custom MIME) |
-| `src/streaming.ts` | Centralized SSE/non-stream response handling, usage capture, usage DataPart emission, transport summaries |
-| `src/extension.ts` | Restored improved `provideTokenCount()`, added `stream_options.include_usage`, integrated status bar/diagnostics flow |
-| `src/usage.ts` | Added normalized usage snapshot helpers, status bar text, cache ratio, provider payload conversion |
-| `src/contextWindowHook.ts` | Added optional experimental internal context-window bridge from PR #6 |
-| `src/contextWindowHookBridge.ts` | Added request-id bridge for experimental context hook |
-| `src/openCodeAuth.ts` | Added OpenCode gateway auth header builder for messages/google/bearer routes |
-| `src/routing.ts` | Added Qwen `/messages` routing changes from PR #6 |
-| `src/metadata.ts` | Refreshed fallback metadata from PR #6 |
-| `test/openCodeAuth.test.js` | Added auth-header tests |
-| `test/usage.test.js` | Added usage helper tests |
-| `test/routing.test.js` | Updated routing tests |
-| `CHANGELOG.md` | Added `0.1.7` release notes combining PR #6 and context-window fix |
-| `README.md` | Documented usage status bar, context integration, diagnostics, and routing updates |
-| `package.json`, `package-lock.json` | Version `0.1.7` and new settings |
+| File                                | Change                                                                                                                |
+| ----------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `src/chatParts.ts`                  | Added usage DataPart helpers and dual MIME reporting (`usage` + OpenCode custom MIME)                                 |
+| `src/streaming.ts`                  | Centralized SSE/non-stream response handling, usage capture, usage DataPart emission, transport summaries             |
+| `src/extension.ts`                  | Restored improved `provideTokenCount()`, added `stream_options.include_usage`, integrated status bar/diagnostics flow |
+| `src/usage.ts`                      | Added normalized usage snapshot helpers, status bar text, cache ratio, provider payload conversion                    |
+| `src/contextWindowHook.ts`          | Added optional experimental internal context-window bridge from PR #6                                                 |
+| `src/contextWindowHookBridge.ts`    | Added request-id bridge for experimental context hook                                                                 |
+| `src/openCodeAuth.ts`               | Added OpenCode gateway auth header builder for messages/google/bearer routes                                          |
+| `src/routing.ts`                    | Added Qwen `/messages` routing changes from PR #6                                                                     |
+| `src/metadata.ts`                   | Refreshed fallback metadata from PR #6                                                                                |
+| `test/openCodeAuth.test.js`         | Added auth-header tests                                                                                               |
+| `test/usage.test.js`                | Added usage helper tests                                                                                              |
+| `test/routing.test.js`              | Updated routing tests                                                                                                 |
+| `CHANGELOG.md`                      | Added `0.1.7` release notes combining PR #6 and context-window fix                                                    |
+| `README.md`                         | Documented usage status bar, context integration, diagnostics, and routing updates                                    |
+| `package.json`, `package-lock.json` | Version `0.1.7` and new settings                                                                                      |
 
 ---
 

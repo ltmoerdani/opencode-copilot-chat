@@ -27,12 +27,12 @@ OpenCode Zen model names in the model picker were not preserving version decimal
 
 Examples observed in the picker:
 
-| Raw model ID | Incorrect label | Expected label |
-|---|---|---|
-| `claude-haiku-4-5` | `Claude Haiku 4 5` | `Claude Haiku 4.5` |
-| `claude-opus-4-1` | `Claude Opus 4 1` | `Claude Opus 4.1` |
-| `claude-opus-4-5` | `Claude Opus 4 5` | `Claude Opus 4.5` |
-| `claude-opus-4-6` | `Claude Opus 4 6` | `Claude Opus 4.6` |
+| Raw model ID        | Incorrect label     | Expected label      |
+| ------------------- | ------------------- | ------------------- |
+| `claude-haiku-4-5`  | `Claude Haiku 4 5`  | `Claude Haiku 4.5`  |
+| `claude-opus-4-1`   | `Claude Opus 4 1`   | `Claude Opus 4.1`   |
+| `claude-opus-4-5`   | `Claude Opus 4 5`   | `Claude Opus 4.5`   |
+| `claude-opus-4-6`   | `Claude Opus 4 6`   | `Claude Opus 4.6`   |
 | `claude-sonnet-4-5` | `Claude Sonnet 4 5` | `Claude Sonnet 4.5` |
 | `claude-sonnet-4-6` | `Claude Sonnet 4 6` | `Claude Sonnet 4.6` |
 
@@ -45,7 +45,7 @@ Models whose upstream IDs already contained dots, such as `gemini-3.1-pro`, `glm
 The model picker name was generated in `provideLanguageModelChatInformation()` with:
 
 ```ts
-name: `${this.definition.modelNamePrefix} / ${formatModelName(modelId)}`
+name: `${this.definition.modelNamePrefix} / ${formatModelName(modelId)}`;
 ```
 
 The old `formatModelName()` implementation split every model ID on `-`, title-cased each segment, and joined all segments with spaces:
@@ -56,10 +56,10 @@ modelId.split("-").map(...).join(" ")
 
 That behavior was acceptable for names like:
 
-| Raw model ID | Display |
-|---|---|
-| `big-pickle` | `Big Pickle` |
-| `gpt-5-codex` | `Gpt 5 Codex` |
+| Raw model ID     | Display          |
+| ---------------- | ---------------- |
+| `big-pickle`     | `Big Pickle`     |
+| `gpt-5-codex`    | `Gpt 5 Codex`    |
 | `gemini-3-flash` | `Gemini 3 Flash` |
 
 But it was wrong for version suffixes encoded as adjacent numeric segments:
@@ -101,7 +101,7 @@ rg -n "formatModelName|model name|format.*Name" .
 **Finding:** `src/extension.ts` contained the only relevant formatter:
 
 ```ts
-function formatModelName(modelId: string): string
+function formatModelName(modelId: string): string;
 ```
 
 ---
@@ -112,19 +112,19 @@ function formatModelName(modelId: string): string
 
 Behavior after the fix:
 
-| Raw model ID | Correct label |
-|---|---|
-| `claude-haiku-4-5` | `Claude Haiku 4.5` |
-| `claude-opus-4-1` | `Claude Opus 4.1` |
-| `claude-opus-4-5` | `Claude Opus 4.5` |
-| `claude-opus-4-6` | `Claude Opus 4.6` |
+| Raw model ID        | Correct label       |
+| ------------------- | ------------------- |
+| `claude-haiku-4-5`  | `Claude Haiku 4.5`  |
+| `claude-opus-4-1`   | `Claude Opus 4.1`   |
+| `claude-opus-4-5`   | `Claude Opus 4.5`   |
+| `claude-opus-4-6`   | `Claude Opus 4.6`   |
 | `claude-sonnet-4-6` | `Claude Sonnet 4.6` |
-| `gemini-3-flash` | `Gemini 3 Flash` |
-| `gemini-3.1-pro` | `Gemini 3.1 Pro` |
-| `glm-5.1` | `Glm 5.1` |
-| `gpt-5-codex` | `Gpt 5 Codex` |
-| `qwen3.5-plus` | `Qwen3.5 Plus` |
-| `ring-2.6-1t-free` | `Ring 2.6 1t Free` |
+| `gemini-3-flash`    | `Gemini 3 Flash`    |
+| `gemini-3.1-pro`    | `Gemini 3.1 Pro`    |
+| `glm-5.1`           | `Glm 5.1`           |
+| `gpt-5-codex`       | `Gpt 5 Codex`       |
+| `qwen3.5-plus`      | `Qwen3.5 Plus`      |
+| `ring-2.6-1t-free`  | `Ring 2.6 1t Free`  |
 
 **Metadata refresh:** `MODEL_METADATA_REVISION` was bumped to force VS Code to drop stale picker metadata and re-query model information.
 
@@ -216,12 +216,12 @@ Because the `code` and `cursor` CLIs were not available in the shell, the packag
 
 **Actions taken:**
 
-| File | Change |
-|---|---|
-| `package.json` | Reverted temporary `0.1.5` version back to `0.1.4` during the historical session |
-| `package-lock.json` | Reverted root package version metadata back to `0.1.4` during the historical session |
-| `CHANGELOG.md` | Moved the Zen numeric label fix into the `0.1.4` section |
-| `opencode-copilot-chat-0.1.4.vsix` | Rebuilt with the naming fix and new metadata revision |
+| File                               | Change                                                                               |
+| ---------------------------------- | ------------------------------------------------------------------------------------ |
+| `package.json`                     | Reverted temporary `0.1.5` version back to `0.1.4` during the historical session     |
+| `package-lock.json`                | Reverted root package version metadata back to `0.1.4` during the historical session |
+| `CHANGELOG.md`                     | Moved the Zen numeric label fix into the `0.1.4` section                             |
+| `opencode-copilot-chat-0.1.4.vsix` | Rebuilt with the naming fix and new metadata revision                                |
 
 **Artifact verification:**
 
@@ -278,13 +278,13 @@ The final solution for `0.1.4` was:
 
 ## Files Changed
 
-| File | Role |
-|---|---|
-| `src/extension.ts` | `formatModelName()` numeric-version preservation and model metadata revision bump |
-| `CHANGELOG.md` | `0.1.4` release notes for label fix and `reasoningEffort` classification |
-| `package.json` | Historical temporary version bump was reverted during `0.1.4` consolidation |
-| `package-lock.json` | Historical temporary version metadata was reverted during `0.1.4` consolidation |
-| `opencode-copilot-chat-0.1.4.vsix` | Historical rebuilt local package containing the `0.1.4` naming fix |
+| File                               | Role                                                                              |
+| ---------------------------------- | --------------------------------------------------------------------------------- |
+| `src/extension.ts`                 | `formatModelName()` numeric-version preservation and model metadata revision bump |
+| `CHANGELOG.md`                     | `0.1.4` release notes for label fix and `reasoningEffort` classification          |
+| `package.json`                     | Historical temporary version bump was reverted during `0.1.4` consolidation       |
+| `package-lock.json`                | Historical temporary version metadata was reverted during `0.1.4` consolidation   |
+| `opencode-copilot-chat-0.1.4.vsix` | Historical rebuilt local package containing the `0.1.4` naming fix                |
 
 ---
 
@@ -302,18 +302,18 @@ npm run compile
 
 The formatter was manually checked against affected and unaffected IDs:
 
-| Input | Output |
-|---|---|
-| `claude-haiku-4-5` | `Claude Haiku 4.5` |
-| `claude-opus-4-1` | `Claude Opus 4.1` |
-| `claude-opus-4-5` | `Claude Opus 4.5` |
+| Input               | Output              |
+| ------------------- | ------------------- |
+| `claude-haiku-4-5`  | `Claude Haiku 4.5`  |
+| `claude-opus-4-1`   | `Claude Opus 4.1`   |
+| `claude-opus-4-5`   | `Claude Opus 4.5`   |
 | `claude-sonnet-4-6` | `Claude Sonnet 4.6` |
-| `gemini-3-flash` | `Gemini 3 Flash` |
-| `gemini-3.1-pro` | `Gemini 3.1 Pro` |
-| `glm-5.1` | `Glm 5.1` |
-| `gpt-5-codex` | `Gpt 5 Codex` |
-| `qwen3.5-plus` | `Qwen3.5 Plus` |
-| `ring-2.6-1t-free` | `Ring 2.6 1t Free` |
+| `gemini-3-flash`    | `Gemini 3 Flash`    |
+| `gemini-3.1-pro`    | `Gemini 3.1 Pro`    |
+| `glm-5.1`           | `Glm 5.1`           |
+| `gpt-5-codex`       | `Gpt 5 Codex`       |
+| `qwen3.5-plus`      | `Qwen3.5 Plus`      |
+| `ring-2.6-1t-free`  | `Ring 2.6 1t Free`  |
 
 ### Package Contents
 
@@ -337,24 +337,24 @@ The fix intentionally only joins adjacent all-numeric hyphen segments.
 
 This avoids changing normal model-name structure:
 
-| Pattern | Behavior |
-|---|---|
-| `gpt-5-codex` | Keeps `5` as a standalone generation number |
-| `gemini-3-flash` | Keeps `3` as a standalone generation number |
+| Pattern            | Behavior                                                          |
+| ------------------ | ----------------------------------------------------------------- |
+| `gpt-5-codex`      | Keeps `5` as a standalone generation number                       |
+| `gemini-3-flash`   | Keeps `3` as a standalone generation number                       |
 | `ring-2.6-1t-free` | Does not attempt to rewrite mixed alphanumeric suffixes like `1t` |
-| `claude-opus-4-6` | Converts adjacent numeric suffix to `4.6` |
+| `claude-opus-4-6`  | Converts adjacent numeric suffix to `4.6`                         |
 
 ---
 
 ## Lessons Learned
 
-| # | Lesson | Detail |
-|---|---|---|
-| 1 | Source fix is not enough for VS Code extension validation | The installed VSIX must contain the new compiled JavaScript |
-| 2 | Inspect packaged artifacts directly | `unzip -p ... extension/out/extension.js` quickly proved whether VS Code was running stale code |
-| 3 | Metadata revision matters | VS Code can keep model picker metadata cached unless model identity/version fields change |
-| 4 | Temporary package versions need release-line cleanup | The local `0.1.5` validation build had to be folded back into the intended `0.1.4` release |
-| 5 | Changelog categories should reflect user impact | `reasoningEffort` is a new capability, so it belongs under `Added` |
+| #   | Lesson                                                    | Detail                                                                                          |
+| --- | --------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| 1   | Source fix is not enough for VS Code extension validation | The installed VSIX must contain the new compiled JavaScript                                     |
+| 2   | Inspect packaged artifacts directly                       | `unzip -p ... extension/out/extension.js` quickly proved whether VS Code was running stale code |
+| 3   | Metadata revision matters                                 | VS Code can keep model picker metadata cached unless model identity/version fields change       |
+| 4   | Temporary package versions need release-line cleanup      | The local `0.1.5` validation build had to be folded back into the intended `0.1.4` release      |
+| 5   | Changelog categories should reflect user impact           | `reasoningEffort` is a new capability, so it belongs under `Added`                              |
 
 ---
 

@@ -17,9 +17,9 @@ The original chat session started on **2026-05-17 Asia/Jakarta**. This document 
 
 The session had two distinct phases documented separately:
 
-| Phase | Document | Scope | Status |
-|---|---|---|---|
-| 1 — Feature | **This document (`05-*`)** | Settings, payload mapping, `configurationSchema`, per-request override | ✅ Solved |
+| Phase                  | Document                                               | Scope                                                                                                                      | Status    |
+| ---------------------- | ------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------- | --------- |
+| 1 — Feature            | **This document (`05-*`)**                             | Settings, payload mapping, `configurationSchema`, per-request override                                                     | ✅ Solved |
 | 2 — Issue → Resolution | `06-20260517-thinking-native-submenu-investigation.md` | Native submenu not appearing → warm-up fix, provider fixes (Kimi tool schema, Qwen routing, stream parser), v0.1.4 release | ✅ Solved |
 
 The feature request: OpenCode Go and Zen models should expose model-family-specific Thinking controls similar to Copilot's built-in `Thinking Effort` picker. The user wanted to configure reasoning behavior per model family instead of relying only on the diagnostic `opencodego.debugReasoning` setting.
@@ -32,15 +32,15 @@ The extension supported reasoning-related diagnostics through `opencodego.debugR
 
 The desired behavior was:
 
-| Family | Desired User Choice | Example Request Mapping |
-|---|---|---|
-| DeepSeek | `off` / `high` / `max` initially, later expanded to `low` / `medium` too | `reasoning_effort` or provider thinking fields |
-| GLM | `on` / `off` | `thinking: { type: "enabled" | "disabled" }` |
-| Kimi | `on` / `off` | `thinking: { type: "enabled" | "disabled" }` in the current gateway-compatible implementation |
-| Qwen | `auto` / `on` / `off` | `enable_thinking` or Anthropic-native `thinking` when routed through `/messages` |
-| Qwen budget | `auto` / `4096` / `16384` / `32768` / `81920` | `thinking_budget` or `budget_tokens` depending on endpoint |
-| Mimo | `off` / `low` / `medium` / `high` | `reasoning_effort` |
-| MiniMax | `off` / `on` | `thinking: { type }` |
+| Family      | Desired User Choice                                                      | Example Request Mapping                                                          |
+| ----------- | ------------------------------------------------------------------------ | -------------------------------------------------------------------------------- |
+| DeepSeek    | `off` / `high` / `max` initially, later expanded to `low` / `medium` too | `reasoning_effort` or provider thinking fields                                   |
+| GLM         | `on` / `off`                                                             | `thinking: { type: "enabled"                                                     | "disabled" }`                                                  |
+| Kimi        | `on` / `off`                                                             | `thinking: { type: "enabled"                                                     | "disabled" }` in the current gateway-compatible implementation |
+| Qwen        | `auto` / `on` / `off`                                                    | `enable_thinking` or Anthropic-native `thinking` when routed through `/messages` |
+| Qwen budget | `auto` / `4096` / `16384` / `32768` / `81920`                            | `thinking_budget` or `budget_tokens` depending on endpoint                       |
+| Mimo        | `off` / `low` / `medium` / `high`                                        | `reasoning_effort`                                                               |
+| MiniMax     | `off` / `on`                                                             | `thinking: { type }`                                                             |
 
 The user specifically wanted a UI like the Copilot built-in model picker, where the selected model can show and change `Thinking Effort` directly.
 
@@ -56,12 +56,12 @@ The user specifically wanted a UI like the Copilot built-in model picker, where 
 
 **Initial setting shape:**
 
-| Setting | Purpose |
-|---|---|
-| `opencodego.deepSeekThinking` | DeepSeek family mode |
-| `opencodego.glmThinking` | GLM family mode |
-| `opencodego.kimiThinking` | Kimi family mode |
-| `opencodego.qwenThinking` | Qwen family mode |
+| Setting                         | Purpose              |
+| ------------------------------- | -------------------- |
+| `opencodego.deepSeekThinking`   | DeepSeek family mode |
+| `opencodego.glmThinking`        | GLM family mode      |
+| `opencodego.kimiThinking`       | Kimi family mode     |
+| `opencodego.qwenThinking`       | Qwen family mode     |
 | `opencodego.qwenThinkingBudget` | Optional Qwen budget |
 
 **Result:** The extension could build model-family-specific request payload fields, but the options were still global Settings UI entries rather than model-picker controls.
@@ -87,7 +87,7 @@ npm run compile
 **Fix:** Switched the primary picker property to:
 
 ```ts
-reasoningEffort
+reasoningEffort;
 ```
 
 **Result:** VS Code began showing model configuration labels such as `Off` and `Auto` for OpenCode models. This proved that `configurationSchema` metadata was being read by the model picker.
@@ -102,24 +102,24 @@ reasoningEffort
 
 **Research performed:**
 
-| Source | Finding |
-|---|---|
-| VS Code model picker source | `configurationSchema.properties[*].group === "navigation"` is used for Thinking controls |
-| VS Code model picker source | Direct effort button is gated by usage-based billing UI mode |
-| VS Code language model service source | Per-model configuration actions exist separately from the direct effort button |
-| Copilot extension source | Built-in Copilot uses `reasoningEffort` and reads request values from `modelConfiguration` |
-| Proposed chat provider API | Current request field is `options.modelConfiguration`, not `options.modelOptions` |
+| Source                                | Finding                                                                                    |
+| ------------------------------------- | ------------------------------------------------------------------------------------------ |
+| VS Code model picker source           | `configurationSchema.properties[*].group === "navigation"` is used for Thinking controls   |
+| VS Code model picker source           | Direct effort button is gated by usage-based billing UI mode                               |
+| VS Code language model service source | Per-model configuration actions exist separately from the direct effort button             |
+| Copilot extension source              | Built-in Copilot uses `reasoningEffort` and reads request values from `modelConfiguration` |
+| Proposed chat provider API            | Current request field is `options.modelConfiguration`, not `options.modelOptions`          |
 
 **Key conclusion:** The extension must publish `configurationSchema`, but request handling must read:
 
 ```ts
-options.modelConfiguration
+options.modelConfiguration;
 ```
 
 not:
 
 ```ts
-options.modelOptions
+options.modelOptions;
 ```
 
 **Important UI limitation:** The exact built-in Copilot submenu is not guaranteed for third-party providers in every VS Code/Copilot UI mode. Some builds show labels and configuration actions instead of the same inline submenu.
@@ -152,28 +152,28 @@ The final implementation state contains the complete Thinking control stack.
 
 **Current implementation areas:**
 
-| Area | File | Detail |
-|---|---|---|
-| Proposed API typing | `src/vscode.proposed.chatProvider.d.ts` | Adds `modelConfiguration` and `configurationSchema` typings |
-| Model metadata | `src/metadata.ts` | Carries `reasoning_options` from `models.dev` |
-| Picker schema | `src/extension.ts` | Builds `configurationSchema` for Thinking and Context Size |
-| Request override | `src/extension.ts` | Applies `modelConfiguration` over global settings per request |
-| Request payload | `src/extension.ts` | Maps Thinking settings to OpenCode request fields |
-| User fallback | `src/extension.ts` | Adds `OpenCode: Set Thinking Effort…` command |
-| Settings docs | `package.json`, `README.md` | Documents family defaults and Qwen budget |
+| Area                | File                                    | Detail                                                        |
+| ------------------- | --------------------------------------- | ------------------------------------------------------------- |
+| Proposed API typing | `src/vscode.proposed.chatProvider.d.ts` | Adds `modelConfiguration` and `configurationSchema` typings   |
+| Model metadata      | `src/metadata.ts`                       | Carries `reasoning_options` from `models.dev`                 |
+| Picker schema       | `src/extension.ts`                      | Builds `configurationSchema` for Thinking and Context Size    |
+| Request override    | `src/extension.ts`                      | Applies `modelConfiguration` over global settings per request |
+| Request payload     | `src/extension.ts`                      | Maps Thinking settings to OpenCode request fields             |
+| User fallback       | `src/extension.ts`                      | Adds `OpenCode: Set Thinking Effort…` command                 |
+| Settings docs       | `package.json`, `README.md`             | Documents family defaults and Qwen budget                     |
 
 **Current code concepts:**
 
-| Function / Area | Purpose |
-|---|---|
-| `thinkingFamily()` | Classifies raw model IDs into Thinking families |
-| `modelConfigurationSchema()` | Creates VS Code per-model schema |
-| `buildFamilyThinkingSchema()` | Builds Thinking picker options from `models.dev` first, then family defaults |
-| `applyRequestThinkingOverride()` | Applies selected `modelConfiguration` over global defaults |
-| `getRequestModelConfiguration()` | Reads `modelConfiguration` and defensively falls back to older `configuration` shape |
-| `buildThinkingPayload()` | Emits the correct OpenCode API fields |
+| Function / Area                       | Purpose                                                                                  |
+| ------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `thinkingFamily()`                    | Classifies raw model IDs into Thinking families                                          |
+| `modelConfigurationSchema()`          | Creates VS Code per-model schema                                                         |
+| `buildFamilyThinkingSchema()`         | Builds Thinking picker options from `models.dev` first, then family defaults             |
+| `applyRequestThinkingOverride()`      | Applies selected `modelConfiguration` over global defaults                               |
+| `getRequestModelConfiguration()`      | Reads `modelConfiguration` and defensively falls back to older `configuration` shape     |
+| `buildThinkingPayload()`              | Emits the correct OpenCode API fields                                                    |
 | `buildQwenAnthropicThinkingPayload()` | Converts Qwen thinking into Anthropic-native format when Qwen routes through `/messages` |
-| `showThinkingEffortPicker()` | Provides a command-based fallback when the native picker UI is unavailable |
+| `showThinkingEffortPicker()`          | Provides a command-based fallback when the native picker UI is unavailable               |
 
 ---
 
@@ -194,7 +194,7 @@ Models publish a `configurationSchema` when they support Thinking or Context Siz
 For Thinking, the main navigation property is:
 
 ```ts
-reasoningEffort
+reasoningEffort;
 ```
 
 This matches VS Code/Copilot's built-in convention and allows the model picker to display current values such as `Off`, `Auto`, `High`, or `Max`.
@@ -210,7 +210,7 @@ This prevents stale assumptions when OpenCode updates a model's supported reason
 The selected per-model value is read from:
 
 ```ts
-options.modelConfiguration
+options.modelConfiguration;
 ```
 
 The extension applies only the current model family's override, leaving other families at their configured defaults.
@@ -229,15 +229,15 @@ lets users configure Thinking values even when their VS Code/Copilot UI does not
 
 The final request mapping is endpoint-aware and family-aware:
 
-| Family | Current Mapping |
-|---|---|
-| DeepSeek | `reasoning_effort` when not `off` |
-| GLM | `thinking: { type: "enabled" | "disabled" }` |
-| Kimi | `thinking: { type: "enabled" | "disabled" }` |
-| Qwen `/chat/completions` | `enable_thinking` and optional `thinking_budget` |
-| Qwen `/messages` | Anthropic-native `thinking: { type, budget_tokens? }` |
-| Mimo | `reasoning_effort` |
-| MiniMax | `thinking: { type: "enabled" | "adaptive" }` depending on route/model |
+| Family                   | Current Mapping                                       |
+| ------------------------ | ----------------------------------------------------- |
+| DeepSeek                 | `reasoning_effort` when not `off`                     |
+| GLM                      | `thinking: { type: "enabled"                          | "disabled" }`                          |
+| Kimi                     | `thinking: { type: "enabled"                          | "disabled" }`                          |
+| Qwen `/chat/completions` | `enable_thinking` and optional `thinking_budget`      |
+| Qwen `/messages`         | Anthropic-native `thinking: { type, budget_tokens? }` |
+| Mimo                     | `reasoning_effort`                                    |
+| MiniMax                  | `thinking: { type: "enabled"                          | "adaptive" }` depending on route/model |
 
 > **See also:** `06-20260517-thinking-native-submenu-investigation.md` for the native submenu resolution, tool schema sanitizer, Qwen routing fix, and v0.1.4 release details.
 
@@ -245,14 +245,14 @@ The final request mapping is endpoint-aware and family-aware:
 
 ## Files Changed
 
-| File | Role |
-|---|---|
-| `src/extension.ts` | Thinking family detection, picker schema, request override handling, payload mapping, command fallback |
-| `src/vscode.proposed.chatProvider.d.ts` | Proposed API typing for `modelConfiguration` and `configurationSchema` |
-| `src/metadata.ts` | Metadata support for `reasoning_options` |
-| `package.json` | Settings and command contribution |
-| `README.md` | Thinking settings and behavior documentation |
-| `CHANGELOG.md` | Release notes for Thinking-related fixes and corrections |
+| File                                    | Role                                                                                                   |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `src/extension.ts`                      | Thinking family detection, picker schema, request override handling, payload mapping, command fallback |
+| `src/vscode.proposed.chatProvider.d.ts` | Proposed API typing for `modelConfiguration` and `configurationSchema`                                 |
+| `src/metadata.ts`                       | Metadata support for `reasoning_options`                                                               |
+| `package.json`                          | Settings and command contribution                                                                      |
+| `README.md`                             | Thinking settings and behavior documentation                                                           |
+| `CHANGELOG.md`                          | Release notes for Thinking-related fixes and corrections                                               |
 
 ---
 
@@ -273,26 +273,26 @@ rg -n "reasoning_options|reasoningOptions" src/metadata.ts src/extension.ts
 
 Expected behavior:
 
-| Scenario | Expected Result |
-|---|---|
+| Scenario                                        | Expected Result                                                                      |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------ |
 | VS Code/Copilot supports native model config UI | Picker displays `Thinking Effort` or configuration action from `configurationSchema` |
-| Native submenu not exposed | User can use `OpenCode: Set Thinking Effort…` or family settings |
-| Qwen `off` | Avoids forced hybrid thinking and prevents empty Copilot replies |
-| Qwen `on` with budget | Sends endpoint-appropriate budget field |
-| `debugReasoning` enabled | Reasoning content is logged diagnostically, separate from user-facing Thinking mode |
+| Native submenu not exposed                      | User can use `OpenCode: Set Thinking Effort…` or family settings                     |
+| Qwen `off`                                      | Avoids forced hybrid thinking and prevents empty Copilot replies                     |
+| Qwen `on` with budget                           | Sends endpoint-appropriate budget field                                              |
+| `debugReasoning` enabled                        | Reasoning content is logged diagnostically, separate from user-facing Thinking mode  |
 
 ---
 
 ## Lessons Learned
 
-| # | Lesson | Detail |
-|---|---|---|
-| 1 | Match VS Code's property names | `reasoningEffort` is the recognized picker convention |
-| 2 | Read `modelConfiguration` | The current proposed API sends selected values through `options.modelConfiguration` |
-| 3 | Keep diagnostics separate | `debugReasoning` should not control user-facing Thinking mode |
-| 4 | Prefer live metadata | `models.dev.reasoning_options` should override family guesses when available |
-| 5 | Provide fallback controls | A command/settings path is necessary when native picker affordances are unavailable |
-| 6 | Cache busting is needed | VS Code aggressively caches model picker metadata — `MODEL_METADATA_REVISION` in `family` forces refresh |
+| #   | Lesson                         | Detail                                                                                                   |
+| --- | ------------------------------ | -------------------------------------------------------------------------------------------------------- |
+| 1   | Match VS Code's property names | `reasoningEffort` is the recognized picker convention                                                    |
+| 2   | Read `modelConfiguration`      | The current proposed API sends selected values through `options.modelConfiguration`                      |
+| 3   | Keep diagnostics separate      | `debugReasoning` should not control user-facing Thinking mode                                            |
+| 4   | Prefer live metadata           | `models.dev.reasoning_options` should override family guesses when available                             |
+| 5   | Provide fallback controls      | A command/settings path is necessary when native picker affordances are unavailable                      |
+| 6   | Cache busting is needed        | VS Code aggressively caches model picker metadata — `MODEL_METADATA_REVISION` in `family` forces refresh |
 
 ---
 
