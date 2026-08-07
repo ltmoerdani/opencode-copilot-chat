@@ -35,7 +35,7 @@ interface GoUsageTrackerInstance {
 }
 
 interface GoUsageTrackerConstructor {
-  new (context: any, log?: (msg: string) => void, costResolver?: (modelId: string) => ModelCost | undefined): GoUsageTrackerInstance;
+  new (context: unknown, log?: (msg: string) => void, costResolver?: (modelId: string) => ModelCost | undefined): GoUsageTrackerInstance;
 }
 
 let GoUsageTracker: GoUsageTrackerConstructor;
@@ -46,7 +46,7 @@ function createMockStore(initial: Record<string, unknown> = {}) {
   const _data = new Map(Object.entries(initial));
   return {
     _data,
-    get: (key: string, defaultVal: any): any => (_data.has(key) ? _data.get(key) : defaultVal),
+    get: <T>(key: string, defaultVal: T): T => (_data.has(key) ? (_data.get(key) as T) : defaultVal),
     update: (key: string, value: unknown): Promise<void> => {
       _data.set(key, value);
       return Promise.resolve();
@@ -102,8 +102,15 @@ module.exports = {
   "utf-8",
 );
 
-const originalResolveFilename = (Module as any)._resolveFilename;
-(Module as any)._resolveFilename = function (request: string, parent: any, ...args: any[]): string {
+type ModuleWithResolveFilename = {
+  _resolveFilename: (request: string, parent: unknown, ...args: unknown[]) => string;
+};
+const originalResolveFilename = (Module as unknown as ModuleWithResolveFilename)._resolveFilename;
+(Module as unknown as ModuleWithResolveFilename)._resolveFilename = function (
+  request: string,
+  parent: unknown,
+  ...args: unknown[]
+): string {
   if (request === "vscode") {
     return vscodeMockPath;
   }
@@ -306,10 +313,10 @@ describe("goUsageTracker", () => {
 
         tracker.record(makeSummary({ sessionId: "s1", promptTokens: 100, completionTokens: 50 }));
 
-        const storedEntries = context.globalState.get("opencodego.usageLog.v1", []);
+        const storedEntries = context.globalState.get("opencodego.usageLog.v1", [] as Array<{ sessionId: string }>);
         assert.equal(storedEntries.length, 1);
 
-        const storedSessions = context.globalState.get("opencodego.sessionCosts.v1", []);
+        const storedSessions = context.globalState.get("opencodego.sessionCosts.v1", [] as Array<{ sessionId: string }>);
         assert.equal(storedSessions.length, 1);
         assert.equal(storedSessions[0].sessionId, "s1");
       });

@@ -551,7 +551,6 @@ export function getContextSizeOptions(cost: ModelCost | undefined, fullContextWi
   const baseThreshold = thresholds[0];
 
   // Base/default tier
-  const hasBaseSurcharge = tiers?.some((t) => t.tier.size === baseThreshold && (t.input > cost.input || t.output > cost.output));
   options.push({
     value: baseThreshold,
     label: formatContextSize(baseThreshold),

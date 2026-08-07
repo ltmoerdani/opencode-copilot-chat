@@ -275,7 +275,7 @@ function readOpenCodeHistory(): HistoryRow[] | null {
     const rows = JSON.parse(result);
     if (!Array.isArray(rows)) return null;
     return rows.filter(
-      (r: any) =>
+      (r: Record<string, unknown>) =>
         r && typeof r === "object" && typeof r.createdMs === "number" && r.createdMs > 0 && typeof r.cost === "number" && r.cost >= 0,
     );
   } catch {
@@ -450,9 +450,9 @@ export class GoUsageTracker {
     // Enrich today/yesterday tokens+requests from tracked entries (SQLite doesn't store tokens).
     const dayMs = startOfUtcDay(nowMs);
     const yesterdayMs = dayMs - 24 * 60 * 60 * 1000;
-    let todayReq = base.today.requests;
+    const todayReq = base.today.requests;
     let todayTokens = 0;
-    let yestReq = base.yesterday.requests;
+    const yestReq = base.yesterday.requests;
     let yestTokens = 0;
     for (const e of this.entries) {
       if (e.timestamp >= dayMs) {

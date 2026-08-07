@@ -31,8 +31,15 @@ fs.writeFileSync(
   "utf-8",
 );
 
-const originalResolveFilename = (Module as any)._resolveFilename;
-(Module as any)._resolveFilename = function (request: string, parent: unknown, ...args: unknown[]): string {
+type ModuleWithResolveFilename = {
+  _resolveFilename: (request: string, parent: unknown, ...args: unknown[]) => string;
+};
+const originalResolveFilename = (Module as unknown as ModuleWithResolveFilename)._resolveFilename;
+(Module as unknown as ModuleWithResolveFilename)._resolveFilename = function (
+  request: string,
+  parent: unknown,
+  ...args: unknown[]
+): string {
   if (request === "vscode") return vscodeMockPath;
   return originalResolveFilename.call(this, request, parent, ...args);
 };

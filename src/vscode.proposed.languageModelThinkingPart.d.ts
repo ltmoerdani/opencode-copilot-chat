@@ -46,7 +46,7 @@ declare module "vscode" {
     /**
      * Optional metadata associated with this thinking sequence.
      */
-    metadata?: { readonly [key: string]: any };
+    metadata?: { readonly [key: string]: unknown };
 
     /**
      * Construct a thinking part with the given content.
@@ -54,6 +54,6 @@ declare module "vscode" {
      * @param id Optional unique identifier for this thinking sequence.
      * @param metadata Optional metadata associated with this thinking sequence.
      */
-    constructor(value: string | string[], id?: string, metadata?: { readonly [key: string]: any });
+    constructor(value: string | string[], id?: string, metadata?: { readonly [key: string]: unknown });
   }
 }

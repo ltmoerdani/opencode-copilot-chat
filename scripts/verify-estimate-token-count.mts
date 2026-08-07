@@ -374,9 +374,6 @@ for (const tc of testCases) {
   console.log(`   NEW: max_tokens =          ${newMaxTokens.toLocaleString()}`);
 
   // Determine pass/fail
-  const oldPass = oldMaxTokens >= 1000;
-  const newPass = newMaxTokens >= 4096;
-
   if (oldMaxTokens < 1000) {
     console.log(`\n   ❌ OLD: max_tokens collapsed to ${oldMaxTokens} — BUG REPRODUCED`);
   } else {

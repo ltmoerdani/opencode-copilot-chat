@@ -22,7 +22,7 @@ declare module "vscode" {
      * {@linkcode LanguageModelChatInformation.configurationSchema configurationSchema}.
      */
     readonly modelConfiguration?: {
-      readonly [key: string]: any;
+      readonly [key: string]: unknown;
     };
   }
 
@@ -121,7 +121,7 @@ declare module "vscode" {
   export type LanguageModelConfigurationSchema = {
     readonly type?: string;
     readonly properties?: {
-      readonly [key: string]: Record<string, any> & {
+      readonly [key: string]: Record<string, unknown> & {
         readonly enumItemLabels?: string[];
         readonly enumDescriptions?: string[];
         readonly group?: string;
@@ -142,11 +142,11 @@ declare module "vscode" {
 
   export interface PrepareLanguageModelChatModelOptions {
     readonly configuration?: {
-      readonly [key: string]: any;
+      readonly [key: string]: unknown;
     };
   }
 
   export interface ChatRequest {
-    readonly modelConfiguration?: { readonly [key: string]: any };
+    readonly modelConfiguration?: { readonly [key: string]: unknown };
   }
 }

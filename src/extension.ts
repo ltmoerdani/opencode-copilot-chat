@@ -5,7 +5,6 @@ import {
   MODEL_METADATA_REVISION,
   MODELS_DEV_API_URL,
   bundledModelMetadataSnapshot,
-  fallbackModelMetadata,
   getContextSizeOptionsForModel,
   hasExplicitModelLimits,
   isFreshModelMetadata,
@@ -16,8 +15,6 @@ import {
   VISION_CAPABLE_MODELS,
   type BaseModelLimits,
   type CachedModelMetadataSnapshot,
-  type ContextSizeOption,
-  type ModelCost,
   type ModelMetadataFields,
   type ModelsDevResponse,
   type ResolvedModelMetadata,
@@ -29,7 +26,6 @@ import {
   buildThinkingPayload,
   applyRequestThinkingOverride,
   thinkingFamily,
-  type ThinkingFamily,
   type ThinkingSettings,
 } from "./thinking";
 import { buildOpenCodeGatewayAuthHeaders } from "./openCodeAuth";
@@ -79,7 +75,6 @@ import {
 } from "./usageProfile";
 
 const SECRET_KEY = "opencodego.apiKey";
-const SECRET_STORE_KEY = "opencodego.activeApiKey";
 const RECENT_TRANSPORT_SUMMARY_LIMIT = 25;
 const RECENT_TRANSPORT_SUMMARY_STORAGE_PREFIX = "opencode.recentTransportSummaries";
 
@@ -486,12 +481,6 @@ interface ConvertedMessageResult {
   normalizedImageCount: number;
 }
 
-interface PendingToolCall {
-  id: string;
-  name: string;
-  arguments: string;
-}
-
 /**
  * Reasoning effort levels per model family, sourced from the upstream
  * OpenCode provider transform (anomalyco/opencode, packages/opencode/src/provider/transform.ts):
@@ -530,12 +519,6 @@ interface ModelLimits extends BaseModelLimits {
   advertisedContextWindow: number;
   advertisedMaxInputTokens: number;
   advertisedMaxOutputTokens: number;
-}
-
-interface ModelRoutingFields {
-  endpointKind: ModelEndpointKind;
-  endpointUrl: string;
-  sdkPackage?: string;
 }
 
 // Copilot surfaces combine input/output metadata differently across views.
@@ -1196,16 +1179,14 @@ function buildUsageTooltip(
   const md = new vscode.MarkdownString("", true);
   md.supportHtml = true;
   md.isTrusted = true;
-  const activeProfile = findProfile(profilesCache, activeProfileFingerprint);
-  const profileLabel = activeProfile?.label ?? "OpenCode Go";
 
   const commands = ["opencodego.setUsageTargets"];
   if (nonLegacyCount(profilesCache) > 0) {
     commands.push("opencodego.renameActiveProfile");
   }
-  (md as any).supportedCommands = commands;
+  (md as unknown as { supportedCommands: string[] }).supportedCommands = commands;
 
-  md.appendMarkdown(`<img alt="Go usage summary" src="${usageTooltipSvgDataUri(s, sessionCost, profileLabel)}" width="420">`);
+  md.appendMarkdown(`<img alt="Go usage summary" src="${usageTooltipSvgDataUri(s, sessionCost)}" width="420">`);
   md.appendMarkdown("\n\n[$(pencil) Set spent targets](command:opencodego.setUsageTargets)");
   if (nonLegacyCount(profilesCache) > 0) {
     md.appendMarkdown(" \u00B7 [$(pencil) Rename](command:opencodego.renameActiveProfile)");
@@ -1320,7 +1301,6 @@ type _UsageSummary = ReturnType<GoUsageTracker["getSummary"]>;
 function usageTooltipSvgDataUri(
   s: _UsageSummary,
   sc?: { cost: number; requests: number; promptTokens: number; completionTokens: number },
-  profileLabel?: string,
 ): string {
   const svg = buildUsageTooltipSvg(s, sc);
   return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
@@ -3965,7 +3945,7 @@ function isFreeZenModel(modelId: string): boolean {
   return modelId.endsWith("-free") || FREE_ZEN_MODEL_IDS.has(modelId);
 }
 
-function isFreeModel(modelId: string, vendor: ProviderDefinition["vendor"]): boolean {
+function isFreeModel(modelId: string): boolean {
   return FREE_ZEN_MODEL_IDS.has(modelId) || modelId.endsWith("-free");
 }
 
@@ -4019,7 +3999,7 @@ async function proxyVision(
       } else if (part instanceof vscode.LanguageModelTextPart) {
         parts.push(part);
       } else if (typeof part === "object" && part !== null && "value" in part) {
-        parts.push(new vscode.LanguageModelTextPart(String((part as any).value)));
+        parts.push(new vscode.LanguageModelTextPart(String(part.value)));
       }
     }
     if (parts.length > 0) {
@@ -4215,7 +4195,7 @@ function modelPricingFields(
   outputCost?: number;
   cacheCost?: number;
 } {
-  const free = isFreeModel(modelId, vendor);
+  const free = isFreeModel(modelId);
 
   if (free) {
     return { pricing: "Free", priceCategory: "low" };
