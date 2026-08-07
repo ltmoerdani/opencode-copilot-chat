@@ -308,18 +308,18 @@ Before sending the next request to Qwen:
 [Tool call already completed: read_file {"path":"README.md"}]
 ```
 
-2. Convert `tool_result` blocks into plain user text:
+1. Convert `tool_result` blocks into plain user text:
 
 ```text
 [Tool result for read_file README.md]
 <truncated result>
 ```
 
-3. Remove all structured `tool_use` / `tool_result` blocks from the history.
+1. Remove all structured `tool_use` / `tool_result` blocks from the history.
 
-4. Omit `tools` from the request body for this forced-synthesis turn.
+2. Omit `tools` from the request body for this forced-synthesis turn.
 
-5. Append a final user instruction:
+3. Append a final user instruction:
 
 ```text
 You have enough tool results. Do not call tools. Write the final answer or edit plan now using only the information above.
@@ -362,18 +362,18 @@ Use a new Copilot Chat thread to avoid old tool-result history.
 Read README.md and package.json, then summarize whether README is up to date. Do not inspect more than those two files.
 ```
 
-3. Expected result:
+1. Expected result:
    - At most 2-3 tool calls.
    - Final answer appears.
    - No repeated `read_file` for the same path.
 
-4. Then test a broad task:
+2. Then test a broad task:
 
 ```text
 Audit docs for stale references and propose updates. Stop after reading at most 6 files.
 ```
 
-5. Expected result:
+1. Expected result:
    - Tool calls stop near the budget.
    - Final synthesis appears.
    - No runaway loop.

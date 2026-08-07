@@ -115,7 +115,7 @@ Compiled and ran tests: 5/5 pass in 58ms.
 
 Final git history:
 
-```
+```text
 *   d3efa2f  Merge branch 'develop' into main (0.1.5 vision fixes + 0.1.6)
 |\
 | *   1a1be0a  Merge main (PR #4: 0.1.6) into develop
@@ -129,7 +129,7 @@ Final git history:
 
 **Action:** Compiled, ran tests (5/5 pass), packaged VSIX:
 
-```
+```text
 opencode-copilot-chat-0.1.6.vsix (62.41 KB, 18 files)
 ```
 

@@ -172,7 +172,7 @@ return this.buildSummaryFromTracked(nowMs, clamp);
 
 ### Data Flow
 
-```
+```text
 opencode.db (SQLite)
   → readOpenCodeHistory() — sqlite3 CLI, 5s timeout
   → buildSummaryFromRows() — aggregate costs by time window
@@ -182,7 +182,7 @@ opencode.db (SQLite)
 
 When SQLite is unavailable:
 
-```
+```text
 Tracked entries (globalState)
   → buildSummaryFromTracked() — aggregate estimated costs
   → UsageSummary { sqliteAvailable: false }

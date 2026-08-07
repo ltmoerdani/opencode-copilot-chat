@@ -2,7 +2,7 @@
 
 # 🚀 OpenCode for GitHub Copilot Chat
 
-### Use **30+ frontier AI models** (DeepSeek V4, Kimi K2.6, GLM-5.1, GPT-5.5, Claude Opus 4.7, Gemini 3.5, Grok…) in GitHub Copilot Chat — **BYOK**
+## Use **30+ frontier AI models** (DeepSeek V4, Kimi K2.6, GLM-5.1, GPT-5.5, Claude Opus 4.7, Gemini 3.5, Grok…) in GitHub Copilot Chat — **BYOK**
 
 **Bring Your Own Key (BYOK)** · OpenCode Zen (free + paid models) or Go ($10/mo subscription) · Works with native Copilot Agent Mode
 
@@ -282,11 +282,13 @@ OpenCode models appear in the VS Code **Agents window** model picker when starti
 
 1. Agent models are enabled by default (`agentsWindow: true`). No changes needed for basic usage.
 2. Add this to your VS Code `settings.json` to enable the extension in the Agents window process:
+
    ```json
    "extensions.supportAgentsWindow": {
      "ltmoerdani.opencode-copilot-chat": true
    }
    ```
+
 3. Reload the window (`Developer: Reload Window`).
 4. Open the **Agents window** → start a new session → select **Copilot CLI** as the agent type.
 5. Open the model picker — OpenCode models appear under **Local** (normal models) and **Copilot** (agent-host variants).

@@ -23,7 +23,7 @@ OpenCode Go API proxy returns HTTP 500 "Internal server error" when the JSON req
 
 **Problem:** User reported HTTP 500 errors after long chat sessions with `deepseek-v4-pro`:
 
-```
+```text
 payloadBytes=393980: Internal server error
 ```
 
@@ -107,7 +107,7 @@ npm run compile   # clean build
 
 **Final commit on develop:**
 
-```
+```text
 * 64be1ad feat: gzip compression + message trimming fallback for proxy payload limit
 *   80c635b Merge branch 'main' into develop
 |\

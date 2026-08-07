@@ -19,7 +19,7 @@ Full review and community feedback for contributor PR #21 by Wallacy Freitas. Th
 
 Several models have deprecated the `temperature` parameter. When the extension sends it, the API returns HTTP 400:
 
-```
+```text
 Sorry, your request failed. Please try again.
 Reason: OpenCode Zen API request failed (400) model=claude-opus-4-8
 {"message":"temperature is deprecated for this model."}

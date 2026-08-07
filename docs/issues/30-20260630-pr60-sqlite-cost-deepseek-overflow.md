@@ -46,7 +46,7 @@ The `modelLimits()` function calculated `apiMaxOutputTokens = Math.min(maxOutput
 
 The `[sse-stats]` line was logged unconditionally after every streamed response:
 
-```
+```text
 [sse-stats] totalBytes=12345 totalEvents=42 bufferTailLen=0
 ```
 

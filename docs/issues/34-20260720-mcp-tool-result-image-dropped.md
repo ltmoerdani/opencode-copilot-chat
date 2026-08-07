@@ -235,7 +235,7 @@ After the core fix was in place, manual testing with `chrome-devtools-mcp` on
 `mimo-v2.5` produced a series of `400 Bad Request` errors from the OpenCode Go
 gateway. Inspecting the Output channel revealed:
 
-```
+```text
 [request] url=https://opencode.ai/zen/go/v1/chat/completions payloadBytes=4665383
 [http-error-body] {"error":{"message":"Error from provider (Console Go): Upstream
    request failed","type":"invalid_request_error","code":"invalid_request_error"}}
@@ -243,7 +243,7 @@ gateway. Inspecting the Output channel revealed:
 
 Timeline (each turn re-sends the entire conversation history):
 
-```
+```text
 02:58:03  payloadBytes=1356        messages=1
 02:58:41  payloadBytes=144169      messages=3   (first screenshot)
 02:59:17  payloadBytes=189950      messages=7   (loop screenshots accumulate)

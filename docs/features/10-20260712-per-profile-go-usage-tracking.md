@@ -25,7 +25,7 @@ Profile-based multi-account tracking. Each API key gets a named profile ("Profil
 
 ### Architecture
 
-```
+```text
 ┌─────────────────────────────────────────────────┐
 │  VS Code Manage Language Models                  │
 │  ┌──────────┐  ┌──────────┐                     │

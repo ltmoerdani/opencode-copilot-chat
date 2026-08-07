@@ -41,7 +41,7 @@ return Object.fromEntries(WIDELY_SUPPORTED_EFFORTS.map((effort) => [effort, { re
 
 Confirmed via direct API test on the Go gateway:
 
-```
+```text
 POST https://opencode.ai/zen/go/v1/chat/completions
 → All streaming chunks use `reasoning_content` for ALL output
 → Final chunk has `content: "answer"` (only answer, not CoT)
@@ -111,7 +111,7 @@ Without the condition check, the workaround would break all models:
 
 The extension logs diagnostic info to the "OpenCode" output channel:
 
-```
+```text
 [go-gw] model=mimo-v2.5 hasReasoningEffort=false treatReasoningAsContent=true
 [go-gw] model=deepseek-v4-pro hasReasoningEffort=true treatReasoningAsContent=false
 [mimo] reasoning loop: suffix repeated 6x. Suppressing thinking parts.

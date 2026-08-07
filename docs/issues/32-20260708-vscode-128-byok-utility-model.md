@@ -25,7 +25,7 @@
 
 After updating VS Code to **1.128.0** (released July 8, 2026), any user with a BYOK extension as the main chat model sees this error in the chat view:
 
-```
+```text
 No utility model is configured for 'copilot-utility-small' while the
 selected main agent model is BYOK.
 ```

@@ -90,7 +90,7 @@ Before this fix, a single code path treated all GLM models identically. The sett
 
 **Behavioral mapping:**
 
-```
+```text
 GLM 5.2 + glm="high"  → { reasoning_effort: "high" }
 GLM 5.2 + glm="max"   → { reasoning_effort: "max" }
 GLM 5.2 + glm="off"   → { thinking: { type: "disabled" } }

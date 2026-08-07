@@ -21,7 +21,7 @@ When a user has a large conversation that approaches the model's context window 
 
 From the Go usage tracker diagnostics:
 
-```
+```text
 model: deepseek-v4-flash
 prompt: 754,773  completion: 1  cached: 754,752
 finishReason: length
@@ -56,7 +56,7 @@ The regex `[^\sA-Za-z0-9_]` matches every structural JSON character individually
 
 ### How it causes `max_tokens: 1`
 
-```
+```text
 estimateTokenCount(JSON.stringify(apiMessages)) → ~3.5M (for 754K token conversation)
                           ↓
 promptReserve = 3,500,000 + 64 = 3,500,064
@@ -117,7 +117,7 @@ This ensures the model always has at least 4K tokens of output budget, even if t
 
 ## Verification
 
-```
+```text
 Issue #83 scenario (754K prompt, 1M context, deepseek-v4-flash):
 
   OLD: words * 1.15 = 1,298,529 (1.72×) → safeOutputBudget = 1 → ❌

@@ -107,7 +107,7 @@ Both paths now use the same `estimateCost()` function, eliminating drift.
 
 Credits flow through four layers, so the usage data part emitted at the end of each response includes the credit total:
 
-```
+```text
 estimateCost() → cost × 100 → summary.copilotCredits
                   ↓
          TransportRequestSummary.copilotCredits
@@ -125,7 +125,7 @@ estimateCost() → cost × 100 → summary.copilotCredits
 
 In `streaming.ts`, `onTransportSummary` is now called **before** the usage `DataPart` array is built. This lets callers (like `extension.ts`) mutate the summary (e.g., add `copilotCredits`) so the enriched value is included in the emitted data parts. Previously the callback ran after data parts were already constructed.
 
-```
+```text
 ┌─────────────────────────────────────────┐
 │  streamOpenCodeResponse()               │
 │  1. Build summary                       │

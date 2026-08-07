@@ -132,6 +132,7 @@ npm run compile
 1. Merged PR #1 via GitHub → creates merge commit `bb10020` on `main`
 2. Pulled `main` locally to sync
 3. Merged `main` into `develop` with `--no-ff`:
+
    ```bash
    git checkout develop
    git merge --no-ff main -m "Merge main (PR #1: add opencodego.freeOnly) into develop"
@@ -141,7 +142,7 @@ npm run compile
 
 **Git History (Final State):**
 
-```
+```text
 *   679c224 (develop) Merge main (PR #1: add opencodego.freeOnly) into develop
 |\
 | *   bb10020 (origin/main, main) Merge pull request #1 from Wallacy/feat/zen-freeOnly-config

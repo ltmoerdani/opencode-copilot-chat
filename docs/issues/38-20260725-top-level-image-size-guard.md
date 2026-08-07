@@ -42,7 +42,7 @@ When a user pasted or dragged a large image (4K screenshot, high-res phone photo
 into Copilot Chat while using a vision-capable OpenCode model (e.g. `mimo-v2.5`),
 the request failed with:
 
-```
+```text
 OpenCode Go API request failed (400) model=mimo-v2.5 payloadBytes=3182845:
 Error from provider (Console Go): Upstream request failed
 ```
@@ -72,7 +72,7 @@ are attaching larger images than before.
 
 ### Error signature
 
-```
+```text
 Client Request Id: 8f70e12c-e1d9-46df-a1de-33b74a3962e5
 Reason: OpenCode Go API request failed (400) model=mimo-v2.5 payloadBytes=3182845:
 Error from provider (Console Go): Upstream request failed

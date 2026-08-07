@@ -152,6 +152,7 @@ const pricing = externalCost ?? liveCostResolver?.(modelId) ?? GO_MODEL_PRICING[
 - `showUsageWebview()` now opens the panel with `enableScripts: false`. The panel is display-only (SVG render); message handlers and button scripts removed.
 - Status bar item no longer has a `command` — click does nothing. Usage details are visible via hover tooltip only.
 - Tooltip (`buildUsageTooltip`) sets `md.isTrusted = true` and appends a command link:
+
   ```ts
   md.appendMarkdown("\n\n[$(pencil) Set spent targets](command:opencodego.setUsageTargets)");
   ```

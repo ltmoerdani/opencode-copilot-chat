@@ -29,7 +29,7 @@ grep -r "ClassName" src/
 
 ### Naming Format
 
-```
+```text
 [seq]-[YYYYMMDD]-[topic-description].md
 ```
 
@@ -58,7 +58,7 @@ grep -r "ClassName" src/
 
 ### Common Tags
 
-```
+```text
 #streaming #routing #models #provider #usage #byok #vscode #thinking #tool-calling #security
 ```
 
@@ -115,7 +115,7 @@ Configure via VS Code Settings > Extensions > OpenCode Copilot Chat
 
 ## 📂 Folder Structure
 
-```
+```text
 /docs/
 ├── documentation-standards.md    ← Master reference (this file)
 ├── changelog-guide.md            ← Changelog writing guide
@@ -149,7 +149,7 @@ Create separate documents during research/analysis/implementation → **OK**
 
 ### Consolidation Phase
 
-```
+```text
 User: "consolidate, make it compact"
 ├── Read all related documents
 ├── Write 1 main document

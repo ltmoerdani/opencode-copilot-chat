@@ -25,7 +25,7 @@ PR #39 introduced Agents Window support by registering each model twice (general
 
 Each model appeared as two entries in the VS Code Manage Language Models UI:
 
-```
+```text
 opencodego:qwen3.7-max::session-2026-05-21-b
 opencodego:qwen3.7-max::session-2026-05-21-b::agent-host
 ```

@@ -24,7 +24,7 @@ the native multimodal format of each supported transport.
 
 ## Architecture
 
-```
+```text
 MCP tool returns image
   (chrome-devtools-mcp screenshot, etc.)
   ↓

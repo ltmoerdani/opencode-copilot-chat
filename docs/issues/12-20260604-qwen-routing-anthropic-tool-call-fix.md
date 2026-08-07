@@ -76,7 +76,7 @@ This meant tool calls were silently dropped, and usage metadata (Anthropic `inpu
 
 **Problem:** User reported after updating to v0.1.9:
 
-```
+```text
 OpenCode Go API request failed (401) model=qwen3.7-max payloadBytes=97216:
 Model qwen3.7-max is not supported for format oa-compat
 ```

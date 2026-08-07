@@ -10,7 +10,7 @@
 
 Requests to `gpt-5.6-luna` via the Responses API fail once a session grows past a certain size:
 
-```
+```text
 OpenCode Go API request failed (400) model=gpt-5.6-luna payloadBytes=1528273:
 Error from provider (Console Go): Upstream request failed:
 [invalid_prompt] Invalid Responses API request

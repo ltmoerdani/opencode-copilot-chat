@@ -88,7 +88,7 @@ Added `"gpt-5.6-luna"` to the Go provider's `fallbackModels` array so the model 
 
 When agent mode fails with `gpt-5.6-luna`, the Output channel will now automatically show:
 
-```
+```text
 [diag-empty-response] model=gpt-5.6-luna completionTokens=65 totalEvents=15 rawSseDataCount=15
 [diag-sse-event-0] {"id":"...","object":"chat.completion.chunk",...}
 [diag-sse-event-1] ...

@@ -28,7 +28,7 @@
 
 Reporter `@leiyu1980` (VS Code 1.129.0 + extension 0.4.1) reported that on startup, the model picker only shows the default model and that the full Zen list "sometimes flashes briefly before disappearing." Output logs showed:
 
-```
+```text
 Could not fetch OpenCode Go model list. Using bundled model list. fetch failed
 Could not fetch OpenCode Zen (Agents) model list. Using bundled model list. fetch failed
 ```
@@ -174,7 +174,7 @@ function isTransientFetchError(error: unknown): boolean {
 
 ### 6.4 Fallback order on final failure
 
-```
+```text
 1. caller CancellationToken fired        → cached (fresh) > bundled
 2. non-transient HTTP 4xx                → cached (fresh) > bundled
 3. transient error after N retries       → cached (fresh) > bundled

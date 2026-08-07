@@ -32,7 +32,7 @@ A transparent vision proxy that lets text-only OpenCode models "see" images by r
 
 ### Vision Proxy Architecture
 
-```
+```text
 User attaches image → text-only model selected
   ↓
 modelCapabilities() reports imageInput: true

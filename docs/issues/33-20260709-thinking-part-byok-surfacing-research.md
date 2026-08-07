@@ -98,16 +98,19 @@ Our `engines.vscode` is `^1.125.0`, well past the August 2025 ship date. `typeof
 [`Vizards/deepseek-v4-for-copilot`](https://github.com/Vizards/deepseek-v4-for-copilot) v0.6.2 (engine `^1.116.0`, on the Marketplace) emits reasoning via `LanguageModelThinkingPart` and it renders correctly as a collapsible thinking block in Copilot Chat. Key files verified:
 
 - **`src/provider/stream.ts` (lines 215–224)** — streaming emit:
+
   ```typescript
   function handleThinking(text, state, progress) {
     state.accumulatedReasoning += text;
     progress.report(new vscode.LanguageModelThinkingPart(text) as unknown as vscode.LanguageModelResponsePart);
   }
   ```
+
 - **`vscode.proposed.languageModelThinkingPart.d.ts`** — type augmentation copied from the VS Code repo via `npx @vscode/dts dev`. Defines the class fully.
 - **`tsconfig.json`** — `"include": ["src", "vscode.proposed.languageModelThinkingPart.d.ts"]`.
 - **`package.json`** — **no `enabledApiProposals`** at all. The proposal is used implicitly, exactly like our existing `chatProvider` proposal.
 - **Runtime guard pattern** (used in `tokens.ts`, `convert.ts`, `diagnostics.ts`):
+
   ```typescript
   function isLanguageModelThinkingPart(part: unknown): part is vscode.LanguageModelThinkingPart {
     return (

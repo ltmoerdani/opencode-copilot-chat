@@ -32,15 +32,15 @@ The extension supported reasoning-related diagnostics through `opencodego.debugR
 
 The desired behavior was:
 
-| Family      | Desired User Choice                                                      | Example Request Mapping                                                          |
-| ----------- | ------------------------------------------------------------------------ | -------------------------------------------------------------------------------- |
-| DeepSeek    | `off` / `high` / `max` initially, later expanded to `low` / `medium` too | `reasoning_effort` or provider thinking fields                                   |
-| GLM         | `on` / `off`                                                             | `thinking: { type: "enabled"                                                     | "disabled" }`                                                  |
-| Kimi        | `on` / `off`                                                             | `thinking: { type: "enabled"                                                     | "disabled" }` in the current gateway-compatible implementation |
-| Qwen        | `auto` / `on` / `off`                                                    | `enable_thinking` or Anthropic-native `thinking` when routed through `/messages` |
-| Qwen budget | `auto` / `4096` / `16384` / `32768` / `81920`                            | `thinking_budget` or `budget_tokens` depending on endpoint                       |
-| Mimo        | `off` / `low` / `medium` / `high`                                        | `reasoning_effort`                                                               |
-| MiniMax     | `off` / `on`                                                             | `thinking: { type }`                                                             |
+| Family      | Desired User Choice                                                      | Example Request Mapping                                                                                                                            |
+| ----------- | ------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| DeepSeek    | `off` / `high` / `max` initially, later expanded to `low` / `medium` too | `reasoning_effort` or provider thinking fields                                                                                                     |
+| GLM         | `on` / `off`                                                             | `thinking: { type: "enabled"                                                     \| "disabled" }`                                                  |
+| Kimi        | `on` / `off`                                                             | `thinking: { type: "enabled"                                                     \| "disabled" }` in the current gateway-compatible implementation |
+| Qwen        | `auto` / `on` / `off`                                                    | `enable_thinking` or Anthropic-native `thinking` when routed through `/messages`                                                                   |
+| Qwen budget | `auto` / `4096` / `16384` / `32768` / `81920`                            | `thinking_budget` or `budget_tokens` depending on endpoint                                                                                         |
+| Mimo        | `off` / `low` / `medium` / `high`                                        | `reasoning_effort`                                                                                                                                 |
+| MiniMax     | `off` / `on`                                                             | `thinking: { type }`                                                                                                                               |
 
 The user specifically wanted a UI like the Copilot built-in model picker, where the selected model can show and change `Thinking Effort` directly.
 
@@ -229,15 +229,15 @@ lets users configure Thinking values even when their VS Code/Copilot UI does not
 
 The final request mapping is endpoint-aware and family-aware:
 
-| Family                   | Current Mapping                                       |
-| ------------------------ | ----------------------------------------------------- |
-| DeepSeek                 | `reasoning_effort` when not `off`                     |
-| GLM                      | `thinking: { type: "enabled"                          | "disabled" }`                          |
-| Kimi                     | `thinking: { type: "enabled"                          | "disabled" }`                          |
-| Qwen `/chat/completions` | `enable_thinking` and optional `thinking_budget`      |
-| Qwen `/messages`         | Anthropic-native `thinking: { type, budget_tokens? }` |
-| Mimo                     | `reasoning_effort`                                    |
-| MiniMax                  | `thinking: { type: "enabled"                          | "adaptive" }` depending on route/model |
+| Family                   | Current Mapping                                                                                 |
+| ------------------------ | ----------------------------------------------------------------------------------------------- |
+| DeepSeek                 | `reasoning_effort` when not `off`                                                               |
+| GLM                      | `thinking: { type: "enabled"                          \| "disabled" }`                          |
+| Kimi                     | `thinking: { type: "enabled"                          \| "disabled" }`                          |
+| Qwen `/chat/completions` | `enable_thinking` and optional `thinking_budget`                                                |
+| Qwen `/messages`         | Anthropic-native `thinking: { type, budget_tokens? }`                                           |
+| Mimo                     | `reasoning_effort`                                                                              |
+| MiniMax                  | `thinking: { type: "enabled"                          \| "adaptive" }` depending on route/model |
 
 > **See also:** `06-20260517-thinking-native-submenu-investigation.md` for the native submenu resolution, tool schema sanitizer, Qwen routing fix, and v0.1.4 release details.
 

@@ -43,7 +43,7 @@ Implemented a new `ThinkTagFilter` class with a streaming-safe state machine des
 
 ### Architecture
 
-```
+```text
 SSE chunk arrives
     │
     ▼

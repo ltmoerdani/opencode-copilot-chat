@@ -140,20 +140,24 @@ We use **Major.Minor.Patch** (x.y.z) versioning. Here is guidance on when to inc
 
 ## Example Entry
 
-```
+```md
 ## [0.3.0] — 2026-07-01
 
 ### Added
+
 - **Grok model family support.** Adds routing and tool-calling support for Grok models on both OpenCode Go and Zen providers. Includes thinking effort controls (`off`/`low`/`medium`/`high`).
 - **Audio input indicator.** Models supporting audio input now show a speaker icon in the model picker tooltip, sourced from live `models.dev` metadata.
 
 ### Changed
+
 - **Improved streaming error recovery.** When a stream is interrupted, the extension now attempts to re-emit the partial response instead of silently failing.
 
 ### Fixed
+
 - **Qwen tool calls dropping on long conversations.** Root cause: the message trimmer was cutting tool-call blocks mid-sequence, breaking atomicity. The trimmer now preserves complete tool-call rounds.
 
 ### Removed
+
 - **Legacy `opencodego.showUsage` command.** Removed in favor of the status bar indicator which provides the same data at a glance.
 
 ---

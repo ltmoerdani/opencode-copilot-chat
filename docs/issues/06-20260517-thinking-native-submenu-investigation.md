@@ -237,16 +237,21 @@ https://opencode.ai/zen/go/v1/chat/completions
 **Fix:** Add a hybrid Qwen parser:
 
 1. Try OpenAI-style chunks first:
+
    ```text
    choices[].delta.content
    choices[].delta.text
    choices[].message.content
    ```
+
 2. If no OpenAI parts are found, try Anthropic-style chunks:
+
    ```text
    delta.text
    ```
+
 3. Keep stream summaries for verification:
+
    ```text
    [stream-summary model=qwen3.5-plus] textChars=... toolCalls=... reasoningChars=...
    ```

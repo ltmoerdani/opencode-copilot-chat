@@ -83,9 +83,11 @@ Source: [api-docs.deepseek.com/api/create-completion](https://api-docs.deepseek.
 Source: [QwenLM/Qwen3-Coder](https://github.com/QwenLM/Qwen3-Coder) · [Aliyun DashScope](https://help.aliyun.com/zh/model-studio/developer-reference/use-qwen-by-calling-api)
 
 - All Qwen3-Coder variants (480B-A35B, 30B-A3B, Next) **support FIM natively** using special tokens:
-  ```
+
+  ```text
   <|fim_prefix|>{prefix}<|fim_suffix|>{suffix}<|fim_middle|>
   ```
+
 - **Qwen3-Coder-Next is non-thinking by design** — per the official README: _"This model supports only non-thinking mode and does not generate `<think></think>` blocks."_ Ideal for autocomplete.
 - Hosting options relevant to this repo (per existing user memory):
   - **NVIDIA NIM** (`https://integrate.api.nvidia.com/v1`) — `qwen3-coder-480b` exposed via OpenAI-compatible `/chat/completions`, API key already provisioned.
@@ -234,11 +236,11 @@ DeepSeek FIM wins on the metrics that matter most for a first shippable cut (lat
 
 ## References
 
-- VS Code API — `InlineCompletionItemProvider`: https://code.visualstudio.com/api/references/vscode-api#InlineCompletionItemProvider
-- DeepSeek FIM (Beta): https://api-docs.deepseek.com/api/create-completion
-- DeepSeek pricing: https://api-docs.deepseek.com/quick_start/pricing
-- DeepSeek context caching: https://api-docs.deepseek.com/guides/kv_cache
-- Qwen3-Coder (FIM special tokens, non-thinking Next): https://github.com/QwenLM/Qwen3-Coder
-- Aliyun DashScope text-generation API: https://help.aliyun.com/zh/model-studio/developer-reference/use-qwen-by-calling-api
-- OpenCode provider docs: https://opencode.ai/docs/providers
-- Prototype branch (prior art): https://github.com/Wallacy/opencode-copilot-chat/tree/feat/persistent-autocomplete
+- VS Code API — `InlineCompletionItemProvider`: <https://code.visualstudio.com/api/references/vscode-api#InlineCompletionItemProvider>
+- DeepSeek FIM (Beta): <https://api-docs.deepseek.com/api/create-completion>
+- DeepSeek pricing: <https://api-docs.deepseek.com/quick_start/pricing>
+- DeepSeek context caching: <https://api-docs.deepseek.com/guides/kv_cache>
+- Qwen3-Coder (FIM special tokens, non-thinking Next): <https://github.com/QwenLM/Qwen3-Coder>
+- Aliyun DashScope text-generation API: <https://help.aliyun.com/zh/model-studio/developer-reference/use-qwen-by-calling-api>
+- OpenCode provider docs: <https://opencode.ai/docs/providers>
+- Prototype branch (prior art): <https://github.com/Wallacy/opencode-copilot-chat/tree/feat/persistent-autocomplete>

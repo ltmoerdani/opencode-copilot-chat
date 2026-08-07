@@ -131,7 +131,7 @@ This means the extension re-fetches model metadata from models.dev every hour in
 
 ## Architecture
 
-```
+```text
                     ┌─────────────────────┐
                     │   models.dev/api.json │
                     └──────────┬──────────┘

@@ -224,7 +224,7 @@ This extension is **NOT on VS Code Marketplace** (verified: HTTP 404 on `https:/
 
 ### Visual Diagram
 
-```
+```text
 provideLanguageModelChatInformation()
 │
 ├── Model "deepseek-v4-flash"

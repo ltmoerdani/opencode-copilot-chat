@@ -34,29 +34,29 @@ Read the `⚡ Session Handoff` section of `docs/devlog.md`. Parse each field:
 
 Read `🔥 ACTIVE TASKS` from the devlog from `docs/devlog.md`. For each task, determine actual status based on:
 
-### Task is ready to work on if:
+### Task is ready to work on if
 
 - Status = 🟡 AND Blocked by = `-` AND Next Action is filled
 
-### Task is actually complete if:
+### Task is actually complete if
 
 - Status is still 🟡 BUT a task with the same name/ID
   already exists in `✅ COMPLETED` or `📋 COMPLETED HISTORY`
 - → Mark as `[ALREADY COMPLETE — needs to be moved]`
   and provide a suggestion to move it
 
-### Task is actually blocked if:
+### Task is actually blocked if
 
 - Blocked by contains another task that is still active
 - → Write: `[BLOCKED by X which is not yet complete]`
 
-### Task needs update if:
+### Task needs update if
 
 - `Last touched` is more than 3 days ago but status is still 🟡
 - → Write suggestion: `[Needs confirmation: still active or already complete?]`
   directly in the response, without waiting to be asked
 
-### Which task to work on first:
+### Which task to work on first
 
 Auto-sort: P0 not blocked → P1 not blocked → P2
 Recommend the top one directly.
@@ -68,9 +68,9 @@ Recommend the top one directly.
 If any field is empty or `[NEEDS FILLING]`, don't leave it blank.
 Write suggestions directly in the response based on inference:
 
-### Empty Session Handoff:
+### Empty Session Handoff
 
-```
+```text
 💡 Suggestion Session Handoff:
 Last Session: [no data — fill manually]
 Worked On: Likely: [P0 task name with most recent Last touched]
@@ -79,16 +79,16 @@ Next Action: → [Next Action from active P0 task that isn't blocked]
 Open Issues: [see tasks where Blocked by is not empty]
 ```
 
-### Empty Next Action in Active Task:
+### Empty Next Action in Active Task
 
 Infer from task name + scope + status doc:
 
-```
+```text
 💡 Suggestion Next Action [TASK-ID]:
 → [concrete action based on task name and existing scope]
 ```
 
-### Empty Est. remaining:
+### Empty Est. remaining
 
 Infer from complexity scope:
 
@@ -96,11 +96,11 @@ Infer from complexity scope:
 - 4–7 scope items → `~1–2 days`
 - 8+ scope items → `~3–5 days`
 
-### Empty Doc:
+### Empty Doc
 
 Infer from task name → suggest path:
 
-```
+```text
 💡 Suggestion Doc path:
 docs/[category]/[number]-[YYYYMMDD]-[slug-task-name].md
 ```
@@ -125,7 +125,7 @@ Don't read the entire devlog history every session. Read ONLY when relevant:
 
 Without being asked, output this when DEVLOG is read:
 
-```
+```md
 ## 📍 Current Status
 
 **Last worked on:** [Last Session]
@@ -182,7 +182,7 @@ without being asked.
 → Auto-detect as "needs to be moved to Completed"
 → Include template table row for moving:
 
-```
+```text
 | [ID] | `tag` | Task Name — impact | HH:MM | commit | [link](path) |
 ```
 
@@ -199,20 +199,20 @@ Check Resume Trigger:
 
 ## Rules for Completed History
 
-### How to read by date:
+### How to read by date
 
 - Most recent date = most relevant work for current context
 - Scan backward only until you find the context you need
 - Stop when you have enough, don't read everything
 
-### Detecting duplicates:
+### Detecting duplicates
 
 If two items share the same doc path:
 
 - Older item → mark `*(see [newer item ID])*`
 - Newer item → this is the valid one
 
-### Detecting wrong dates:
+### Detecting wrong dates
 
 If a file name contains a date different from the
 header section (e.g., file `20260602` but in `2026-01-20` section):
@@ -254,9 +254,9 @@ Before coding, AI automatically:
 AI includes ready-to-use templates in the response
 without being asked, for all status changes:
 
-### When a task is completed:
+### When a task is completed
 
-```
+```text
 📋 Update DEVLOG:
 
 1. REMOVE from Active Tasks: [ID]
@@ -271,9 +271,9 @@ without being asked, for all status changes:
    Next Action: → [next P0 task that isn't blocked]
 ```
 
-### When a task is started:
+### When a task is started
 
-```
+```text
 📋 Add to Active Tasks in DEVLOG:
 
 ### [PREFIX-XX] Task Name

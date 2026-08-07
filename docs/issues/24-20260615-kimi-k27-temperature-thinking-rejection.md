@@ -252,5 +252,5 @@ All changes applied on branch `25-open-code-go-kimi-k27-issue`. `npm run compile
 - Issue #20 ([doc](./20-20260611-pr18-kimi-thinking-format-review.md)) — Kimi thinking format fix (`enable_thinking` → `thinking: { type }`)
 - Issue #24 ([doc](./24-20260615-thinking-style-setting-not-respected.md)) — Thinking UI surfacing (unrelated; upstream VS Code API blocker)
 - Feature #02 ([doc](../features/02-20260517-per-model-thinking-controls.md)) — Per-model thinking controls architecture
-- Moonshot API docs: https://platform.kimi.ai/docs/api/chat
-- GitHub issue: https://github.com/ltmoerdani/opencode-copilot-chat/issues/25
+- Moonshot API docs: <https://platform.kimi.ai/docs/api/chat>
+- GitHub issue: <https://github.com/ltmoerdani/opencode-copilot-chat/issues/25>

@@ -63,10 +63,10 @@ This did **not** affect:
 
 Two changes to `buildFamilyThinkingSchema()` in `src/extension.ts`:
 
-| #   | Change                               | Detail                                                                                                                |
-| --- | ------------------------------------ | --------------------------------------------------------------------------------------------------------------------- |
-| 1   | Move "off" outside `hasToggle` guard | `enumOptions.push("off")` now runs **unconditionally** when `hasToggle                                                |     | effortValues.length > 0` |
-| 2   | Add "on" for toggle-only models      | New condition: `if (hasToggle && effortValues.length === 0)` adds `on` so toggle-only models get an `off`/`on` choice |
+| #   | Change                               | Detail                                                                                                                                                   |
+| --- | ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Move "off" outside `hasToggle` guard | `enumOptions.push("off")` now runs **unconditionally** when `hasToggle                                                \|     \| effortValues.length > 0` |
+| 2   | Add "on" for toggle-only models      | New condition: `if (hasToggle && effortValues.length === 0)` adds `on` so toggle-only models get an `off`/`on` choice                                    |
 
 ### Scenario matrix (before vs after)
 

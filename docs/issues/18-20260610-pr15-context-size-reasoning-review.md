@@ -40,7 +40,7 @@ Models with `cost.tiers[]` or `cost.context_over_200k` in their models.dev metad
 
 **Flow:**
 
-```
+```text
 models.dev cost.tiers[] / cost.context_over_200k
   → getContextSizeOptions(cost, fullContextWindow)
     → ContextSizeOption[] (value, label, description, isDefault)
@@ -54,7 +54,7 @@ When a model's models.dev entry declares explicit `reasoning_options` (e.g., `[{
 
 **3-Priority Resolution:**
 
-```
+```text
 Priority 1: models.dev reasoning_options → exact effort levels
 Priority 2: Family-based hardcoded values (per ThinkingFamily)
 Priority 3: Dynamic fallback — any model with reasoning:true → generic off/on
@@ -135,7 +135,7 @@ Priority 3: Dynamic fallback — any model with reasoning:true → generic off/o
 - Extract family-specific schemas into a `Map<ThinkingFamily, SchemaFactory>` lookup table — the `if/family === "..."` chain will grow as more families are added.
 - Similarly refactor `buildThinkingPayload()` which is getting long with the new families.
 
-### **Verdict: LGTM — approve with minor nits.** Merge when ready.
+### **Verdict: LGTM — approve with minor nits.** Merge when ready
 
 ---
 

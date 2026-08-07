@@ -24,7 +24,7 @@ Full review and community feedback for contributor PR #18 by [Wallacy](https://g
 
 The `opencodego.thinking.kimi` setting was documented and implemented to send `enable_thinking: true | false` in the request payload. However, the OpenCode Go gateway **rejects** this field with:
 
-```
+```text
 HTTP 400: "Extra inputs are not permitted"
 ```
 
@@ -157,4 +157,4 @@ Review comment posted to PR #18 on 2026-06-11: [comment link](https://github.com
 
 ---
 
-_Reviewed: 2026-06-11 | Comment posted: 2026-06-11 | Status: Awaiting merge_
+**Reviewed:** 2026-06-11 | Comment posted: 2026-06-11 | Status: Awaiting merge

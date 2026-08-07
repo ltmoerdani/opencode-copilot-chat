@@ -879,7 +879,7 @@ npx @vscode/vsce package --no-dependencies
 
 **Final develop branch:**
 
-```
+```text
 * 64be1ad feat: gzip compression + message trimming fallback
 *   80c635b Merge branch 'main' into develop (2 different parents ✓)
 |\

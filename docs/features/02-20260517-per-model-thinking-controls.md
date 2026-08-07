@@ -25,16 +25,16 @@ OpenCode models do not all use the same request fields for reasoning or thinking
 
 The target model-family behavior was:
 
-| Family      | User Choice                                   | Request Mapping                                                                  |
-| ----------- | --------------------------------------------- | -------------------------------------------------------------------------------- |
-| DeepSeek    | `off` / `low` / `medium` / `high` / `max`     | `reasoning_effort` when not `off`                                                |
-| GLM 5/5.1   | `high` / `max` / `off`                        | `reasoning_effort` (gateway resolves to toggle for older models)                 |
-| GLM 5.2     | `high` / `max` / `off`                        | `reasoning_effort: "high" \| "max"`; `"off"` → `thinking: { type: "disabled" }`  |
-| Kimi        | `on` / `off`                                  | `thinking: { type: "enabled"                                                     | "disabled" }` |
-| MiniMax     | `on` / `off`                                  | `thinking: { type: "enabled"                                                     | "disabled"    | "adaptive" }` depending on route/model |
-| Mimo        | `off` / `low` / `medium` / `high`             | `reasoning_effort` when not `off`                                                |
-| Qwen        | `auto` / `on` / `off`                         | `enable_thinking` for chat completions, Anthropic-native `thinking` for messages |
-| Qwen budget | `auto` / `4096` / `16384` / `32768` / `81920` | `thinking_budget` or `budget_tokens` depending on endpoint                       |
+| Family      | User Choice                                   | Request Mapping                                                                                                                             |
+| ----------- | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| DeepSeek    | `off` / `low` / `medium` / `high` / `max`     | `reasoning_effort` when not `off`                                                                                                           |
+| GLM 5/5.1   | `high` / `max` / `off`                        | `reasoning_effort` (gateway resolves to toggle for older models)                                                                            |
+| GLM 5.2     | `high` / `max` / `off`                        | `reasoning_effort: "high" \| "max"`; `"off"` → `thinking: { type: "disabled" }`                                                             |
+| Kimi        | `on` / `off`                                  | `thinking: { type: "enabled"                                                     \| "disabled" }`                                           |
+| MiniMax     | `on` / `off`                                  | `thinking: { type: "enabled"                                                     \| "disabled"    \| "adaptive" }` depending on route/model |
+| Mimo        | `off` / `low` / `medium` / `high`             | `reasoning_effort` when not `off`                                                                                                           |
+| Qwen        | `auto` / `on` / `off`                         | `enable_thinking` for chat completions, Anthropic-native `thinking` for messages                                                            |
+| Qwen budget | `auto` / `4096` / `16384` / `32768` / `81920` | `thinking_budget` or `budget_tokens` depending on endpoint                                                                                  |
 
 The desired user experience was to make the model picker show the relevant Thinking state for the selected model family, so users could choose between faster non-thinking responses and deeper reasoning modes without editing request payloads manually.
 
@@ -96,15 +96,15 @@ lets users change the same Thinking defaults from a Quick Pick when their VS Cod
 
 The request mapping is endpoint-aware and family-aware:
 
-| Family                   | Mapping                                          |
-| ------------------------ | ------------------------------------------------ |
-| DeepSeek                 | `reasoning_effort` when not `off`                |
-| GLM                      | `thinking: { type: "enabled"                     | "disabled" }` |
-| Kimi                     | `thinking: { type: "enabled"                     | "disabled" }` |
-| MiniMax                  | `thinking` payload for supported MiniMax routes  |
-| Mimo                     | `reasoning_effort` when not `off`                |
-| Qwen `/chat/completions` | `enable_thinking` and optional `thinking_budget` |
-| Qwen `/messages`         | `thinking: { type, budget_tokens? }`             |
+| Family                   | Mapping                                                           |
+| ------------------------ | ----------------------------------------------------------------- |
+| DeepSeek                 | `reasoning_effort` when not `off`                                 |
+| GLM                      | `thinking: { type: "enabled"                     \| "disabled" }` |
+| Kimi                     | `thinking: { type: "enabled"                     \| "disabled" }` |
+| MiniMax                  | `thinking` payload for supported MiniMax routes                   |
+| Mimo                     | `reasoning_effort` when not `off`                                 |
+| Qwen `/chat/completions` | `enable_thinking` and optional `thinking_budget`                  |
+| Qwen `/messages`         | `thinking: { type, budget_tokens? }`                              |
 
 ---
 
