@@ -196,6 +196,15 @@ export const GO_MAX_LOG_ENTRIES = 2000;
 export const GO_SESSION_IDLE_MS = 2 * 60 * 60 * 1000;
 export const GO_MAX_SESSIONS = 50;
 
+// ─── Single-free-account fair-use policy (1 free account per install) ────────
+
+/** globalState key listing fingerprints currently treated as free accounts. */
+export const FREE_ACCOUNTS_STATE_KEY = "opencodego.freeAccounts.v1";
+/** globalState key mapping a fingerprint to the last time it was confirmed paid (ms). */
+export const PAID_ACCOUNTS_STATE_KEY = "opencodego.paidAccounts.v1";
+/** How long a "confirmed paid" status stays valid before the account is treated as free again. */
+export const PAID_CONFIRMATION_TTL_MS = 24 * 60 * 60 * 1000;
+
 // ─── Usage display options ────────────────────────────────────────────────────
 
 /**
