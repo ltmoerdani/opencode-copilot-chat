@@ -40,6 +40,8 @@ import {
   writeProfiles,
   type UsageProfile,
 } from "./usageProfile";
+import { markPaid, unmarkPaid } from "./freeAccountPolicy";
+import { loadFreeAccountPolicy, persistFreeAccountPolicy } from "./freeAccountStorage";
 import { escapeHtml, formatCount, formatRelativeTime, formatTokenCount, formatUsd } from "../utils";
 
 export let usageStatusBarItem: vscode.StatusBarItem | undefined;
@@ -344,8 +346,26 @@ export function refreshGoUsageStatusBar(): void {
     const apiKey = profileApiKeys.get(activeProfileFingerprint) ?? (await _extensionContext?.secrets.get(secretKeyFor(GO_VENDOR)));
     if (!apiKey) return;
     const changed = await tracker.syncServerUsage(apiKey);
+    applyGoSubscriptionToPolicy(tracker, apiKey);
     if (changed) refreshGoUsageStatusBar();
   })();
+}
+
+/**
+ * Reflect the tracker's last Go-subscription classification in the
+ * free-account policy: active sub → confirmed paid; no sub → drop paid.
+ */
+function applyGoSubscriptionToPolicy(tracker: GoUsageTracker, apiKey: string): void {
+  const subActive = tracker.lastSubscriptionActive;
+  if (subActive === undefined || !_extensionContext) {
+    return;
+  }
+  const policy = loadFreeAccountPolicy(_extensionContext);
+  const fingerprint = keyFingerprint(apiKey);
+  const next = subActive ? markPaid(policy, fingerprint, Date.now()) : unmarkPaid(policy, fingerprint);
+  if (next !== policy) {
+    persistFreeAccountPolicy(_extensionContext, next);
+  }
 }
 
 /**
@@ -355,6 +375,7 @@ export function refreshGoUsageStatusBar(): void {
  */
 export async function syncTrackerUsage(tracker: GoUsageTracker, apiKey: string): Promise<void> {
   const changed = await tracker.syncServerUsage(apiKey);
+  applyGoSubscriptionToPolicy(tracker, apiKey);
   if (changed) refreshGoUsageStatusBar();
 }
 

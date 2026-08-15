@@ -280,8 +280,18 @@ export class GoUsageTracker {
   private serverUsageFetchedAt = 0;
   /** In-flight sync promise per key — prevents duplicate concurrent fetches. */
   private syncInFlight: { apiKey: string; promise: Promise<boolean> } | undefined;
+  /** Last classified Go-subscription status from the usage endpoint (for the free-account policy). */
+  private subscriptionActive: boolean | undefined;
   private static readonly SESSION_IDLE_MS = GO_SESSION_IDLE_MS;
   private static readonly MAX_SESSIONS = GO_MAX_SESSIONS;
+
+  /**
+   * Whether the last usage sync reported an ACTIVE Go subscription.
+   * `true` = paid, `false` = no subscription, `undefined` = not yet known.
+   */
+  get lastSubscriptionActive(): boolean | undefined {
+    return this.subscriptionActive;
+  }
 
   constructor(
     private readonly context: vscode.ExtensionContext,
@@ -544,6 +554,14 @@ export class GoUsageTracker {
     // Pace retries after failures too — an invalid key or unreachable
     // endpoint must not hammer the API on every request.
     this.serverUsageFetchedAt = Date.now();
+    // Classify the account's subscription status for the free-account policy:
+    // a 200 is an active Go subscription; a 403 is a lapsed/absent one. Other
+    // failures (network, 401, 404, invalid) leave the previous classification.
+    if (result.ok) {
+      this.subscriptionActive = true;
+    } else if (result.reason === "no-subscription") {
+      this.subscriptionActive = false;
+    }
     if (!result.ok) {
       this.log?.(`[go-usage] Server usage sync skipped (${result.reason}); keeping local estimates.`);
       return false;
