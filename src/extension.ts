@@ -15,6 +15,8 @@ import {
   secretKeyFor,
 } from "./config";
 import { GoUsageTracker } from "./usage/tracker";
+import { removeAccount, shouldBlockFreeUsage } from "./usage/freeAccountPolicy";
+import { loadFreeAccountPolicy, persistFreeAccountPolicy } from "./usage/freeAccountStorage";
 import { buildUsageQuickPickItems } from "./usage/formatting";
 import { PROVIDERS } from "./provider/definitions";
 import { OpenCodeProvider } from "./provider/OpenCodeProvider";
@@ -201,6 +203,15 @@ export function activate(context: vscode.ExtensionContext) {
       const summary = tracker.getSummary();
       const items = buildUsageQuickPickItems(summary, tracker.hasServerUsage, usageRollingMeterVisible());
 
+      // Warn when free usage is blocked by the single-free-account policy.
+      if (shouldBlockFreeUsage(loadFreeAccountPolicy(context), Date.now())) {
+        items.unshift({
+          label: "$(warning) Multiple free accounts detected",
+          detail: "Free models are disabled until you keep only one free account (or add a paid subscription).",
+          alwaysShow: true,
+        });
+      }
+
       // All-time usage in the current workspace (from the OpenCode CLI
       // history) — replaces the old "Latest Session (est)" estimate row.
       if (usageCodebaseRowVisible()) {
@@ -316,6 +327,14 @@ export function activate(context: vscode.ExtensionContext) {
       ctx.globalState.update(`opencodego.usageLog.v1.${fp}`, []);
       ctx.globalState.update(`opencodego.usageBaseline.v1.${fp}`, {});
       ctx.globalState.update(`opencodego.sessionCosts.v1.${fp}`, []);
+
+      // Drop the deleted profile from the free-account policy so the
+      // free-account count drops back toward the allowed single account.
+      const policy = loadFreeAccountPolicy(ctx);
+      const nextPolicy = removeAccount(policy, fp);
+      if (nextPolicy !== policy) {
+        persistFreeAccountPolicy(ctx, nextPolicy);
+      }
 
       const remaining = readProfiles(ctx).filter((p) => p.fingerprint !== fp);
       await writeProfiles(ctx, remaining);
