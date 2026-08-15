@@ -73,6 +73,9 @@ import {
 } from "../usage/dashboard";
 import { formatCacheHitRatio } from "../usage/usage";
 import { estimateCost } from "../usage/pricing";
+import { countFreeAccounts, markFreeUsage, markPaid, shouldBlockFreeUsage } from "../usage/freeAccountPolicy";
+import { freeAccountPolicyDiagnostics, loadFreeAccountPolicy, persistFreeAccountPolicy } from "../usage/freeAccountStorage";
+import { keyFingerprint } from "../usage/usageProfile";
 import { resolveResponseApiKey } from "../apiKeyResolution";
 import { clearOpenCodeModelMetadataCache, getOpenCodeModelMetadata } from "../models/metadataFetcher";
 import { convertMessage, normalizeMessages, trimOldImagesFromHistoryInPlace } from "./messages";
@@ -475,6 +478,10 @@ export class OpenCodeProvider implements vscode.LanguageModelChatProvider<OpenCo
       `- credentialInSecretStorage: ${String(hasStoredApiKey)}`,
       `- modelSelectionError: ${modelSelectionError ?? "none"}`,
       "",
+      "## Free-Account Policy",
+      "",
+      ...freeAccountPolicyDiagnostics(this.context),
+      "",
       "## Recent Requests",
       "",
       ...this.recentTransportDiagnosticsLines(),
@@ -705,6 +712,32 @@ export class OpenCodeProvider implements vscode.LanguageModelChatProvider<OpenCo
     }
 
     const rawModelId = model.rawModelId ?? resolveRawModelId(model.id);
+
+    // ── Single-free-account fair-use policy ───────────────────────────────────
+    // Free quota is per person. Once two free accounts are known on this
+    // install, free-model usage is blocked until the user keeps only one free
+    // account (or the extras become paid). Paid accounts are always allowed.
+    const fingerprint = keyFingerprint(apiKey);
+    const nowMs = Date.now();
+    const freePolicy = loadFreeAccountPolicy(this.context);
+    if (isFreeModel(rawModelId)) {
+      const nextPolicy = markFreeUsage(freePolicy, fingerprint, nowMs);
+      if (shouldBlockFreeUsage(nextPolicy, nowMs)) {
+        persistFreeAccountPolicy(this.context, nextPolicy);
+        const freeCount = countFreeAccounts(nextPolicy, nowMs);
+        this.log(`[free-account] blocked free-model request for profile ${fingerprint} (${String(freeCount)} free accounts)`);
+        throw new OpenCodeRequestError(
+          "OpenCode free-account limit reached",
+          `Only ONE free OpenCode account is allowed per install — ${String(freeCount)} free accounts are configured. ` +
+            `Keep a single free account: delete the extra ones via the "OpenCode Go: Delete Profile" command, ` +
+            `or add a paid subscription to continue using free models.`,
+        );
+      }
+      if (nextPolicy !== freePolicy) {
+        persistFreeAccountPolicy(this.context, nextPolicy);
+      }
+    }
+
     const convertedMessages = await Promise.all(
       messages.map((message) => convertMessage(message, this.reasoningContentByToolCallId, rawModelId)),
     );
@@ -860,6 +893,16 @@ export class OpenCodeProvider implements vscode.LanguageModelChatProvider<OpenCo
     const requestHeaders = buildOpenCodeRequestHeaders(messages, options, rawModelId);
     const outputChannel = this.getOutputChannel();
     const onTransportSummary = (summary: TransportRequestSummary) => {
+      // A successful paid (non-free) model request confirms a paid account and
+      // exempts it from the single-free-account limit (multiple paid accounts
+      // are allowed). Only requests with actual token usage count as success.
+      if (!isFreeModel(summary.modelId) && (summary.promptTokens !== undefined || summary.completionTokens !== undefined)) {
+        const paidPolicy = loadFreeAccountPolicy(this.context);
+        const nextPaidPolicy = markPaid(paidPolicy, keyFingerprint(apiKey), Date.now());
+        if (nextPaidPolicy !== paidPolicy) {
+          persistFreeAccountPolicy(this.context, nextPaidPolicy);
+        }
+      }
       // Compute credits for VS Code session cost (1 credit = $0.01).
       // VS Code reads usage.copilotCredits from the LanguageModelDataPart
       // to accumulate session cost. We mutate the summary object directly
