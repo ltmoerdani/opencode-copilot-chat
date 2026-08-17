@@ -23,6 +23,11 @@ export function keyFingerprint(apiKey: string): string {
   return `${apiKey.slice(0, 8)}-${apiKey.slice(-8)}`;
 }
 
+/** SecretStorage key containing the full API key for one profile. */
+export function profileSecretKey(fingerprint: string): string {
+  return `opencodego.apiKey.profile.${fingerprint}`;
+}
+
 export function readActiveProfile(context: vscode.ExtensionContext): string {
   return context.globalState.get<string>(ACTIVE_PROFILE_KEY) ?? LEGACY_FINGERPRINT;
 }

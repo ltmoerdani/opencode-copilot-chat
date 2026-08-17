@@ -370,6 +370,14 @@ export class OpenCodeProvider implements vscode.LanguageModelChatProvider<OpenCo
     }
 
     await this.context.secrets.store(secretKeyFor(this.baseVendor), normalizedApiKey);
+
+    // Register a profile for the new key so multi-account usage tracking
+    // picks it up immediately, instead of waiting for the first request to
+    // be recorded. Mirrors the guard in provideLanguageModelChatInformation.
+    if (this.baseVendor === GO_VENDOR) {
+      ensureProfileSync(normalizedApiKey);
+    }
+
     await this.refreshMetadataAndModels();
     this.changeEmitter.fire();
     vscode.window.showInformationMessage(`${this.definition.displayName} API key saved.`);

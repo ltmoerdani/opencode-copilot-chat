@@ -39,6 +39,7 @@ import {
   nonLegacyCount,
   readMigratedTo,
   readProfiles,
+  profileSecretKey,
   writeActiveProfile,
   writeMigratedTo,
   writeProfiles,
@@ -212,6 +213,10 @@ export function activeGoUsageTracker(): GoUsageTracker | undefined {
 
 /** Switch the active profile and refresh the UI. */
 export async function setActiveProfile(fingerprint: string): Promise<void> {
+  const apiKey = await extensionContext().secrets.get(profileSecretKey(fingerprint));
+  if (apiKey) {
+    profileApiKeys.set(fingerprint, apiKey);
+  }
   activeProfileFingerprint = fingerprint;
   await writeActiveProfile(extensionContext(), fingerprint);
   refreshGoUsageStatusBar();
