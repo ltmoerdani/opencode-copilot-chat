@@ -542,12 +542,13 @@ export class GoUsageTracker {
     if (this.serverUsageFetchedAt > 0 && now - this.serverUsageFetchedAt < GO_USAGE_SYNC_TTL_MS) {
       return false;
     }
-    const result = await fetchGoUsage(apiKey, fetch, undefined, this.options.resolveUsageUrl?.());
+    const usageUrl = this.options.resolveUsageUrl?.();
+    const result = await fetchGoUsage(apiKey, fetch, undefined, usageUrl);
     // Pace retries after failures too — an invalid key or unreachable
     // endpoint must not hammer the API on every request.
     this.serverUsageFetchedAt = Date.now();
     if (!result.ok) {
-      this.log?.(`[go-usage] Server usage sync skipped (${result.reason}); keeping local estimates.`);
+      this.log?.(`[go-usage] Server usage sync skipped (${result.reason}) at ${usageUrl ?? "default endpoint"}; keeping local estimates.`);
       return false;
     }
     this.serverUsage = result.data;

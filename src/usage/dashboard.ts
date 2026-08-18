@@ -11,7 +11,10 @@ import {
   DEFAULT_USAGE_REFRESH_INTERVAL_SECONDS,
   DEFAULT_USAGE_ROLLING_SESSION_METER,
   DEFAULT_USAGE_TODAY_YESTERDAY_SOURCE,
+  DEFAULT_GO_API_BASE_URL,
   GO_LIMITS,
+  appendApiPath,
+  SETTING_API_BASE_URL,
   SETTING_SHOW_USAGE_STATUS_BAR,
   SETTING_USAGE_CHART_DAYS,
   SETTING_USAGE_CODEBASE_ROW,
@@ -21,6 +24,7 @@ import {
   SETTING_USAGE_ROLLING_SESSION_METER,
   SETTING_USAGE_TODAY_YESTERDAY_SOURCE,
   secretKeyFor,
+  normalizeApiBaseUrl,
   type UsageTodayYesterdaySource,
 } from "../config";
 import type { TransportRequestSummary } from "../core/transport";
@@ -36,6 +40,7 @@ import {
   nonLegacyCount,
   readMigratedTo,
   readProfiles,
+  profileSecretKey,
   writeActiveProfile,
   writeMigratedTo,
   writeProfiles,
@@ -121,6 +126,11 @@ export function usageTrackerOptions(): GoUsageTrackerOptions {
       config().get<UsageTodayYesterdaySource>(SETTING_USAGE_TODAY_YESTERDAY_SOURCE, DEFAULT_USAGE_TODAY_YESTERDAY_SOURCE),
     resolveCodebaseWindowDays: () => config().get<number>(SETTING_USAGE_CODEBASE_WINDOW_DAYS, DEFAULT_USAGE_CODEBASE_WINDOW_DAYS),
     resolveDayBoundary: () => config().get<"utc" | "local">(SETTING_USAGE_DAY_BOUNDARY, DEFAULT_USAGE_DAY_BOUNDARY),
+    resolveUsageUrl: () => {
+      const configured = config().get<string>(SETTING_API_BASE_URL, DEFAULT_GO_API_BASE_URL);
+      const baseUrl = normalizeApiBaseUrl(configured, DEFAULT_GO_API_BASE_URL);
+      return appendApiPath(baseUrl, "usage");
+    },
   };
 }
 
@@ -204,6 +214,10 @@ export function activeGoUsageTracker(): GoUsageTracker | undefined {
 
 /** Switch the active profile and refresh the UI. Marks the choice as explicit. */
 export async function setActiveProfile(fingerprint: string): Promise<void> {
+  const apiKey = await extensionContext().secrets.get(profileSecretKey(fingerprint));
+  if (apiKey) {
+    profileApiKeys.set(fingerprint, apiKey);
+  }
   activeProfileFingerprint = fingerprint;
   await writeActiveProfile(extensionContext(), fingerprint);
   // Remember this was a deliberate user choice so provider/request resolution

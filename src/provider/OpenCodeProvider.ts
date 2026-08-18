@@ -55,6 +55,11 @@ import {
   MODEL_LIST_FETCH_TIMEOUT_MS,
   MODEL_METADATA_REVISION,
   MAX_HISTORY_IMAGES_KEPT,
+  DEFAULT_GO_API_BASE_URL,
+  DEFAULT_ZEN_API_BASE_URL,
+  SETTING_API_BASE_URL,
+  appendApiPath,
+  normalizeApiBaseUrl,
   RECENT_TRANSPORT_SUMMARY_LIMIT,
   RECENT_TRANSPORT_SUMMARY_STORAGE_PREFIX,
   SETTING_SHOW_PROVIDER_PREFIX,
@@ -111,6 +116,23 @@ export class OpenCodeProvider implements vscode.LanguageModelChatProvider<OpenCo
     this.changeEmitter.fire();
   }
   private readonly apiKeysByModelId = new Map<string, string>();
+
+  private get apiBaseUrl(): string {
+    const fallback = this.baseVendor === GO_VENDOR ? DEFAULT_GO_API_BASE_URL : DEFAULT_ZEN_API_BASE_URL;
+    const configured = vscode.workspace.getConfiguration(this.baseVendor).get<string>(SETTING_API_BASE_URL, fallback);
+    return normalizeApiBaseUrl(configured, fallback);
+  }
+
+  private get endpointDefinition(): ProviderDefinition {
+    const baseUrl = this.apiBaseUrl;
+    return {
+      ...this.definition,
+      modelsUrl: appendApiPath(baseUrl, "models"),
+      chatCompletionsUrl: appendApiPath(baseUrl, "chat/completions"),
+      messagesUrl: appendApiPath(baseUrl, "messages"),
+      ...(this.definition.responsesUrl ? { responsesUrl: appendApiPath(baseUrl, "responses") } : {}),
+    };
+  }
 
   /**
    * globalState key tracking whether this vendor has a configured BYOK group
@@ -336,6 +358,32 @@ export class OpenCodeProvider implements vscode.LanguageModelChatProvider<OpenCo
     vscode.window.showInformationMessage(`${this.definition.displayName} models refreshed.`);
   }
 
+  async setApiKey(): Promise<void> {
+    const apiKey = await vscode.window.showInputBox({
+      title: `${this.definition.displayName} API Key`,
+      prompt: `Paste your ${this.definition.displayName} API key. It will be stored securely in VS Code SecretStorage.`,
+      password: true,
+      ignoreFocusOut: true,
+    });
+    const normalizedApiKey = apiKey?.trim();
+    if (!normalizedApiKey) {
+      return;
+    }
+
+    await this.context.secrets.store(secretKeyFor(this.baseVendor), normalizedApiKey);
+
+    // Register a profile for the new key so multi-account usage tracking
+    // picks it up immediately, instead of waiting for the first request to
+    // be recorded. Mirrors the guard in provideLanguageModelChatInformation.
+    if (this.baseVendor === GO_VENDOR) {
+      ensureProfileSync(normalizedApiKey);
+    }
+
+    await this.refreshMetadataAndModels();
+    this.changeEmitter.fire();
+    vscode.window.showInformationMessage(`${this.definition.displayName} API key saved.`);
+  }
+
   async manage(): Promise<void> {
     // Read via the base-vendor full key so agent variants (opencodego-agent,
     // opencodezen-agent) follow the same switch as the vendor they mirror.
@@ -393,17 +441,18 @@ export class OpenCodeProvider implements vscode.LanguageModelChatProvider<OpenCo
     }
 
     const statusBar = vscode.window.setStatusBarMessage(`$(loading~spin) Testing ${this.definition.displayName} connection...`);
-    this.log(`Testing connection to ${this.definition.chatCompletionsUrl}`);
+    const definition = this.endpointDefinition;
+    this.log(`Testing connection to ${definition.chatCompletionsUrl}`);
 
     try {
-      const response = await fetch(this.definition.chatCompletionsUrl, {
+      const response = await fetch(definition.chatCompletionsUrl, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${apiKey}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: this.definition.testModelId,
+          model: definition.testModelId,
           messages: [{ role: "user", content: "reply with just: ok" }],
           max_tokens: 10,
           stream: false,
@@ -598,7 +647,7 @@ export class OpenCodeProvider implements vscode.LanguageModelChatProvider<OpenCo
 
     const results = models.flatMap((modelId) => {
       const metadata = this.resolveModelMetadata(modelId, metadataSnapshot);
-      const routing = resolveModelRouting(modelId, this.definition);
+      const routing = resolveModelRouting(modelId, this.endpointDefinition);
       const effectiveModelId = toEffectiveModelId(modelId, this.definition.vendor);
       // Stable model ID — deliberately NO key fingerprint. VS Code's per-model
       // configuration (chatLanguageModels.json) is keyed by this ID; keeping it
@@ -752,7 +801,7 @@ export class OpenCodeProvider implements vscode.LanguageModelChatProvider<OpenCo
     const contextSizeOverride = typeof requestOverride?.contextSize === "number" ? requestOverride.contextSize : undefined;
     const metadataSnapshot = await this.getMetadataSnapshot();
     const metadata = this.resolveModelMetadata(rawModelId, metadataSnapshot);
-    const routing = resolveModelRouting(rawModelId, this.definition);
+    const routing = resolveModelRouting(rawModelId, this.endpointDefinition);
 
     // `hasImageInput` is computed from the flattened (pre-normalize) messages:
     // normalization never creates or drops image parts, so this matches the
@@ -1069,7 +1118,7 @@ export class OpenCodeProvider implements vscode.LanguageModelChatProvider<OpenCo
         cancellationLink = token ? this.signalFromToken(token) : undefined;
         const signal = token && cancellationLink ? AbortSignal.any([timeoutSignal, cancellationLink.signal]) : timeoutSignal;
 
-        const response = await fetch(this.definition.modelsUrl, { headers, signal });
+        const response = await fetch(this.endpointDefinition.modelsUrl, { headers, signal });
         if (!response.ok) {
           throw new Error(`Model list request failed (${String(response.status)}): ${response.statusText}`);
         }

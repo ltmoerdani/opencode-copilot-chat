@@ -67,6 +67,10 @@
         "title": "OpenCode Go: Manage Provider"
       },
       {
+        "command": "opencodego.setApiKey",
+        "title": "OpenCode Go: Set API Key"
+      },
+      {
         "command": "opencodego.toggleProvider",
         "title": "OpenCode Go: Remove/Re-add Provider in Language Models"
       },
@@ -89,6 +93,10 @@
       {
         "command": "opencodezen.manage",
         "title": "OpenCode Zen: Manage Provider"
+      },
+      {
+        "command": "opencodezen.setApiKey",
+        "title": "OpenCode Zen: Set API Key"
       },
       {
         "command": "opencodezen.toggleProvider",
