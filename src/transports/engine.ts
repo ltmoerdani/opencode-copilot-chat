@@ -488,6 +488,20 @@ export async function streamOpenCodeResponse(options: StreamOpenCodeResponseOpti
         await streamOpenCodeResponse({ ...options, streamFailureRetryAttempt: nextAttempt });
         return;
       }
+      // Content was already delivered to VS Code — the response is usable even
+      // though the stream lacked [DONE] / finish_reason (e.g. Muse Spark on
+      // the Responses API). Log the anomaly but don't throw, since the user
+      // already received their content and throwing after delivery creates a
+      // confusing error popup on an otherwise successful response.
+      if (extractedPartCount > 0) {
+        options.output?.appendLine(
+          `[warn] stream ended without [DONE] / finish_reason but ${String(extractedPartCount)} parts were delivered (${String(totalBytes)} bytes / ${String(totalEvents)} events)`,
+        );
+        emitSummary(totalBytes, totalEvents, {
+          rateLimitSummary,
+        });
+        return;
+      }
       const requestError = new OpenCodeRequestError(
         `${options.providerDisplayName} response stream ended before completion (no [DONE] or finish_reason after ${String(totalBytes)} bytes / ${String(totalEvents)} events${localRequestId ? `, request ${localRequestId}` : ""}).`,
         `${options.providerDisplayName} stopped sending data before the response was complete (the connection closed unexpectedly). Your message may be cut off — try sending it again; a single resend usually succeeds. If this keeps happening, check your connection, VPN, or firewall.`,

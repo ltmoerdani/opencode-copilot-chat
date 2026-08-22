@@ -6,6 +6,8 @@ All notable changes to the **OpenCode Go BYOK Provider** extension are documente
 
 ### Fixed
 
+- **`[Streaming]` Muse Spark no longer throws "stream ended before completion" after delivering content (#178 regression).** The truncated-stream detector from #178 flags streams that end without `[DONE]` or `finish_reason`. Muse Spark on the Responses API delivers content (text, tool calls) but closes the connection without either signal — a gateway quirk, not a failure. The engine now logs a warning and returns successfully when content was already delivered, instead of throwing an error popup on an otherwise complete response. Documented in `docs/issues/79-20260822-issue-muse-spark-stream-completion.md`.
+
 - **`[Models]` Deprecated filter no longer hides live models (#182).** `models.dev` `status: deprecated` was hiding models still served by the gateway (e.g. `laguna-s-2.1-free`). The filter now cross-checks against the live gateway response — only hides when `models.dev` says deprecated AND the gateway confirms the model is absent. Note: `deepseek-v4-flash-free` is listed by the gateway but actually broken upstream ("Model is unavailable") — this is an upstream issue, not solvable from the extension side. Documented in `docs/issues/78-20260822-issue182-deprecated-model-gateway-crosscheck.md`.
 
 ## [0.7.0] — 2026-08-22
