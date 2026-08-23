@@ -105,6 +105,11 @@ describe("VISION_CAPABLE_MODELS", () => {
     assert.ok(!VISION_CAPABLE_MODELS.has("big-pickle"));
   });
 
+  it("includes both Muse Spark 1.2 variants (models.dev lists image input) (#183)", () => {
+    assert.ok(VISION_CAPABLE_MODELS.has("muse-spark-1.2-contributor"));
+    assert.ok(VISION_CAPABLE_MODELS.has("muse-spark-1.2-contributor-free"));
+  });
+
   it("is an exported Set", () => {
     assert.ok(VISION_CAPABLE_MODELS instanceof Set);
     assert.ok(VISION_CAPABLE_MODELS.size > 10);

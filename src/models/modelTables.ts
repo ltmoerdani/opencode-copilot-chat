@@ -138,4 +138,10 @@ export const VISION_CAPABLE_MODELS = new Set([
   "gpt-5-nano",
   "grok-build-0.1",
   "gpt-5.6-luna",
+  // Muse Spark 1.2 — models.dev lists image/video/pdf/audio input modalities
+  // for both variants; without these entries an offline fallback snapshot
+  // reports imageInput: false and VS Code strips attachments before they
+  // reach the provider (#183).
+  "muse-spark-1.2-contributor",
+  "muse-spark-1.2-contributor-free",
 ]);
