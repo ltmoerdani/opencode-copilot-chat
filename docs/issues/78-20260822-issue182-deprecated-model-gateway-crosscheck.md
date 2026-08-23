@@ -6,6 +6,7 @@
 **Updated:** 2026-08-22
 **Tags:** #models #provider #zen #deprecated #gateway
 **Supersedes:** —
+**Landed:** PR #185 (Barragek0/patch-1, merge `f0b3c04`)
 
 ---
 

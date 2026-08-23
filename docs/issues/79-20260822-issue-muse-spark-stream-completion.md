@@ -6,6 +6,7 @@
 **Updated:** 2026-08-22
 **Tags:** #streaming #transport #responses-api #muse-spark #regression
 **Supersedes:** —
+**Landed:** PR #187 (Barragek0/patch-2, merge `b2f1084`)
 
 ---
 
