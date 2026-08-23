@@ -381,6 +381,16 @@ class OpenAiResponseExtractor extends BaseResponseExtractor {
       reportProgressPart(localRequestId, progress, part);
     }
   }
+
+  /**
+   * Whether every pending tool call carries complete, parseable arguments.
+   * Consulted by the engine before treating an unterminated `[DONE]`-transport
+   * stream as successful: a stream cut mid-arguments would otherwise flush a
+   * tool call whose truncated JSON silently becomes `{}` input (#184).
+   */
+  hasCompletePendingToolCalls(): boolean {
+    return this.toolCallAccumulator.hasCompletePendingCalls();
+  }
 }
 
 class AnthropicResponseExtractor extends BaseResponseExtractor {

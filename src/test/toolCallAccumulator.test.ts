@@ -180,3 +180,36 @@ describe("parseToolInput", () => {
     assert.deepEqual(parseToolInput("[1,2]"), [1, 2]);
   });
 });
+
+describe("ToolCallAccumulator — hasCompletePendingCalls (#184)", () => {
+  it("returns true with no pending calls", () => {
+    const acc = new ToolCallAccumulator();
+    assert.equal(acc.hasCompletePendingCalls(), true);
+  });
+
+  it("returns true when all named calls have parseable object arguments", () => {
+    const acc = new ToolCallAccumulator();
+    acc.collect([{ index: 0, id: "a", function: { name: "fs", arguments: "" } }]);
+    acc.collect([{ index: 0, function: { arguments: '{"path":"x"}' } }]);
+    acc.collect([{ index: 1, id: "b", function: { name: "web", arguments: '{"q":1}' } }]);
+    assert.equal(acc.hasCompletePendingCalls(), true);
+  });
+
+  it("returns false when arguments JSON is truncated mid-stream", () => {
+    const acc = new ToolCallAccumulator();
+    acc.collect([{ index: 0, id: "a", function: { name: "fs", arguments: '{"path":' } }]);
+    assert.equal(acc.hasCompletePendingCalls(), false);
+  });
+
+  it("returns false when arguments never arrived (empty string)", () => {
+    const acc = new ToolCallAccumulator();
+    acc.collect([{ index: 0, id: "a", function: { name: "fs" } }]);
+    assert.equal(acc.hasCompletePendingCalls(), false);
+  });
+
+  it("ignores nameless fragments (same as flush)", () => {
+    const acc = new ToolCallAccumulator();
+    acc.collect([{ index: 0, function: { arguments: '{"x":1}' } }]);
+    assert.equal(acc.hasCompletePendingCalls(), true);
+  });
+});
