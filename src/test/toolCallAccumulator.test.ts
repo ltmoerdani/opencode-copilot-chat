@@ -201,10 +201,12 @@ describe("ToolCallAccumulator — hasCompletePendingCalls (#184)", () => {
     assert.equal(acc.hasCompletePendingCalls(), false);
   });
 
-  it("returns false when arguments never arrived (empty string)", () => {
+  it("returns true when arguments never arrived (empty string = no-param tool)", () => {
+    // Gateways legitimately send no arguments delta for tools that take no
+    // parameters; Copilot's own loop normalizes `arguments === ''` to '{}'.
     const acc = new ToolCallAccumulator();
     acc.collect([{ index: 0, id: "a", function: { name: "fs" } }]);
-    assert.equal(acc.hasCompletePendingCalls(), false);
+    assert.equal(acc.hasCompletePendingCalls(), true);
   });
 
   it("ignores nameless fragments (same as flush)", () => {

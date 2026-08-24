@@ -370,9 +370,22 @@ class OpenAiResponseExtractor extends BaseResponseExtractor {
    *
    * Must be called BEFORE `flushReasoningFallback` so tool-call reasoning
    * replication runs first. Safe no-op when nothing is pending.
+   *
+   * SKIPS incomplete calls (#184): when a pending call's arguments are empty
+   * or truncated JSON, flushing would emit a `LanguageModelToolCallPart`
+   * whose input silently coerced to `{}` — the tool executes with corrupted
+   * input even though the engine threw the truncation error. Incomplete calls
+   * are dropped here; the engine's truncation error tells the user to resend.
    */
   flushRemainingToolCalls(progress: vscode.Progress<vscode.LanguageModelResponsePart2>, localRequestId?: string): void {
     if (this.toolCallAccumulator.size === 0) {
+      return;
+    }
+    if (!this.toolCallAccumulator.hasCompletePendingCalls()) {
+      this.output?.appendLine(
+        `[warn] dropping ${String(this.toolCallAccumulator.size)} incomplete tool call(s) from a truncated stream (arguments cut mid-JSON)`,
+      );
+      this.toolCallAccumulator.flush();
       return;
     }
     const toolParts = this.flushToolCalls();
