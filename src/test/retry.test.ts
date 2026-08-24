@@ -235,3 +235,62 @@ describe("isTransientFetchError", () => {
     assert.equal(isTransientFetchError(new Error("something unexpected")), false);
   });
 });
+
+describe("analyzeHttp400ForRetry — [1210] invalid input degradation (#190)", () => {
+  const ERROR = "Upstream request failed: [1210] Invalid API parameter, please check the documentation.invalid input";
+
+  it("first degrades by dropping stream_options", () => {
+    const body = { model: "ox-alpha-free", messages: [], stream: true, stream_options: { include_usage: true }, temperature: 0.2 };
+    const result = analyzeHttp400ForRetry(ERROR, body);
+    assert.ok(result, "should be recoverable");
+    assert.equal(result.body?.stream_options, undefined);
+    assert.equal(result.body?.temperature, 0.2);
+    assert.match(result.reason, /stream_options/);
+  });
+
+  it("then drops temperature once stream_options is gone", () => {
+    const body = { model: "ox-alpha-free", messages: [], stream: true, temperature: 0.2 };
+    const result = analyzeHttp400ForRetry(ERROR, body);
+    assert.ok(result, "should be recoverable");
+    assert.equal(result.body?.temperature, undefined);
+    assert.match(result.reason, /temperature/);
+  });
+
+  it("then strips image parts while keeping text", () => {
+    const body = {
+      model: "ox-alpha-free",
+      messages: [
+        {
+          role: "user",
+          content: [
+            { type: "text", text: "look" },
+            { type: "image_url", image_url: { url: "data:image/png;base64,AAAA" } },
+          ],
+        },
+        { role: "assistant", content: "ok" },
+      ],
+    };
+    const result = analyzeHttp400ForRetry(ERROR, body);
+    assert.ok(result, "should be recoverable");
+    const msgs = result.body?.messages as { content: { type: string }[] }[];
+    assert.equal(
+      msgs[0].content.some((p) => p.type === "image_url"),
+      false,
+      "image part must be removed",
+    );
+    assert.equal(msgs[1].content, "ok", "non-image messages untouched");
+    assert.match(result.reason, /image parts/);
+  });
+
+  it("returns undefined when nothing optional remains (real failure surfaces)", () => {
+    const body = { model: "ox-alpha-free", messages: [{ role: "user", content: "hi" }], stream: true };
+    const result = analyzeHttp400ForRetry(ERROR, body);
+    assert.equal(result, undefined);
+  });
+
+  it("does not fire for other 400 errors", () => {
+    const body = { model: "x", messages: [], stream_options: { include_usage: true }, temperature: 0.2 };
+    const result = analyzeHttp400ForRetry("invalid thinking: only type=enabled is allowed for this model", body);
+    assert.equal(result, undefined);
+  });
+});
