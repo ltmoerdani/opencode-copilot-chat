@@ -4,6 +4,8 @@ All notable changes to the **OpenCode Go BYOK Provider** extension are documente
 
 ## [Unreleased]
 
+- **`[Retry]` Generic `[1210] invalid input` 400s now self-heal by degrading optional parameters (#190).** New models sometimes reject parameters the extension always sends (`stream_options`, `temperature`, data-URL images) without naming the offender. The HTTP-400 retry classifier gained `patchInvalidInput`: on that error shape it strips one optional parameter per attempt in least-likely-to-matter order, so the request adapts instead of hard-failing. Once nothing optional remains, real failures surface unchanged. Documented in `docs/issues/81-20260823-issue190-1210-invalid-input-degradation.md`.
+
 ### Fixed
 
 - **`[Streaming]` Muse Spark no longer throws "stream ended before completion" after delivering content (#178 regression).** The truncated-stream detector from #178 flags streams that end without `[DONE]` or `finish_reason`. Muse Spark on the Responses API delivers content (text, tool calls) but closes the connection without either signal — a gateway quirk, not a failure. The engine now logs a warning and returns successfully when content was already delivered, instead of throwing an error popup on an otherwise complete response. Documented in `docs/issues/79-20260822-issue-muse-spark-stream-completion.md`.
