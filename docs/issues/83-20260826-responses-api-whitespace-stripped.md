@@ -1,7 +1,7 @@
 **Status:** ✅ Solved
-**Fix PR:** (not yet — local fix, no PR)
+**Fix PR:** [#194](https://github.com/ltmoerdani/opencode-copilot-chat/pull/194)
 **Related:** #192
-**Landed:** (local commit, branch `main`)
+**Landed:** PR #194 (ltmoerdani/fix/issue-192-responses-whitespace-stripped, merge `717f6b5`)
 
 # Responses API whitespace stripped from all OpenAI model responses (#192)
 

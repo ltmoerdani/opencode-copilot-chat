@@ -1,6 +1,5 @@
 **Status:** ✅ Solved
-
-# Muse Spark stream completion without [DONE] / finish_reason
+**Landed:** PR #187 (Barragek0/patch-2, merge `b2f1084`)
 
 **Topic:** streaming / transport / responses-api / muse-spark
 **Updated:** 2026-08-22

@@ -1,10 +1,15 @@
 # 🧠 OPENCODE COPILOT CHAT DEVLOG
 
-**Branch:** `main` | **Updated:** 2026-08-26 Asia/Jakarta | **Current Phase:** PR #188–#191 merged; #192 (whitespace fix) + docs sync complete. Open: PR #161 (restore API key command).
+**Branch:** `main` | **Updated:** 2026-08-26 Asia/Jakarta | **Current Phase:** PR #193–#195 merged (try-again Zen fix + whitespace fix + review loop). Open: PR #161 (restore API key command).
 
 ---
 
-## ✅ #192 whitespace fix + docs sync — 2026-08-26
+## ✅ PR #192–#195 — Whitespace fix + try-again Zen fix + docs sync — 2026-08-26
+
+**Merged (all merge commits, no squash):**
+
+- **PR #194** (ltmoerdani, `fix/issue-192-responses-whitespace-stripped`) — Whitespace preservation in Responses API streams. `firstStringRaw()` helper without `.trim()` for text/reasoning deltas. 8 new tests. Merge `717f6b5`.
+- **PR #195** (ltmoerdani, `fix/issue-193-try-again-zen-stream-truncation`) — "Try again" popup no longer appears after content is delivered on OpenCode Zen. Removed redundant `hasCompletePendingWork` guard — the transport's `finally` block already handles incomplete tool calls. Merge `e31a155`.
 
 **Direct fix (no PR):** Response whitespace stripping on OpenAI models (#192).
 
@@ -13,17 +18,13 @@
 - **Tests:** 8 new tests in `src/test/routing.test.ts` covering trailing spaces, leading spaces, multi-chunk accumulation, newlines/tabs, empty deltas, and a realistic 8-chunk scenario.
 - **Verification:** `npm run compile` ✅, `npm run lint` ✅, **429/429 tests pass** ✅ (4 new + 425 existing).
 
-**Docs sync:** Created issue doc 83 (`docs/issues/83-20260826-responses-api-whitespace-stripped.md`). Added CHANGELOG `[Streaming]` Fixed entry for #192. Updated devlog header + this section.
+**Docs sync actions (this session, 2026-08-26):** audited `git log` + `gh pr list` vs `docs/issues` + CHANGELOG + devlog. Updated issue docs 78/79/84 status to ✅ Solved + added Landed refs. Created issue doc 83 for #192 (whitespace fix) and 84 for #193 (try-again Zen). Updated CHANGELOG with `[Unreleased]` section for #192/#193. Updated devlog header phase + this section.
+
+**Open PRs (tracked, not actioned):** #161 (restore API key command — buhagee).
 
 ---
 
 ## ✅ Post-0.7.0 hotfix wave (cont.) + docs sync — 2026-08-23 → 2026-08-26
-
-**Merged (all merge commits, no squash):**
-
-- **PR #188** (Fahad090NP, `fix/issue-184-incomplete-toolcall-guard`) — Incomplete tool calls from truncated streams dropped instead of executing with corrupted input. `hasCompletePendingCalls()` in `toolCallAccumulator.ts`; `flushRemainingToolCalls()` skips incomplete calls; engine throws truncation error when pending work is incomplete. Review fix: loop the 400 analyze→patch→retry up to 3 attempts (commit `2cd7342`). Doc 80 + CHANGELOG `[Streaming]` entry by contributor. Merge `cd1f683`.
-- **PR #189** (Fahad090NP, `fix/issue-183-muse-vision-fallback`) — Muse Spark 1.2 variants added to offline vision fallback list. `muse-spark-1.2-contributor` and `muse-spark-1.2-contributor-free` were missing from bundled fallback, so image attachments dropped when models.dev fetch failed. Doc 82 (new) + CHANGELOG `[Models]` entry by contributor. Merge `dd4fefb`.
-- **PR #191** (Fahad090NP, `fix/issue-190-ox-alpha-invalid-param`) — Generic `[1210] invalid input` 400s self-heal by degrading optional parameters (`stream_options` → `temperature` → image parts). `patchInvalidInput` classifier in `retry.ts`. Doc 81 + CHANGELOG `[Retry]` entry by contributor. Merge `9f3e51a`.
 
 **Docs sync actions (this session, 2026-08-26):** audited `git log` + `gh pr list` vs `docs/issues` + CHANGELOG + devlog. Created new issue doc 82 for #183 (Muse vision fallback). Updated issue docs 80/81 status to ✅ Solved + added Landed refs. Updated CHANGELOG with PR #188, #189, #191 entries. Updated devlog header phase + this wave section.
 

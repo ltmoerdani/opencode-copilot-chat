@@ -2,15 +2,19 @@
 
 All notable changes to the **OpenCode Go BYOK Provider** extension are documented here.
 
-## [0.7.1] — 2026-08-26
-
-- **`[Retry]` Generic `[1210] invalid input` 400s now self-heal by degrading optional parameters (#190).** New models sometimes reject parameters the extension always sends (`stream_options`, `temperature`, data-URL images) without naming the offender. The HTTP-400 retry classifier gained `patchInvalidInput`: on that error shape it strips one optional parameter per attempt in least-likely-to-matter order, so the request adapts instead of hard-failing. Once nothing optional remains, real failures surface unchanged. Documented in `docs/issues/81-20260823-issue190-1210-invalid-input-degradation.md`.
+## [0.7.2] — 2026-08-26
 
 ### Fixed
 
 - **`[Streaming]` "Try again" popup no longer appears after content is delivered — applies to all providers, not just Muse Spark (#193).** The #187 fix (Muse Spark) made the engine return success when content was delivered, but only when `hasCompletePendingWork` returned `true`. The `finally` block in every transport adapter already calls `flushRemainingToolCalls()`, which drops incomplete tool calls (arguments cut mid-JSON) without emitting them (#184/#188). Since the transport handles incomplete calls, the engine-level guard was redundant — it falsely triggered a "Try again" error on OpenCode Zen (and any provider whose gateway drops the connection without `[DONE]`/`finish_reason`) after the user had already received their full response. Fix: removed the `hasCompletePendingWork` guard and the unused `hasCompletePendingToolCalls()` method; content-delivered truncation always returns success with a warning log. The `hasCompletePendingWork` option is removed from the engine interface. Documented in `docs/issues/84-20260826-issue193-try-again-zen.md`.
 
 - **`[Streaming]` All whitespace is now preserved in Responses API streams from OpenAI models (#192).** The `firstString()` helper in `normalizeResponsesStreamEvent` called `.trim()` on each `response.output_text.delta` event individually, stripping spaces between words when the caller accumulated the fragments — producing unreadable concatenated text like `thisiswhattheresponselookslike`. A new `firstStringRaw()` helper (without `.trim()`) is now used for text and reasoning deltas, while `firstString()` (with `.trim()`) stays for non-text fields (`call_id`, `stop_reason`, `arguments_delta`) where whitespace stripping is correct. Documented in `docs/issues/83-20260826-responses-api-whitespace-stripped.md`.
+
+## [0.7.1] — 2026-08-26
+
+- **`[Retry]` Generic `[1210] invalid input` 400s now self-heal by degrading optional parameters (#190).** New models sometimes reject parameters the extension always sends (`stream_options`, `temperature`, data-URL images) without naming the offender. The HTTP-400 retry classifier gained `patchInvalidInput`: on that error shape it strips one optional parameter per attempt in least-likely-to-matter order, so the request adapts instead of hard-failing. Once nothing optional remains, real failures surface unchanged. Documented in `docs/issues/81-20260823-issue190-1210-invalid-input-degradation.md`.
+
+### Fixed
 
 - **`[Streaming]` Incomplete tool calls from truncated streams are now dropped instead of executing with corrupted input (#184).** When a `[DONE]`-less stream cuts tool-call arguments mid-JSON, `flushRemainingToolCalls` drops incomplete pending calls instead of emitting them. Documented in `docs/issues/80-20260823-issue184-incomplete-toolcall-guard.md`.
 

@@ -1,6 +1,7 @@
-**Status:** 🟢 Fix PR open
+**Status:** ✅ Solved
 **Fix PR:** [#186](https://github.com/ltmoerdani/opencode-copilot-chat/pull/186)
 **Related:** #181 (Ox Alpha Stealth truncation), #184 (GPT 5.6 Luna tool-call truncation), #178 (truncated-stream resilience), #180 (stream-stall resilience)
+**Landed:** PR #186 (Fahad090NP/fix/stream-truncation-retry-loop, merge `0c936e0`)
 
 # Stream truncation: retry a few times before throwing
 

@@ -1,5 +1,7 @@
-**Status:** ✅ Resolved
-**Fix PR:** (this commit)
+**Status:** ✅ Solved
+**Fix PR:** [#195](https://github.com/ltmoerdani/opencode-copilot-chat/pull/195)
+**Related:** #193
+**Landed:** PR #195 (ltmoerdani/fix/issue-193-try-again-zen-stream-truncation, merge `e31a155`)
 
 # "Try again" frequently prompted regardless of model — OpenCode Zen
 
