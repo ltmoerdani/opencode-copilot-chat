@@ -8,6 +8,8 @@ All notable changes to the **OpenCode Go BYOK Provider** extension are documente
 
 ### Fixed
 
+- **`[Streaming]` All whitespace is now preserved in Responses API streams from OpenAI models (#192).** The `firstString()` helper in `normalizeResponsesStreamEvent` called `.trim()` on each `response.output_text.delta` event individually, stripping spaces between words when the caller accumulated the fragments — producing unreadable concatenated text like `thisiswhattheresponselookslike`. A new `firstStringRaw()` helper (without `.trim()`) is now used for text and reasoning deltas, while `firstString()` (with `.trim()`) stays for non-text fields (`call_id`, `stop_reason`, `arguments_delta`) where whitespace stripping is correct. Documented in `docs/issues/83-20260826-responses-api-whitespace-stripped.md`.
+
 - **`[Streaming]` Incomplete tool calls from truncated streams are now dropped instead of executing with corrupted input (#184).** When a `[DONE]`-less stream cuts tool-call arguments mid-JSON, `flushRemainingToolCalls` drops incomplete pending calls and the engine throws a truncation error instead of returning success. The review fix loops the 400 analyze→patch→retry up to 3 attempts. Documented in `docs/issues/80-20260823-issue184-incomplete-toolcall-guard.md`.
 
 - **`[Models]` Muse Spark 1.2 variants now included in offline vision fallback (#183).** `muse-spark-1.2-contributor` and `muse-spark-1.2-contributor-free` were missing from the bundled fallback vision-capable model list, so image attachments were silently dropped when the models.dev fetch failed. Documented in `docs/issues/82-20260826-issue183-muse-vision-fallback.md`.

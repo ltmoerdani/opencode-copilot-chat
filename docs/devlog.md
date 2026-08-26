@@ -1,6 +1,19 @@
 # 🧠 OPENCODE COPILOT CHAT DEVLOG
 
-**Branch:** `main` | **Updated:** 2026-08-26 Asia/Jakarta | **Current Phase:** PR #188–#191 merged; docs/changelog/devlog sync complete. Open: PR #161 (restore API key command).
+**Branch:** `main` | **Updated:** 2026-08-26 Asia/Jakarta | **Current Phase:** PR #188–#191 merged; #192 (whitespace fix) + docs sync complete. Open: PR #161 (restore API key command).
+
+---
+
+## ✅ #192 whitespace fix + docs sync — 2026-08-26
+
+**Direct fix (no PR):** Response whitespace stripping on OpenAI models (#192).
+
+- **Root cause:** `firstString()` in `src/core/routing.ts` called `.trim()` on each `response.output_text.delta` event individually. Since the Responses API streams text in small fragments with spaces at chunk boundaries, trimming each chunk destroyed the spaces between words — producing unreadable concatenated text like `thisiswhattheresponselookslike`.
+- **Fix:** Added `firstStringRaw()` — an identical helper but **without** `.trim()`. Used for text and reasoning deltas. `firstString()` (with `.trim()`) stays for non-text fields (`call_id`, `stop_reason`, `arguments_delta`) where whitespace stripping is correct.
+- **Tests:** 8 new tests in `src/test/routing.test.ts` covering trailing spaces, leading spaces, multi-chunk accumulation, newlines/tabs, empty deltas, and a realistic 8-chunk scenario.
+- **Verification:** `npm run compile` ✅, `npm run lint` ✅, **429/429 tests pass** ✅ (4 new + 425 existing).
+
+**Docs sync:** Created issue doc 83 (`docs/issues/83-20260826-responses-api-whitespace-stripped.md`). Added CHANGELOG `[Streaming]` Fixed entry for #192. Updated devlog header + this section.
 
 ---
 
