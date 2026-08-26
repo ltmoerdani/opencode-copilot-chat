@@ -247,6 +247,9 @@ export function analyzeHttp400ForRetry(errorMessage: string, body: Record<string
   const capPatch = patchMaxTokensCap(errorMessage, body);
   if (capPatch) return capPatch;
 
+  const degradedPatch = patchInvalidInput(errorMessage, body);
+  if (degradedPatch) return degradedPatch;
+
   for (const { pattern, patch, describe } of RECOVERABLE_ERROR_PATTERNS) {
     const match = errorMessage.match(pattern);
     if (match) {
@@ -311,6 +314,76 @@ function patchMaxTokensCap(errorMessage: string, body: Record<string, unknown>):
     body: applyOutputTarget(body, target, cap),
     reason: `capped ${target.label} from ${String(target.configuredOutput)} to ${String(cap)} (upstream completion limit)`,
   };
+}
+
+/**
+ * Degrade the request when the upstream rejects it with a generic
+ * "[1210] Invalid API parameter … invalid input" (issue #190, ox-alpha-free).
+ *
+ * The gateway gives no hint WHICH parameter is invalid, so the retry strips
+ * optional parameters in order of least-likely-to-matter first, one per
+ * engine retry attempt (the engine retries the patched body once per 400):
+ *
+ *   attempt 1 → drop `stream_options` (usage accounting nicety)
+ *   attempt 2 → drop `temperature` (fall back to the model default)
+ *   attempt 3 → drop image parts (some models reject data-URL images even
+ *               when metadata claims vision support)
+ *
+ * Each patch only fires when the parameter is actually present, so the
+ * sequence naturally stops once everything optional is gone and the request
+ * fails for real.
+ */
+function patchInvalidInput(errorMessage: string, body: Record<string, unknown>): RetryPatch | undefined {
+  if (!/\[\s*1210\s*\]/.test(errorMessage) || !/invalid input|invalid api parameter/i.test(errorMessage)) {
+    return undefined;
+  }
+
+  // 1. stream_options — pure accounting hint, safest to drop.
+  if (body.stream_options !== undefined) {
+    const next = { ...body };
+    delete next.stream_options;
+    return { body: next, reason: "removed stream_options ([1210] invalid input degradation)" };
+  }
+
+  // 2. temperature — fall back to the model's own default.
+  if (body.temperature !== undefined) {
+    const next = { ...body };
+    delete next.temperature;
+    return { body: next, reason: "removed temperature ([1210] invalid input degradation)" };
+  }
+
+  // 3. Image parts — some models reject data-URL images despite metadata.
+  const messages = Array.isArray(body.messages) ? body.messages : undefined;
+  if (
+    messages?.some((m) => {
+      if (typeof m !== "object" || m === null) return false;
+      const content = (m as Record<string, unknown>).content;
+      return (
+        Array.isArray(content) &&
+        content.some((p) => typeof p === "object" && p !== null && (p as Record<string, unknown>).type === "image_url")
+      );
+    })
+  ) {
+    const nextMessages = messages.map((m) => {
+      if (typeof m !== "object" || m === null) return m as Record<string, unknown>;
+      const msg = m as Record<string, unknown>;
+      const content = msg.content;
+      if (
+        !Array.isArray(content) ||
+        !content.some((p) => typeof p === "object" && p !== null && (p as Record<string, unknown>).type === "image_url")
+      ) {
+        return msg;
+      }
+      const textParts = content
+        .filter((p): p is Record<string, unknown> => typeof p === "object" && p !== null && (p as Record<string, unknown>).type === "text")
+        .map((p) => p.text)
+        .filter((t): t is string => typeof t === "string");
+      return { ...msg, content: [{ type: "text", text: textParts.join("\n") || "[Image removed — rejected by the model]" }] };
+    });
+    return { body: { ...body, messages: nextMessages }, reason: "removed image parts ([1210] invalid input degradation)" };
+  }
+
+  return undefined;
 }
 
 interface OutputTarget {
