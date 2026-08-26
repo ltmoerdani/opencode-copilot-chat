@@ -56,7 +56,7 @@ export function normalizeResponsesStreamEvent(data: unknown): unknown {
   }
 
   if (eventType === "response.output_text.delta") {
-    const delta = firstString(data.delta, data.text, data.output_text_delta);
+    const delta = firstStringRaw(data.delta, data.text, data.output_text_delta);
     return delta
       ? {
           choices: [
@@ -370,7 +370,7 @@ function normalizeResponsesUsage(usage: unknown): Record<string, unknown> | unde
  * until the gateway relays plaintext reasoning. See `src/thinking/muse.ts`.
  */
 function extractResponsesReasoningText(data: Record<string, unknown>): string {
-  const direct = firstString(data.delta, data.text, data.summary_text, data.output_text_delta);
+  const direct = firstStringRaw(data.delta, data.text, data.summary_text, data.output_text_delta);
   if (direct) {
     return direct;
   }
@@ -445,6 +445,21 @@ function firstString(...values: unknown[]): string | undefined {
   for (const value of values) {
     if (typeof value === "string" && value.trim()) {
       return value.trim();
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Like `firstString` but WITHOUT trimming — preserves leading/trailing
+ * whitespace in the value. Used for text content deltas where trimming
+ * per-chunk destroys spaces between words (Responses API streams text
+ * in small fragments; see issue #192).
+ */
+function firstStringRaw(...values: unknown[]): string | undefined {
+  for (const value of values) {
+    if (typeof value === "string") {
+      return value;
     }
   }
   return undefined;
