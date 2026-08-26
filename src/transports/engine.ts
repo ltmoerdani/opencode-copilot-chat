@@ -498,17 +498,19 @@ export async function streamOpenCodeResponse(options: StreamOpenCodeResponseOpti
       }
       // Content was already delivered to VS Code — the response is usable even
       // though the stream lacked [DONE] / finish_reason (e.g. Muse Spark on
-      // the Responses API). Log the anomaly but don't throw, since the user
-      // already received their content and throwing after delivery creates a
-      // confusing error popup on an otherwise successful response.
+      // the Responses API, or any OpenCode Zen model whose gateway drops the
+      // connection without the sentinel). Log the anomaly but don't throw,
+      // since the user already received their content and throwing after
+      // delivery creates a confusing "Try again" error popup on an otherwise
+      // successful response (issue #193).
       //
-      // EXCEPTION (#184): when the adapter reports pending work that is NOT
-      // usable — e.g. a tool call whose arguments JSON was cut mid-stream —
-      // returning success would flush a tool call with silently-corrupted
-      // input (parseToolInput coerces truncated JSON to `{}`). Fail loudly so
-      // the user resends instead of executing a broken tool call.
-      const workIncomplete = options.hasCompletePendingWork?.() === false;
-      if (extractedPartCount > 0 && !workIncomplete) {
+      // NOTE: The transport's `finally` block already calls
+      // `flushRemainingToolCalls()`, which drops incomplete tool calls
+      // (arguments cut mid-JSON) without emitting them (#184/#188). So the
+      // engine does NOT need to guard against corrupted tool-call emission
+      // here — the transport handles it. Returning success is always safe
+      // when content was delivered.
+      if (extractedPartCount > 0) {
         options.output?.appendLine(
           `[warn] stream ended without [DONE] / finish_reason but ${String(extractedPartCount)} parts were delivered (${String(totalBytes)} bytes / ${String(totalEvents)} events)`,
         );
