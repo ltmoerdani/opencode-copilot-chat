@@ -44,6 +44,14 @@ import { updateRequestUsageSummary } from "./extract";
 const STREAM_FAILURE_MAX_RETRIES = 3;
 
 /**
+ * Maximum number of HTTP-400 patch retries per request. Each iteration
+ * re-analyzes the latest 400 body against the latest patched payload, so a
+ * multi-step degradation ladder (e.g. `patchInvalidInput`'s stream_options →
+ * temperature → images) can complete within one request.
+ */
+const MAX_400_PATCH_ATTEMPTS = 3;
+
+/**
  * Core streaming engine shared by every transport: performs the HTTP POST
  * (with HTTP-400 body patching and transient-5xx backoff retries), parses the
  * SSE stream, routes each event through the injected extractor, and emits a
@@ -158,7 +166,7 @@ export async function streamOpenCodeResponse(options: StreamOpenCodeResponseOpti
       setContextWindowOutputBufferForRequest(localRequestId, options.contextWindowOutputBuffer);
     }
 
-    const rawPayload = JSON.stringify(options.body);
+    let rawPayload = JSON.stringify(options.body);
 
     // Log request for debugging latency.
     options.output?.appendLine(
@@ -234,30 +242,30 @@ export async function streamOpenCodeResponse(options: StreamOpenCodeResponseOpti
 
     // --- Runtime retry for recoverable HTTP 400 errors ---
     // If the upstream rejects a parameter or reports an exact context overflow,
-    // patch the body and retry once. This handles tokenizer differences, stale
-    // models.dev metadata, and provider API changes without a hard user failure.
+    // patch the body and retry. Loops up to MAX_400_PATCH_ATTEMPTS times so
+    // multi-step degradations (e.g. the [1210] invalid-input ladder in
+    // `patchInvalidInput`: stream_options → temperature → images) can run
+    // end-to-end within a single request instead of stopping after one patch.
+    // Each iteration re-analyzes against the LATEST body (`rawPayload` is kept
+    // in sync), because the next-relevant parameter may only become visible
+    // after the previous one was removed.
     let consumedErrorBody: string | undefined;
-    if (response.status === 400) {
-      const errorDetail = await response.text();
-      consumedErrorBody = errorDetail;
+    for (let patchAttempt = 0; patchAttempt < MAX_400_PATCH_ATTEMPTS && response.status === 400; patchAttempt++) {
+      const errorDetail = consumedErrorBody ?? (await response.text());
       options.output?.appendLine(`[http-error-body] ${errorDetail.trim() ? truncateForLog(errorDetail) : "<empty>"}`);
       const parsedBody = JSON.parse(rawPayload) as Record<string, unknown>;
       const patch = analyzeHttp400ForRetry(errorDetail, parsedBody);
-      if (patch) {
-        options.output?.appendLine(`[retry] HTTP 400 recoverable: ${patch.reason}. Retrying with patched body…`);
-        payload = JSON.stringify(patch.body);
-        response = await fetchWithTransientRetry(payload);
-        options.output?.appendLine(`[retry] Response after patch: ${String(response.status)} ${response.statusText}`);
-        // If retry also returned 400, consume its body so the normal error
-        // handler below doesn't try to re-read (the stream is already consumed).
-        if (!response.ok && response.status === 400) {
-          consumedErrorBody = await response.text();
-        } else {
-          // The patched retry produced a fresh (non-consumed) body, so any
-          // stored 400 detail no longer matches the current response.
-          consumedErrorBody = undefined;
-        }
+      if (!patch) {
+        break;
       }
+      options.output?.appendLine(`[retry] HTTP 400 recoverable: ${patch.reason}. Retrying with patched body…`);
+      payload = JSON.stringify(patch.body);
+      rawPayload = payload;
+      response = await fetchWithTransientRetry(payload);
+      options.output?.appendLine(`[retry] Response after patch: ${String(response.status)} ${response.statusText}`);
+      // If the retry also returned 400, consume its body so the next loop
+      // iteration (or the error handler below) doesn't try to re-read it.
+      consumedErrorBody = !response.ok && response.status === 400 ? await response.text() : undefined;
     }
 
     // --- Transient 5xx retry (gateway/router capacity) ---
