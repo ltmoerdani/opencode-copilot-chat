@@ -125,6 +125,41 @@ export class ToolCallAccumulator {
   }
 
   /**
+   * Whether every named pending tool call carries usable, parseable
+   * arguments. A stream cut mid-tool-call leaves a truncated JSON fragment
+   * that `parseToolInput` would silently coerce to `{}` — executing the tool
+   * with empty input is worse than failing the request, so callers can check
+   * this before treating an unterminated stream as successful.
+   *
+   * Rules:
+   * - No pending calls → `true` (nothing to invalidate).
+   * - Nameless fragments are ignored (same as `flush()`).
+   * - Empty arguments string → COMPLETE: gateways legitimately send no
+   *   arguments delta for tools that take no parameters (Copilot's own loop
+   *   normalizes `arguments === ''` to `'{}'` — see toolCallingLoop.ts).
+   * - Non-empty but invalid JSON → incomplete (stream cut mid-args).
+   */
+  hasCompletePendingCalls(): boolean {
+    for (const call of this.pending.values()) {
+      if (!call.name) {
+        continue;
+      }
+      if (!call.arguments.trim()) {
+        continue;
+      }
+      try {
+        const parsed: unknown = JSON.parse(call.arguments);
+        if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+          return false;
+        }
+      } catch {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /**
    * Flush any remaining accumulated tool calls at end-of-stream. Used for
    * gateways that omit the final `finish_reason: "tool_calls"` event. Safe
    * no-op when nothing is pending.

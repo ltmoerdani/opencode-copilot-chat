@@ -24,6 +24,16 @@ interface StreamOpenCodeResponseOptions extends StreamRequestOptions {
    * set by transport adapters.
    */
   streamFailureRetryAttempt?: number;
+  /**
+   * Optional consult before the engine treats an unterminated `[DONE]`
+   * -transport stream (content already delivered) as successful. Returns
+   * `true` when everything received is usable — e.g. all pending tool calls
+   * carry complete, parseable arguments. When it returns `false` the engine
+   * throws the truncation error instead, because flushing half-streamed tool
+   * arguments would execute the tool with silently-corrupted input (#184).
+   * Absent → the stream is treated as successful (pre-#184 behavior).
+   */
+  hasCompletePendingWork?: () => boolean;
 }
 
 interface RequestUsageSummary {

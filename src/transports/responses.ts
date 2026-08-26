@@ -25,6 +25,11 @@ export async function streamResponsesApi(options: StreamRequestOptions): Promise
       usesDoneSentinel: true,
       extractStreamParts: (data) => extractor.extractStreamParts(normalizeResponsesStreamEvent(data)),
       extractFullParts: (data) => extractChatCompletionParts(normalizeResponsesFullResponse(data)),
+      // Muse Spark / GPT 5.6 luna close the Responses stream without [DONE] /
+      // finish_reason. Content-only streams are treated as successful (#187),
+      // but a stream cut mid-tool-call would flush truncated JSON arguments
+      // that silently become `{}` input — fail loudly instead (#184).
+      hasCompletePendingWork: () => extractor.hasCompletePendingToolCalls(),
     });
   } finally {
     // Flush accumulated tool calls / reasoning even when the engine throws
