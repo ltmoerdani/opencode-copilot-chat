@@ -1,6 +1,7 @@
-**Status:** 🟢 Fix PR open
+**Status:** ✅ Solved
 **Fix PR:** [#191](https://github.com/ltmoerdani/opencode-copilot-chat/pull/191)
 **Related:** #190
+**Landed:** PR #191 (Fahad090NP/fix/issue-190-ox-alpha-invalid-param, merge `9f3e51a`)
 
 # Degrade optional parameters on `[1210] invalid input` 400s
 

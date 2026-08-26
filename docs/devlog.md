@@ -1,10 +1,24 @@
 # 🧠 OPENCODE COPILOT CHAT DEVLOG
 
-**Branch:** `main` | **Updated:** 2026-08-23 Asia/Jakarta | **Current Phase:** PR #158–#187 merged; docs/changelog/devlog sync complete. Open: PR #161 (restore API key command).
+**Branch:** `main` | **Updated:** 2026-08-26 Asia/Jakarta | **Current Phase:** PR #188–#191 merged; docs/changelog/devlog sync complete. Open: PR #161 (restore API key command).
 
 ---
 
-## ✅ Streaming-resilience + refactor wave — 2026-08-21 → 2026-08-22
+## ✅ Post-0.7.0 hotfix wave (cont.) + docs sync — 2026-08-23 → 2026-08-26
+
+**Merged (all merge commits, no squash):**
+
+- **PR #188** (Fahad090NP, `fix/issue-184-incomplete-toolcall-guard`) — Incomplete tool calls from truncated streams dropped instead of executing with corrupted input. `hasCompletePendingCalls()` in `toolCallAccumulator.ts`; `flushRemainingToolCalls()` skips incomplete calls; engine throws truncation error when pending work is incomplete. Review fix: loop the 400 analyze→patch→retry up to 3 attempts (commit `2cd7342`). Doc 80 + CHANGELOG `[Streaming]` entry by contributor. Merge `cd1f683`.
+- **PR #189** (Fahad090NP, `fix/issue-183-muse-vision-fallback`) — Muse Spark 1.2 variants added to offline vision fallback list. `muse-spark-1.2-contributor` and `muse-spark-1.2-contributor-free` were missing from bundled fallback, so image attachments dropped when models.dev fetch failed. Doc 82 (new) + CHANGELOG `[Models]` entry by contributor. Merge `dd4fefb`.
+- **PR #191** (Fahad090NP, `fix/issue-190-ox-alpha-invalid-param`) — Generic `[1210] invalid input` 400s self-heal by degrading optional parameters (`stream_options` → `temperature` → image parts). `patchInvalidInput` classifier in `retry.ts`. Doc 81 + CHANGELOG `[Retry]` entry by contributor. Merge `9f3e51a`.
+
+**Docs sync actions (this session, 2026-08-26):** audited `git log` + `gh pr list` vs `docs/issues` + CHANGELOG + devlog. Created new issue doc 82 for #183 (Muse vision fallback). Updated issue docs 80/81 status to ✅ Solved + added Landed refs. Updated CHANGELOG with PR #188, #189, #191 entries. Updated devlog header phase + this wave section.
+
+**Open PRs (tracked, not actioned):** #161 (restore API key command — buhagee).
+
+---
+
+## ✅ Post-0.7.0 hotfix wave + docs sync — 2026-08-22 → 2026-08-23
 
 **Merged (all merge commits, no squash):**
 
@@ -18,18 +32,6 @@
 **Docs sync actions (this session, 2026-08-22):** audited `git log` + `gh pr list` vs `docs/issues` + CHANGELOG + devlog after pulling `a8556ba`. Issue docs 68–70, 75–77 and all CHANGELOG entries were already complete from contributors — the only gaps were here in devlog: header phase updated (#158–#180, PR #170 no longer open), this wave section added, and 3 missing merge rows added to Completed History (PR #170, #174, #175).
 
 **Open PRs (tracked, not actioned):** #161 (restore API key command — buhagee).
-
----
-
-## ✅ Post-0.7.0 hotfix wave + docs sync — 2026-08-22 → 2026-08-23
-
-**Merged (all merge commits, no squash):**
-
-- **PR #185** (Barragek0, `patch-1`) — Deprecated-model gateway cross-check (#182): `models.dev` `status: deprecated` no longer hides models the gateway still serves; only hides when BOTH sources agree. Follow-up doc update notes `deepseek-v4-flash-free` is listed-but-broken upstream (not fixable extension-side); `laguna-s-2.1-free` works. New tests in `src/test/deprecatedFilter.test.ts`. Doc 78 (#182) + CHANGELOG `[Models]` entry by contributor. Merge `f0b3c04`.
-- **PR #186** (Fahad090NP, `fix/stream-truncation-retry-loop`) — Bounded 3-attempt retry loop for pre-content truncation/stall (#181), shared budget across both failure modes, still gated on zero emitted parts (no content duplication). Doc `78-20260822-ox-alpha-truncation-retry.md` + CHANGELOG `[Streaming]` entry by contributor. Merge `0c936e0`.
-- **PR #187** (Barragek0, `patch-2`) — Muse Spark stream completion fix: when content was already delivered, a stream ending without `[DONE]`/`finish_reason` now logs a `[warn]` and returns successfully instead of throwing the confusing "stream ended before completion" popup (a #178 regression — Muse Spark's Responses API gateway simply omits the termination signals). `extractedPartCount > 0` branch in `src/transports/engine.ts`. Doc 79 + CHANGELOG `[Streaming]` entry by contributor. Merge `b2f1084`.
-
-**Docs sync actions (this session, 2026-08-23):** audited `git log` + `gh pr list` (only #161 open) vs `docs/issues` + CHANGELOG + devlog. All issue docs and CHANGELOG entries for #175–#187 were already complete from contributors — the only gaps were here in devlog and two PR cross-references: this wave section + 3 Completed History rows added; `Landed:` PR refs added to issue docs 78 (#182) and 79 (Muse Spark).
 
 ---
 

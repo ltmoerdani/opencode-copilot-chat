@@ -2,11 +2,15 @@
 
 All notable changes to the **OpenCode Go BYOK Provider** extension are documented here.
 
-## [Unreleased]
+## [0.7.1] — 2026-08-26
 
 - **`[Retry]` Generic `[1210] invalid input` 400s now self-heal by degrading optional parameters (#190).** New models sometimes reject parameters the extension always sends (`stream_options`, `temperature`, data-URL images) without naming the offender. The HTTP-400 retry classifier gained `patchInvalidInput`: on that error shape it strips one optional parameter per attempt in least-likely-to-matter order, so the request adapts instead of hard-failing. Once nothing optional remains, real failures surface unchanged. Documented in `docs/issues/81-20260823-issue190-1210-invalid-input-degradation.md`.
 
 ### Fixed
+
+- **`[Streaming]` Incomplete tool calls from truncated streams are now dropped instead of executing with corrupted input (#184).** When a `[DONE]`-less stream cuts tool-call arguments mid-JSON, `flushRemainingToolCalls` drops incomplete pending calls and the engine throws a truncation error instead of returning success. The review fix loops the 400 analyze→patch→retry up to 3 attempts. Documented in `docs/issues/80-20260823-issue184-incomplete-toolcall-guard.md`.
+
+- **`[Models]` Muse Spark 1.2 variants now included in offline vision fallback (#183).** `muse-spark-1.2-contributor` and `muse-spark-1.2-contributor-free` were missing from the bundled fallback vision-capable model list, so image attachments were silently dropped when the models.dev fetch failed. Documented in `docs/issues/82-20260826-issue183-muse-vision-fallback.md`.
 
 - **`[Streaming]` Muse Spark no longer throws "stream ended before completion" after delivering content (#178 regression).** The truncated-stream detector from #178 flags streams that end without `[DONE]` or `finish_reason`. Muse Spark on the Responses API delivers content (text, tool calls) but closes the connection without either signal — a gateway quirk, not a failure. The engine now logs a warning and returns successfully when content was already delivered, instead of throwing an error popup on an otherwise complete response. Documented in `docs/issues/79-20260822-issue-muse-spark-stream-completion.md`.
 

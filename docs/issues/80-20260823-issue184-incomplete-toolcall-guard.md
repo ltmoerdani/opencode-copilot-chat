@@ -1,6 +1,7 @@
-**Status:** 🟢 Fix PR open
+**Status:** ✅ Solved
 **Fix PR:** [#188](https://github.com/ltmoerdani/opencode-copilot-chat/pull/188)
 **Related:** #184 (GPT 5.6 luna tool calling), #187 (don't throw after content delivered)
+**Landed:** PR #188 (Fahad090NP/fix/issue-184-incomplete-toolcall-guard, merge `cd1f683`)
 
 # Fail loudly when a `[DONE]`-less stream cuts tool-call arguments
 
