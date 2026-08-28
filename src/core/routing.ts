@@ -131,6 +131,29 @@ export function normalizeResponsesStreamEvent(data: unknown): unknown {
       : { choices: [] };
   }
 
+  // response.output_text.done carries the complete text for a content block.
+  // Models that skip per-token deltas (e.g. Muse Spark) deliver their entire
+  // text response here. The extractor emits it only when no delta text arrived.
+  if (eventType === "response.output_text.done") {
+    const text = firstStringRaw(data.text);
+    return text ? { choices: [{ index: 0, delta: { responseDoneText: text }, finish_reason: null }] } : { choices: [] };
+  }
+
+  if (eventType === "response.output_item.done") {
+    const item = data.item;
+    if (isRecord(item) && item.type === "message" && Array.isArray(item.content)) {
+      let text = "";
+      for (const part of item.content) {
+        if (isRecord(part) && part.type === "output_text" && typeof part.text === "string") {
+          text += part.text;
+        }
+      }
+      if (text) {
+        return { choices: [{ index: 0, delta: { responseDoneText: text }, finish_reason: null }] };
+      }
+    }
+  }
+
   if (eventType === "response.completed") {
     const response = isRecord(data.response) ? data.response : data;
     const usage = normalizeResponsesUsage(response.usage);
@@ -139,7 +162,7 @@ export function normalizeResponsesStreamEvent(data: unknown): unknown {
         {
           index: 0,
           delta: {},
-          finish_reason: normalizeResponsesFinishReason(firstString(response.stop_reason, data.stop_reason)),
+          finish_reason: normalizeResponsesFinishReason(firstString(response.stop_reason, data.stop_reason)) ?? "stop",
         },
       ],
       ...(usage ? { usage } : {}),

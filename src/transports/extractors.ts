@@ -295,6 +295,21 @@ class OpenAiResponseExtractor extends BaseResponseExtractor {
           this.handleReasoning(reasoning);
         }
       }
+      // Models that skip per-token deltas deliver the complete text in a
+      // "done" event (responseDoneText). Only emit when no delta text arrived
+      // to prevent duplicate output on models that send both delta and done.
+      const responseDoneText = typeof delta.responseDoneText === "string" ? delta.responseDoneText : undefined;
+      if (responseDoneText && this.emittedTextLength === 0) {
+        const { visible: doneVisible, thinking: doneThinking } = this.filterText(responseDoneText);
+        if (doneVisible) {
+          this.emittedTextLength += doneVisible.length;
+          parts.push(new vscode.LanguageModelTextPart(doneVisible));
+        }
+        if (doneThinking) {
+          this.handleReasoning(doneThinking);
+        }
+      }
+
       this.collectOpenAiToolCalls(delta.tool_calls);
     }
 

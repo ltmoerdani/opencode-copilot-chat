@@ -49,11 +49,46 @@ describe("normalizeResponsesStreamEvent — finish_reason mapping", () => {
     assert.equal(result.choices[0]?.finish_reason, "stop");
   });
 
-  it("returns null finish_reason when no stop_reason is present", () => {
+  it("defaults finish_reason to 'stop' when no stop_reason is present", () => {
     const result = normalizeResponsesStreamEvent({ type: "response.completed", response: {} }) as {
       choices: { finish_reason: string | null }[];
     };
-    assert.equal(result.choices[0]?.finish_reason, null);
+    assert.equal(result.choices[0]?.finish_reason, "stop");
+  });
+});
+
+describe("normalizeResponsesStreamEvent — output_text.done and output_item.done (#197)", () => {
+  before(async () => {
+    const routing = await import("../core/routing.js");
+    normalizeResponsesStreamEvent = routing.normalizeResponsesStreamEvent;
+  });
+
+  it("maps response.output_text.done to responseDoneText in delta", () => {
+    const result = normalizeResponsesStreamEvent({ type: "response.output_text.done", text: "Hello!" }) as {
+      choices: { delta: { responseDoneText: string } }[];
+    };
+    assert.equal(result.choices[0]?.delta.responseDoneText, "Hello!");
+  });
+
+  it("maps response.output_item.done (message) to responseDoneText", () => {
+    const result = normalizeResponsesStreamEvent({
+      type: "response.output_item.done",
+      item: { type: "message", content: [{ type: "output_text", text: "Hi there!" }] },
+    }) as { choices: { delta: { responseDoneText: string } }[] };
+    assert.equal(result.choices[0]?.delta.responseDoneText, "Hi there!");
+  });
+
+  it("ignores response.output_item.done for non-message items", () => {
+    const result = normalizeResponsesStreamEvent({
+      type: "response.output_item.done",
+      item: { type: "function_call", name: "get_weather" },
+    }) as { choices: unknown[] };
+    assert.equal(result.choices.length, 0);
+  });
+
+  it("returns empty choices for response.output_text.done with no text", () => {
+    const result = normalizeResponsesStreamEvent({ type: "response.output_text.done" }) as { choices: unknown[] };
+    assert.equal(result.choices.length, 0);
   });
 });
 

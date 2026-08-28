@@ -201,12 +201,63 @@ describe("OpenAiResponseExtractor — reasoning surfacing invariants (issue #196
   });
 });
 
+describe("OpenAiResponseExtractor — responseDoneText fallback for delta-less models (#197)", () => {
+  before(async () => {
+    const extractors = await import("../transports/extractors.js");
+    OpenAiResponseExtractor = extractors.OpenAiResponseExtractor;
+  });
+
+  function makeExtractor() {
+    return new OpenAiResponseExtractor(undefined, undefined, undefined, undefined, undefined, undefined, false);
+  }
+
+  it("emits text from responseDoneText when no delta text was seen", () => {
+    const extractor = makeExtractor();
+    const parts = extractor.extractStreamParts({
+      choices: [{ index: 0, delta: { responseDoneText: "Hello!" }, finish_reason: null }],
+    }) as { value?: string }[];
+    assert.equal(parts.length, 1);
+    assert.equal(parts[0].value, "Hello!");
+  });
+
+  it("skips responseDoneText when delta text was already emitted", () => {
+    const extractor = makeExtractor();
+    // Emit text via delta first
+    extractor.extractStreamParts({ choices: [{ index: 0, delta: { content: "Hi " }, finish_reason: null }] });
+    // Now responseDoneText should be skipped (would duplicate)
+    const parts = extractor.extractStreamParts({
+      choices: [{ index: 0, delta: { responseDoneText: "Hi there!" }, finish_reason: null }],
+    }) as unknown[];
+    assert.equal(parts.length, 0);
+  });
+
+  it("ignores empty responseDoneText", () => {
+    const extractor = makeExtractor();
+    const parts = extractor.extractStreamParts({
+      choices: [{ index: 0, delta: { responseDoneText: "" }, finish_reason: null }],
+    }) as unknown[];
+    assert.equal(parts.length, 0);
+  });
+});
+
 describe("updateRequestUsageSummary — Responses nested usage", () => {
   let updateRequestUsageSummary: typeof import("../transports/extract.js").updateRequestUsageSummary;
 
   before(async () => {
     const mod = await import("../transports/extract.js");
     updateRequestUsageSummary = mod.updateRequestUsageSummary;
+  });
+
+  it("sets finishReason to 'stop' on response.completed without stop_reason", () => {
+    const summary: { finishReason?: string } = {};
+    updateRequestUsageSummary(summary, { type: "response.completed", response: {} });
+    assert.equal(summary.finishReason, "stop");
+  });
+
+  it("sets finishReason from stop_reason on response.completed", () => {
+    const summary: { finishReason?: string } = {};
+    updateRequestUsageSummary(summary, { type: "response.completed", response: { stop_reason: "completed" } });
+    assert.equal(summary.finishReason, "completed");
   });
 
   it("reads usage from response.usage (Responses response.completed)", () => {
