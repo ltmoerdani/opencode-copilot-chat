@@ -3,12 +3,13 @@
 # Discussion #118: DeepSeek V4 Reasoning Text Leaks into Chat (Multi-Factor Regression Analysis)
 
 **Topic:** thinking / reasoning / streaming / regression / deepseek / community
-**Updated:** 2026-08-26
+**Updated:** 2026-08-28
 **Tags:** #thinking #reasoning #deepseek #regression #streaming #gateway #community
 **GitHub Discussion:** [#118](https://github.com/ltmoerdani/opencode-copilot-chat/discussions/118)
+**GitHub Issue:** [#196](https://github.com/ltmoerdani/opencode-copilot-chat/issues/196)
 **Reported by:** [@druellan](https://github.com/druellan)
 **Confirmed by:** [@weizhen25](https://github.com/weizhen25)
-**Status:** ✅ Solved per reporter (v0.7.x)
+**Status:** ✅ Solved per reporter (v0.7.x) · ✅ Regression #3 residual gap FIXED (2026-08-28, see "Final Resolution")
 
 ---
 
@@ -49,14 +50,14 @@ A full git history audit (80+ commits touching thinking/reasoning from May–Aug
 
 ### 🔴 Regression #3: God File Split Altered `flushReasoningFallback()` Behavior
 
-| Aspect         | Detail                                                                                                                                                                                   |
-| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Timeline**   | Aug 14, 2026                                                                                                                                                                             |
-| **Event**      | PR #155: `streaming.ts` (1620 lines) → `src/transports/` domain folder                                                                                                                   |
-| **Breakage**   | `flushReasoningFallback()` logic changed. Reasoning was **silently dropped** when no `progress` sink was available                                                                       |
-| **Symptom**    | Reasoning neither appeared in thinking panel NOR as visible text. But in the fallback path (when `thinkingPartConstructor` unavailable), reasoning could leak as `LanguageModelTextPart` |
-| **Fix**        | `da881c9` (Aug 14 23:24): "don't drop reasoning when there is no progress sink"                                                                                                          |
-| **Root cause** | God file split altered subtle behavior that the test suite (310 tests) didn't catch                                                                                                      |
+| Aspect         | Detail                                                                                                                                                                                                                 |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Timeline**   | Aug 14, 2026                                                                                                                                                                                                           |
+| **Event**      | PR #155: `streaming.ts` (1620 lines) → `src/transports/` domain folder                                                                                                                                                 |
+| **Breakage**   | `flushReasoningFallback()` logic changed. Reasoning was **silently dropped** when no `progress` sink was available                                                                                                     |
+| **Symptom**    | Reasoning neither appeared in thinking panel NOR as visible text. But in the fallback path (when `thinkingPartConstructor` unavailable), reasoning could leak as `LanguageModelTextPart`                               |
+| **Fix**        | `da881c9` (Aug 14 23:24): "don't drop reasoning when there is no progress sink". Residual gap (sink absent at construction despite constructor present) fixed 2026-08-28 per issue #196 — see "Final Resolution" below |
+| **Root cause** | God file split altered subtle behavior that the test suite (310 tests) didn't catch                                                                                                                                    |
 
 **Relevance to #118:** This is the most likely direct cause of druellan's intermittent symptom. When `progress` sink is absent in certain VS Code contexts (Agents window, certain Copilot Chat configurations), reasoning could either be silently dropped or leak as visible text depending on the fallback path.
 
@@ -123,6 +124,8 @@ Aug 20  ── GLM 5.3 force thinking on                               ✅
 Aug 21  ── Flush reasoning in finally on engine throw              ✅
 Aug 22  ── Retry idle-stalled streams                              ✅
 Aug 26  ── "Try again" popup fix (#193)                            ✅
+Aug 28  ── Issue #196: residual flushReasoningFallback gap fixed   ✅
+           + 3 regression tests + drop-path warning log
 ```
 
 ---
@@ -131,15 +134,39 @@ Aug 26  ── "Try again" popup fix (#193)                            ✅
 
 The combination of fixes that collectively resolved the issue:
 
-| Fix                                                   | Version | What it fixed                                     |
-| ----------------------------------------------------- | ------- | ------------------------------------------------- |
-| PR #123: DeepSeek reasoning_content echo              | 0.5.2   | Multi-turn 400 error eliminated                   |
-| PR #126: typeof guard + unit tests                    | 0.5.2   | Reasoning history stability                       |
-| PR #150: DeepSeek reasoning → thinking block          | 0.7.0   | Reasoning never visible text                      |
-| PR #155: Per-provider thinking strategy               | 0.7.0   | Each model family has `treatReasoningAsContent()` |
-| PR #155: Single config authority                      | 0.7.0   | Thinking effort model A doesn't leak to model B   |
-| `da881c9`: Don't drop reasoning without progress sink | 0.7.0   | Reasoning not silently dropped                    |
-| #193: "Try again" popup fix                           | 0.7.2   | False positive truncation eliminated              |
+| Fix                                                   | Version | What it fixed                                          |
+| ----------------------------------------------------- | ------- | ------------------------------------------------------ |
+| PR #123: DeepSeek reasoning_content echo              | 0.5.2   | Multi-turn 400 error eliminated                        |
+| PR #126: typeof guard + unit tests                    | 0.5.2   | Reasoning history stability                            |
+| PR #150: DeepSeek reasoning → thinking block          | 0.7.0   | Reasoning never visible text                           |
+| PR #155: Per-provider thinking strategy               | 0.7.0   | Each model family has `treatReasoningAsContent()`      |
+| PR #155: Single config authority                      | 0.7.0   | Thinking effort model A doesn't leak to model B        |
+| `da881c9`: Don't drop reasoning without progress sink | 0.7.0   | Reasoning not silently dropped                         |
+| #193: "Try again" popup fix                           | 0.7.2   | False positive truncation eliminated                   |
+| #196: `flushReasoningFallback()` residual gap fix     | Unrel.  | Reasoning not dropped when sink absent at construction |
+
+---
+
+## Final Resolution (2026-08-28, issue #196)
+
+The hotfix `da881c9` (Aug 14) closed the most visible part of Regression #3, but a full re-verification against the current source revealed a **residual gap** in `flushReasoningFallback()` (`src/transports/extractors.ts`):
+
+- **Happy path:** `thinkingPartConstructor && this.progress` → reasoning emitted as `ThinkingPart` via progress. ✅
+- **Residual gap (fixed):** `thinkingPartConstructor` available but `progress` sink absent at construction → buffered reasoning fell through to the legacy fallback and was **silently dropped** (no thinking panel, no visible text, no log). ❌
+- **Legacy path:** no constructor → reasoning surfaced as `TextPart` (leak) or dropped. Now logs a warning.
+
+**Fix applied (this session):**
+
+1. New branch in `flushReasoningFallback()`: when the constructor exists but the sink does not, emit via `reportProgressPart(localRequestId, progress, new thinkingPartConstructor(reasoning))` so the reasoning always reaches the thinking block.
+2. The legacy drop path now logs `[warn] N chars of reasoning dropped: thinking API unavailable and response has visible content` — silent loss is now diagnosable.
+3. 3 regression tests added in `src/test/extractors.test.ts` (suite `OpenAiResponseExtractor — reasoning surfacing invariants (issue #196)`), using shape-based part checks (not `instanceof`, for mock compatibility):
+   - `reasoning_content + content` → ThinkingPart via progress, text in returned parts
+   - `reasoning_content` only → ThinkingPart via progress, empty returned parts
+   - no progress sink at construction → flush emits ThinkingPart, not TextPart
+
+**Verification:** `npm run compile` clean, `npm run lint` 7/7 pass, 432/432 unit tests pass.
+
+**Remaining upstream (not fixable extension-side):** gateway bug #37635 (all output wrapped in `reasoning_content` on Go) — mitigated by the `treatReasoningAsContent` workaround.
 
 ---
 
@@ -156,8 +183,8 @@ Every time a large file is refactored/split, subtle behavior in the reasoning pi
 
 ## Recommendations
 
-1. **Add integration test** for reasoning surfacing: send request to mock gateway → verify output parts contain `LanguageModelThinkingPart` (not `LanguageModelTextPart`) for reasoning models
-2. **Add logging** in `flushReasoningFallback()` when fallback path activates, so users can diagnose why reasoning isn't appearing
+1. ~~**Add integration test** for reasoning surfacing~~ → **DONE (2026-08-28):** 3 shape-based regression tests added in `src/test/extractors.test.ts` (issue #196 suite). Broader mock-gateway E2E still an option.
+2. ~~**Add logging** in `flushReasoningFallback()` when fallback path activates~~ → **DONE (2026-08-28):** legacy drop path now logs a `[warn]` with the dropped char count.
 3. **Create regression checklist** for any refactor touching `extractors.ts`, `thinkTags.ts`, or `streamParts.ts`. Must verify all model families
 4. **Monitor gateway bug #37635**: if OpenCode fixes the server-side issue, the `treatReasoningAsContent` workaround can be simplified
 

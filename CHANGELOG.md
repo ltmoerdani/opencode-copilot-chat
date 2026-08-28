@@ -2,6 +2,12 @@
 
 All notable changes to the **OpenCode Go BYOK Provider** extension are documented here.
 
+## [Unreleased]
+
+### Fixed
+
+- **`[Thinking]` Reasoning is never silently dropped when the `progress` sink is unavailable (#196, Discussion #118).** After the god file split (PR #155), `flushReasoningFallback()` only emitted buffered `reasoning_content` as a `LanguageModelThinkingPart` when both the thinking-part constructor AND a `progress` sink were present at construction time. When the sink was missing (Agents window, certain Copilot Chat contexts) but the constructor was available, the buffered reasoning hit the legacy fallback path and was **silently dropped** — neither in the thinking panel nor as visible text. Fix: a new branch emits the reasoning via `reportProgressPart` with the constructor even without a construction-time sink, and the legacy drop path now logs a warning (`N chars of reasoning dropped`) so silent loss is diagnosable. Adds 3 regression tests in `src/test/extractors.test.ts` asserting the reasoning-surfacing invariants (reasoning → ThinkingPart via progress, never a TextPart, with and without a construction-time sink). Full analysis in `docs/issues/85-20260826-discussion118-deepseek-reasoning-leak-regression-analysis.md` and GitHub issue [#196](https://github.com/ltmoerdani/opencode-copilot-chat/issues/196).
+
 ## [0.7.2] — 2026-08-26
 
 ### Fixed

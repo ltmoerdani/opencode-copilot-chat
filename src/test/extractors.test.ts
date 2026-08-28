@@ -122,6 +122,85 @@ describe("OpenAiResponseExtractor — truncated tool name round-trip", () => {
   });
 });
 
+describe("OpenAiResponseExtractor — reasoning surfacing invariants (issue #196)", () => {
+  let Extractor: typeof import("../transports/extractors.js").OpenAiResponseExtractor;
+
+  before(async () => {
+    const extractors = await import("../transports/extractors.js");
+    Extractor = extractors.OpenAiResponseExtractor;
+  });
+
+  // Mock parts have shape: ThinkingPart { text } vs TextPart { value } vs ToolCallPart { callId }
+  const isThinkingPart = (p: object): boolean => "text" in p && !("value" in p) && !("callId" in p);
+  const isTextPart = (p: object): boolean => "value" in p && !("text" in p);
+
+  type ProgressStub = { report: (p: object) => void };
+  function makeProgress(): { reported: object[]; progress: ProgressStub } {
+    const reported: object[] = [];
+    return {
+      reported,
+      progress: {
+        report: (p) => {
+          reported.push(p);
+        },
+      },
+    };
+  }
+
+  function reasoningDelta(reasoningContent: string, content?: string) {
+    return {
+      choices: [
+        {
+          delta: { ...(content !== undefined ? { content } : {}), reasoning_content: reasoningContent },
+          finish_reason: null,
+        },
+      ],
+    };
+  }
+
+  it("reasoning_content + content: reasoning goes to progress as ThinkingPart, text in returned parts", () => {
+    const { reported, progress } = makeProgress();
+    const extractor = new Extractor(undefined, undefined, undefined, progress, undefined, undefined, false);
+
+    const parts = extractor.extractStreamParts(reasoningDelta("thinking...", "hello"));
+
+    assert.equal(parts.length, 1, "only text part in returned array");
+    assert.ok(isTextPart(parts[0]), "returned part is TextPart");
+    assert.equal(reported.length, 1, "one progress.report call for reasoning");
+    assert.ok(isThinkingPart(reported[0]), "reported part is ThinkingPart");
+  });
+
+  it("reasoning_content only: ThinkingPart via progress, empty returned parts", () => {
+    const { reported, progress } = makeProgress();
+    const extractor = new Extractor(undefined, undefined, undefined, progress, undefined, undefined, false);
+
+    const parts = extractor.extractStreamParts(reasoningDelta("chain of thought"));
+
+    assert.equal(parts.length, 0, "nothing in returned parts");
+    assert.equal(reported.length, 1);
+    assert.ok(isThinkingPart(reported[0]));
+  });
+
+  it("no progress sink at construction: flushReasoningFallback emits ThinkingPart, not TextPart", () => {
+    const { reported: flushReported, progress: flushProgress } = makeProgress();
+    const extractor = new Extractor(
+      undefined,
+      undefined,
+      undefined,
+      undefined, // no live progress — reasoning accumulates but is never streamed
+      undefined,
+      undefined,
+      false,
+    );
+
+    extractor.extractStreamParts(reasoningDelta("thinking...", "answer"));
+    extractor.flushReasoningFallback(flushProgress, undefined);
+
+    assert.equal(flushReported.length, 1, "flush emits exactly one part");
+    assert.ok(isThinkingPart(flushReported[0]), "flushed part is ThinkingPart (not leaked as TextPart)");
+  });
+});
+
 describe("updateRequestUsageSummary — Responses nested usage", () => {
   let updateRequestUsageSummary: typeof import("../transports/extract.js").updateRequestUsageSummary;
 
