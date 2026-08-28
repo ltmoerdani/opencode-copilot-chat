@@ -2,9 +2,11 @@
 
 All notable changes to the **OpenCode Go BYOK Provider** extension are documented here.
 
-## [Unreleased]
+## [0.7.3] — 2026-08-28
 
 ### Fixed
+
+- **`[Transport]` HTTP 400 non-recoverable no longer crashes with undici "Body is unusable: Body has already been read" (#199).** The 400-patch loop refactor (0.7.2, review #191) read the error body without caching it; when `analyzeHttp400ForRetry` found nothing recoverable, the `!response.ok` handler re-read the same `Response` and the resulting TypeError swallowed the real 400 detail. Seen on `gpt-5.6-luna` (`/v1/responses`), affects every model/transport that hits a non-recoverable 400. One-line fix caches the read (`consumedErrorBody ??= errorDetail`); regression test in `src/test/engine.test.ts`. Documented in `docs/issues/87-20260828-issue199-400-body-double-read.md`.
 
 - **`[Streaming]` "Try again" error and empty replies on Muse Spark / gpt-5.6-luna — Responses API `finishReason` gap fixed (#197, #198).** `updateRequestUsageSummary` only read `finishReason` from `data.delta.stop_reason` (Anthropic) and `data.choices[0].finish_reason` (chat-completions). Raw Responses API terminal events (`{type:"response.completed",response:{stop_reason:"completed"}}`) have neither field, so `finishReason` was always `undefined` for every Responses stream without `[DONE]`. `isStreamTruncated` sees `undefined` → flags truncated → retries 3× → throws. GPT models survived because the gateway forwards `data:[DONE]`; Muse Spark (upstream Meta) and gpt-5.6-luna do not. Fix (P1): `updateRequestUsageSummary` now treats `response.completed` as a healthy terminal signal and sets `finishReason` from `response.stop_reason ?? "stop"`. Fix (P2): `normalizeResponsesStreamEvent` now handles `response.output_text.done` and `response.output_item.done` (message type) — the events where Muse Spark delivers its actual text instead of streaming deltas — mapping them to `delta.responseDoneText`; `OpenAiResponseExtractor` emits the done-text only when `emittedTextLength === 0`, preventing duplicate output on models (GPT-4o, etc.) that send both streaming deltas and the done snapshot. P1b: `?? "stop"` fallback added to the routing normalizer for defense in depth. 9 new/updated tests. Documented in `docs/issues/86-20260828-issue197-198-responses-api-finish-reason-text-extraction.md`.
 
