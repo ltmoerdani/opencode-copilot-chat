@@ -2,6 +2,12 @@
 
 All notable changes to the **OpenCode Go BYOK Provider** extension are documented here.
 
+## [Unreleased]
+
+### Fixed
+
+- **`[Models]` Block unavailable Zen free models from the picker (#203, #204).** The gateway lists `deepseek-v4-flash-free` and `laguna-s-2.1-free` but requests to them consistently fail — `Model is unavailable` (HTTP 400) for the former, `Endpoint is unavailable` (HTTP 503, upstream endpoint down) for the latter. Both added to `KNOWN_UNAVAILABLE_MODEL_IDS` so they are hidden from the picker on every path (live, cached, bundled), preventing repeated failures. Removed from the README Zen free-models table.
+
 ## [0.7.3] — 2026-08-28
 
 ### Fixed
