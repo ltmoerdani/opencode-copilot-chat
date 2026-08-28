@@ -1,6 +1,18 @@
 # 🧠 OPENCODE COPILOT CHAT DEVLOG
 
-**Branch:** `main` | **Updated:** 2026-08-28 Asia/Jakarta | **Current Phase:** Discussion #118 deep dive → issue #196 → flushReasoningFallback residual gap fixed. Open: PR #161 (restore API key command).
+**Branch:** `main` | **Updated:** 2026-08-28 Asia/Jakarta | **Current Phase:** Issue #197/#198 Responses API finishReason + text extraction fix — branch `fix/responses-api-finish-reason-text-extraction` pending PR. Open: PR #161 (restore API key command).
+
+---
+
+## ✅ Issue #197/#198 — Responses API finishReason + text extraction fix — 2026-08-28
+
+**Root cause:** Two gaps in the Responses API streaming pipeline explained the entire Muse Spark saga (#79 → #187 → #193 → #197). Gap 1: `updateRequestUsageSummary` never read `finishReason` from `response.completed` events → `isStreamTruncated` always flagged Responses streams as truncated for models without `[DONE]` → retry 3× → throw. Gap 2: `normalizeResponsesStreamEvent` did not handle `response.output_text.done` / `response.output_item.done` → Muse Spark text never extracted (0 parts) → retry loop.
+
+**Code fixes:** P1 in `extract.ts` (finishReason from `response.completed`), P1b in `routing.ts` (`?? "stop"` fallback), P2 in `routing.ts` (done event handlers) + `extractors.ts` (`responseDoneText` guard with `emittedTextLength === 0` dedup). Also affects gpt-5.6-luna (confirmed by HanHan666666 in issue #198).
+
+**Tests:** 9 new/updated tests across `extractors.test.ts` and `routing.test.ts`. **All tests pass**, `npm run lint` 7/7 ✅.
+
+**Docs:** created issue doc 86, updated CHANGELOG `[Unreleased]`, updated devlog. Branch `fix/responses-api-finish-reason-text-extraction` pending PR to main. Auto-closes #197 and #198 on merge.
 
 ---
 

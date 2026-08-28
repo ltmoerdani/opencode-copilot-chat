@@ -222,6 +222,14 @@ export function updateRequestUsageSummary(summary: RequestUsageSummary, data: un
     }
   }
 
+  // Responses API: response.completed is a terminal event — treat it as a healthy
+  // stream end regardless of whether stop_reason is present.
+  if (data.type === "response.completed") {
+    const response = isRecord(data.response) ? data.response : data;
+    summary.finishReason = typeof response.stop_reason === "string" ? response.stop_reason : "stop";
+    return;
+  }
+
   // Anthropic message_delta reports stop_reason in delta, not in choices
   const delta = isRecord(data.delta) ? data.delta : undefined;
   if (delta && typeof delta.stop_reason === "string") {
