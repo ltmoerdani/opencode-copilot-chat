@@ -2,6 +2,12 @@
 
 All notable changes to the **OpenCode Go BYOK Provider** extension are documented here.
 
+## [Unreleased]
+
+### Fixed
+
+- **`[Models]` Block unavailable `deepseek-v4-flash-free` from the model picker (#203, #204).** The gateway lists `deepseek-v4-flash-free` but requests to it consistently fail with `Upstream request failed: Model is unavailable` (HTTP 400). Added to `KNOWN_UNAVAILABLE_MODEL_IDS` so it is hidden from the picker, preventing the broken model from appearing and causing repeated failures. Removed from README model table and updated capacity-limited model note.
+
 ## [0.7.3] — 2026-08-28
 
 ### Fixed

@@ -128,14 +128,13 @@ Curated open coding models, refreshed live from the endpoint. Deprecated/legacy 
 
 ### 🆓 OpenCode Zen — Free models (no payment needed)
 
-OpenCode Zen offers **rotating free models** — no balance required. Currently free: **Big Pickle** (stealth model), DeepSeek V4 Flash Free, MiMo-V2.5 Free, Hy3 Free, Laguna S 2.1 Free, Ling-3.0-tiny Free, Nemotron 3 Ultra Free, and Nemotron 3.5 Lightning Free. Without a balance, rate limits are low. Adding $20+ to your Zen balance significantly improves rate limits on free models.
+OpenCode Zen offers **rotating free models** — no balance required. Currently free: **Big Pickle** (stealth model), MiMo-V2.5 Free, Hy3 Free, Laguna S 2.1 Free, Ling-3.0-tiny Free, Nemotron 3 Ultra Free, and Nemotron 3.5 Lightning Free. Without a balance, rate limits are low. Adding $20+ to your Zen balance significantly improves rate limits on free models.
 
 > **Note:** Per the OpenCode docs, free models are all offered **for a limited time** and rotate periodically. The table shows current offerings — availability may change.
 
 | Model                         |   Context | Max Output | Vendor     |
 | ----------------------------- | --------: | ---------: | ---------- |
 | `big-pickle`                  |   200,000 |     32,000 | 🥒 Stealth |
-| `deepseek-v4-flash-free`      |   200,000 |    128,000 | DeepSeek   |
 | `mimo-v2.5-free`              |   200,000 |     32,000 | Xiaomi     |
 | `hy3-free`                    |   190,000 |     64,000 | —          |
 | `laguna-s-2.1-free`           |   256,000 |     32,000 | —          |
