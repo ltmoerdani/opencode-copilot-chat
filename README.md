@@ -137,7 +137,6 @@ OpenCode Zen offers **rotating free models** — no balance required. Currently 
 | `big-pickle`                  |   200,000 |     32,000 | 🥒 Stealth |
 | `mimo-v2.5-free`              |   200,000 |     32,000 | Xiaomi     |
 | `hy3-free`                    |   190,000 |     64,000 | —          |
-| `laguna-s-2.1-free`           |   256,000 |     32,000 | —          |
 | `ling-3.0-tiny-free`          |   262,144 |     32,768 | —          |
 | `nemotron-3-ultra-free`       | 1,000,000 |    128,000 | NVIDIA     |
 | `nemotron-3.5-lightning-free` |   262,144 |    262,144 | NVIDIA     |
