@@ -90,20 +90,28 @@ abstract class BaseResponseExtractor {
     if (!reasoning) {
       return;
     }
-    // If the thinking part API is available AND we had a progress sink,
-    // reasoning was already streamed live during extractStreamParts via
-    // handleReasoning(). The accumulated reasoningContent is retained only
-    // for tool-call replication (flushToolCalls → onReasoningContent).
-    // Without a progress sink nothing was ever streamed, so fall through to
-    // the legacy emit path rather than silently dropping the reasoning.
+    // Happy path: ThinkingPart API available AND live streaming happened.
+    // Reasoning was already streamed per-chunk via handleReasoning(); the
+    // accumulated copy is retained only for tool-call replication.
     if (thinkingPartConstructor && this.progress) {
       this.reasoningContent = "";
       return;
     }
-    // Legacy fallback (API unavailable): emit reasoning as plain text only
-    // when the response is otherwise empty, to avoid breaking the visible
-    // output. This preserves the pre-fix safety-net semantics.
+    // ThinkingPart API available but no live stream (progress absent at
+    // construction time, e.g. non-standard call paths). Emit now via the
+    // flush-time progress sink so the thinking panel still receives it.
+    if (thinkingPartConstructor) {
+      reportProgressPart(localRequestId, progress, new thinkingPartConstructor(reasoning));
+      this.reasoningContent = "";
+      return;
+    }
+    // Legacy fallback (ThinkingPart API unavailable): emit reasoning as plain
+    // text only when the response is otherwise empty, to avoid polluting a
+    // response that already has visible content.
     if (this.emittedTextLength > 0 || this.emittedToolCallsCount > 0) {
+      this.output?.appendLine(
+        `[warn] ${String(this.totalReasoningChars)}ch of reasoning dropped: thinking API unavailable and response has visible content`,
+      );
       this.reasoningContent = "";
       return;
     }

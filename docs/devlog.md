@@ -1,6 +1,18 @@
 # 🧠 OPENCODE COPILOT CHAT DEVLOG
 
-**Branch:** `main` | **Updated:** 2026-08-26 Asia/Jakarta | **Current Phase:** PR #193–#195 merged (try-again Zen fix + whitespace fix + review loop). Open: PR #161 (restore API key command).
+**Branch:** `main` | **Updated:** 2026-08-28 Asia/Jakarta | **Current Phase:** Discussion #118 deep dive → issue #196 → flushReasoningFallback residual gap fixed. Open: PR #161 (restore API key command).
+
+---
+
+## ✅ Discussion #118 regression analysis + issue #196 fix — 2026-08-28
+
+**Deep dive:** Full git-history audit of Discussion #118 (DeepSeek V4 reasoning leaking into chat). Classified as **3 regressions + 3 independent bugs** — not a single bug. Full write-up in `docs/issues/85-20260826-discussion118-deepseek-reasoning-leak-regression-analysis.md` + GitHub issue [#196](https://github.com/ltmoerdani/opencode-copilot-chat/issues/196).
+
+**Code fix (residual gap of Regression #3):** `flushReasoningFallback()` in `src/transports/extractors.ts` only emitted buffered `reasoning_content` as a `ThinkingPart` when BOTH the thinking constructor and a construction-time `progress` sink existed. With a sink absent (Agents window contexts) the reasoning was silently dropped. Fix: new branch emits via `reportProgressPart` using the constructor even without a construction-time sink; legacy drop path now logs `[warn]` with the dropped char count.
+
+**Tests:** 3 new shape-based regression tests in `src/test/extractors.test.ts` (suite `OpenAiResponseExtractor — reasoning surfacing invariants (issue #196)`). **432/432 pass**, `npm run compile` ✅, `npm run lint` 7/7 ✅.
+
+**Docs sync actions (this session, 2026-08-28):** created issue doc 85, updated CHANGELOG `[Unreleased]`, updated devlog. Draft reply for Discussion #118 prepared (pending user approval to post).
 
 ---
 
