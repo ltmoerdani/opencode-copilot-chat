@@ -317,7 +317,12 @@ export const TRANSIENT_FETCH_RETRY_JITTER_MS = 250;
 /** Zen free-model IDs that do not end in `-free`. */
 export const FREE_ZEN_MODEL_IDS = new Set(["big-pickle"]);
 /** Models removed upstream — always filtered from the picker. */
-export const KNOWN_UNAVAILABLE_MODEL_IDS = new Set(["ring-2.6-1t", "ring-2.6-1t-free", "trinity-large-preview-free"]);
+export const KNOWN_UNAVAILABLE_MODEL_IDS = new Set([
+  "ring-2.6-1t",
+  "ring-2.6-1t-free",
+  "trinity-large-preview-free",
+  "deepseek-v4-flash-free",
+]);
 
 /**
  * Models that live on the OpenCode Zen gateway but with constrained GPU
@@ -328,7 +333,7 @@ export const KNOWN_UNAVAILABLE_MODEL_IDS = new Set(["ring-2.6-1t", "ring-2.6-1t-
  */
 export const CAPACITY_LIMITED_MODEL_NOTES: Record<string, string> = {
   "qwen3.6-plus-free":
-    "Free relaunch with limited GPU capacity. Stable for short prompts; bursty traffic or very large tool catalogs may return 5xx - retry or fall back to 'deepseek-v4-flash-free' / 'big-pickle'. Paid 'qwen3.6-plus' has no quota.",
+    "Free relaunch with limited GPU capacity. Stable for short prompts; bursty traffic or very large tool catalogs may return 5xx - retry or fall back to 'big-pickle'. Paid 'qwen3.6-plus' has no quota.",
 };
 
 // ─── Per-family thinking defaults (see thinking.ts for the schema) ───────────
