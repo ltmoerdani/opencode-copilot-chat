@@ -252,6 +252,12 @@ export async function streamOpenCodeResponse(options: StreamOpenCodeResponseOpti
     let consumedErrorBody: string | undefined;
     for (let patchAttempt = 0; patchAttempt < MAX_400_PATCH_ATTEMPTS && response.status === 400; patchAttempt++) {
       const errorDetail = consumedErrorBody ?? (await response.text());
+      // Cache the body we just read: if `analyzeHttp400ForRetry` finds nothing
+      // recoverable we break out with `response.status === 400`, and the
+      // `!response.ok` handler below must not re-read the same Response — a
+      // Fetch body can be consumed exactly once, so a second `text()` throws
+      // undici's "Body is unusable: Body has already been read" (#199).
+      consumedErrorBody ??= errorDetail;
       options.output?.appendLine(`[http-error-body] ${errorDetail.trim() ? truncateForLog(errorDetail) : "<empty>"}`);
       const parsedBody = JSON.parse(rawPayload) as Record<string, unknown>;
       const patch = analyzeHttp400ForRetry(errorDetail, parsedBody);

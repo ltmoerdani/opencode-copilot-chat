@@ -1,6 +1,18 @@
 # 🧠 OPENCODE COPILOT CHAT DEVLOG
 
-**Branch:** `main` | **Updated:** 2026-08-28 Asia/Jakarta | **Current Phase:** Issue #197/#198 Responses API finishReason + text extraction fix — branch `fix/responses-api-finish-reason-text-extraction` pending PR. Open: PR #161 (restore API key command).
+**Branch:** `main` | **Updated:** 2026-08-28 Asia/Jakarta | **Current Phase:** Issue #199 HTTP 400 body double-read fix shipped in v0.7.3. Open: PR #161 (restore API key command).
+
+---
+
+## ✅ Issue #199 — HTTP 400 non-recoverable → undici "Body has already been read" — 2026-08-28
+
+**Root cause:** Refactor `2cd7342` (0.7.2, review #191) changed the 400-patch loop in `engine.ts` to `consumedErrorBody ?? (await response.text())` and dropped the assignment caching the read body. When `analyzeHttp400ForRetry` found nothing recoverable, the loop broke with `consumedErrorBody` still `undefined`, and the `!response.ok` handler re-read the same `Response` → undici `TypeError: Body is unusable: Body has already been read`, which **swallowed the real 400 detail**. Reported on `gpt-5.6-luna` (`/v1/responses`), but affects every model/transport hitting a non-recoverable 400. Stack-trace line mapping verified against compiled `out/transports/engine.js:279`.
+
+**Code fixes:** One line in `transports/engine.ts` (`consumedErrorBody ??= errorDetail` + contract comment). Also restores the recoverable-400 auto-patch retry path that the same bug broke.
+
+**Tests:** 3 regression tests in `src/test/engine.test.ts` (non-recoverable 400 surfaces original detail; patched 400→200 SSE succeeds; patched retry→400 surfaces the LATEST body, no stale/double read). Red-green proven (fails pre-fix with the exact user-reported error). Full suite **444/444**, `npm run lint` 7/7 ✅. Shipped in **v0.7.3**.
+
+**Docs:** `docs/issues/87-20260828-issue199-400-body-double-read.md`, CHANGELOG `[0.7.3]`.
 
 ---
 
