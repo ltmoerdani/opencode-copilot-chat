@@ -61,7 +61,7 @@ function sanitizeJsonSchemaNode(value: unknown, root: Record<string, unknown>, s
     }
 
     const result: Record<string, unknown> = {};
-    for (const [key, child] of Object.entries(value)) {
+    for (const [key, child] of Object.entries(value).sort(([a], [b]) => a.localeCompare(b))) {
       if (key === "$schema" || key === "$id" || key === "$ref" || key === "$defs" || key === "definitions") {
         continue;
       }

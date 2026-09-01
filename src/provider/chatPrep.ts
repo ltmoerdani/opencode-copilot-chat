@@ -277,6 +277,25 @@ export async function prepareChatRequest(
     endpoint: routing.endpointKind === "messages" ? "messages" : routing.endpointKind === "responses" ? "responses" : "chat",
   });
   const requestHeaders = buildOpenCodeRequestHeaders(messages, options, rawModelId);
+  try {
+    const crypto = await import("crypto");
+    const prefixAnchor = apiMessages
+      .slice(0, 3)
+      .map((m) => `${m.role}:${JSON.stringify(m.content).slice(0, 2048)}`)
+      .join("\n");
+    const toolNames = [...(options.tools ?? [])]
+      .map((t) => (t as { name: string }).name)
+      .sort()
+      .join(",");
+    const prefixHash = crypto
+      .createHash("sha256")
+      .update(prefixAnchor + "|" + toolNames, "utf8")
+      .digest("hex")
+      .slice(0, 12);
+    deps.log(`[prefix-hash] ${prefixHash} messages=${String(apiMessages.length)} tools=${String(options.tools?.length ?? 0)}`);
+  } catch {
+    /* best-effort */
+  }
   const outputChannel = vscode.window.createOutputChannel("OpenCode");
   const onTransportSummary = (summary: TransportRequestSummary) => {
     // Compute credits for VS Code session cost (1 credit = $0.01).

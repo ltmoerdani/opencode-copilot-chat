@@ -33,7 +33,8 @@ export function buildGoogleGenerateContentBody(
 }
 
 function mapGoogleTools(tools: readonly vscode.LanguageModelChatTool[] | undefined): Record<string, unknown>[] {
-  return (tools ?? []).map((tool) => ({
+  const sorted = [...(tools ?? [])].sort((a, b) => a.name.localeCompare(b.name));
+  return sorted.map((tool) => ({
     name: tool.name,
     description: tool.description,
     parameters: sanitizeToolSchema(tool.inputSchema),
