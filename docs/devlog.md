@@ -1,6 +1,27 @@
 # 🧠 OPENCODE COPILOT CHAT DEVLOG
 
-**Branch:** `main` | **Updated:** 2026-08-28 Asia/Jakarta | **Current Phase:** Issue #199 HTTP 400 body double-read fix shipped in v0.7.3. Open: PR #161 (restore API key command).
+**Branch:** `main` | **Updated:** 2026-09-03 Asia/Jakarta | **Current Phase:** v0.7.4 batch — 6 community issue fixes (#204/#206/#207/#208/#213/#214) on branch `fix/issues-204-214-batch`, pending merge. Open: PR #161 (restore API key command).
+
+---
+
+## ✅ Batch v0.7.4 — Six Community Issue Fixes (#204 #206 #207 #208 #213 #214) — 2026-09-03
+
+**Scope:** one branch (`fix/issues-204-214-batch`), one atomic commit per issue, each message with `closes #N` so merging the PR auto-closes all six. Research-verified first: OpenCode Zen endpoint table (grok = responses-only), OpenAI Responses `fc_` id grammar, and prior art (issue doc 36 / PR #163 for the repetition penalty).
+
+| Issue | Root cause (verified in code)                                                                | Fix                                                                              | Commit    |
+| ----- | -------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- | --------- |
+| #204  | `deepseek-v4-flash-free` / `laguna-s-2.1-free` dead upstream but still gateway-listed        | +2 ids in `KNOWN_UNAVAILABLE_MODEL_IDS` (≈ PR #205, now redundant)               | `5c134b2` |
+| #208  | No grok row in `MODEL_REGISTRY` → catch-all routed responses-only grok to `oa-compat`        | New `grok` registry row → `responses` + routing tests                            | `1db6031` |
+| #206  | Responses `function_call.id` echoed chat-completions `call_*` ids; API requires `fc_` prefix | `responsesFunctionCallItemId()` regenerates item id, preserves `call_id` pairing | `40be420` |
+| #207  | `big-pickle` (fallback family) had no sampling guardrail → degenerate repetition             | `FallbackThinking` emits `repetition_penalty: 1.2` for pattern-explicit list     | `f5b4a72` |
+| #213  | Auto-enabled core settings survive uninstall (no uninstall hook) → "hijacked" Agents window  | `revertAgentsWindowSupport(force)` + new cleanup command                         | `7316b6d` |
+| #214  | Agent-host process scope resolution dropped user-scope thinking values to `off` defaults     | `inspect()`-based read (workspace → user → default) for all 9 thinking keys      | `609b344` |
+
+**Verification:** full suite **449/449** (incl. 8 new tests), `npm run compile` clean, staged-lint gate pass on all 7 commits, working tree clean. Audit pass fixed one JSDoc inaccuracy in the force-mode contract (`0b32f5f`).
+
+**Docs:** `docs/issues/88`–`93` (one per issue), CHANGELOG `[0.7.4]`, version bumped to `0.7.4`.
+
+**Open follow-ups:** (1) reproduce #214 root cause on insiders 1.137 — if the symptom persists, next suspect is host-supplied `modelConfiguration` override; (2) consider gating `chat.agentHost.byokModels.enabled` auto-enable on builds where the bridge works without it (1.137 report); (3) close PR #205 in favor of the batch PR (same fix, commit `5c134b2`).
 
 ---
 
