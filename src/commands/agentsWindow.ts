@@ -98,14 +98,11 @@ export async function ensureAgentsWindowSupport(context: vscode.ExtensionContext
  * With `force` (issue #213) both settings are reverted even without a
  * globalState marker — for machines where the extension was uninstalled
  * without reverting first and the flipped settings were left behind
- * ("permanently hijacked" Agents window). In force mode a user-set
- * `extensions.supportAgentsWindow` entry for THIS extension id is still
- * removed, but other extensions' entries are never touched; the
- * `chat.agentHost.byokModels.enabled` flag is only set to `false` when no
- * other extension id needs it (it is a single global flag, so a user who
- * intentionally enabled it for another BYOK provider is detected via the
- * marker's absence and the value is left alone unless it matches what we
- * would have written).
+ * ("permanently hijacked" Agents window). Other extensions'
+ * `extensions.supportAgentsWindow` entries are never touched. In force mode
+ * `chat.agentHost.byokModels.enabled` IS set to `false` unconditionally (the
+ * command is an explicit user-invoked cleanup); use the non-force variant to
+ * only revert settings this extension flipped itself.
  */
 export async function revertAgentsWindowSupport(context: vscode.ExtensionContext, options?: { force?: boolean }): Promise<void> {
   const force = options?.force === true;
