@@ -316,8 +316,18 @@ export const TRANSIENT_FETCH_RETRY_JITTER_MS = 250;
 
 /** Zen free-model IDs that do not end in `-free`. */
 export const FREE_ZEN_MODEL_IDS = new Set(["big-pickle"]);
-/** Models removed upstream — always filtered from the picker. */
-export const KNOWN_UNAVAILABLE_MODEL_IDS = new Set(["ring-2.6-1t", "ring-2.6-1t-free", "trinity-large-preview-free"]);
+/**
+ * Models removed upstream — always filtered from the picker.
+ * `deepseek-v4-flash-free` / `laguna-s-2.1-free`: gone from the Zen gateway
+ * ("Upstream request failed: Model is unavailable", issue #204 / PR #205).
+ */
+export const KNOWN_UNAVAILABLE_MODEL_IDS = new Set([
+  "ring-2.6-1t",
+  "ring-2.6-1t-free",
+  "trinity-large-preview-free",
+  "deepseek-v4-flash-free",
+  "laguna-s-2.1-free",
+]);
 
 /**
  * Models that live on the OpenCode Zen gateway but with constrained GPU
