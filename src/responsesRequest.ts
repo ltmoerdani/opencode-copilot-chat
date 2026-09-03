@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+
 export interface ResponsesRequestEnvelopeOptions {
   model: string;
   input: readonly unknown[];
@@ -76,7 +78,17 @@ export function responsesInputItemsFromMessage(message: ResponsesApiMessage): Re
     for (const toolCall of message.tool_calls ?? []) {
       items.push({
         type: "function_call",
-        id: toolCall.id,
+        // RULES: a Responses `function_call` item carries TWO identifiers —
+        // `id` is the item id, which MUST start with `fc_`, while `call_id`
+        // is the tool-invocation id that must match the paired
+        // `function_call_output.call_id`. History tool calls carry
+        // chat-completions-style `call_*` ids (from the upstream stream via
+        // VS Code's LanguageModelToolCallPart), so the item id is regenerated
+        // in the `fc_` namespace while `call_id` is preserved verbatim —
+        // echoing `call_*` back as `id` makes the gateway reject the whole
+        // request with `Invalid 'input[N].id': ... Expected an ID that begins
+        // with 'fc'` (HTTP 400, issue #206).
+        id: responsesFunctionCallItemId(toolCall.id),
         call_id: toolCall.id,
         name: toolCall.function.name,
         arguments: toolCall.function.arguments,
@@ -103,6 +115,17 @@ export function responsesInputItemsFromMessage(message: ResponsesApiMessage): Re
   }
 
   return [];
+}
+
+/**
+ * Return a Responses-API-compliant `function_call` item id. Ids already in the
+ * `fc_` namespace pass through unchanged; anything else (chat-completions
+ * `call_*` ids, gateway ids, empty strings) is replaced with a fresh `fc_`
+ * synthetic id. Deterministic per call site is not required — the id only has
+ * to be valid and unique within the request.
+ */
+export function responsesFunctionCallItemId(originalId: string): string {
+  return originalId.startsWith("fc_") ? originalId : `fc_${randomUUID().replace(/-/g, "")}`;
 }
 
 /** Narrow a union value to a content-part array without falling back to `any[]`. */

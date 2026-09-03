@@ -64,6 +64,14 @@ describe("model registry — data-driven transport routing", () => {
     assert.equal(resolveModelRouting("muse-spark-1.2-contributor-free", zenProvider).endpointUrl, zenProvider.responsesUrl);
   });
 
+  it("routes Grok to the Responses API on every vendor (issue #208)", () => {
+    for (const modelId of ["grok-4.6", "grok-4.5", "grok-build-0.1"]) {
+      assert.equal(resolveModelRouting(modelId, goProvider).endpointKind, "responses", modelId);
+      assert.equal(resolveModelRouting(modelId, goProvider).endpointUrl, goProvider.responsesUrl, modelId);
+      assert.equal(resolveModelRouting(modelId, zenProvider).endpointKind, "responses", modelId);
+    }
+  });
+
   it("defaults every other known family to chat-completions", () => {
     for (const modelId of ["deepseek-v4-flash", "glm-5.1", "kimi-k2.6", "mimo-v2.5", "qwen3.8-max"]) {
       assert.equal(resolveModelRouting(modelId, goProvider).endpointKind, "chat-completions", modelId);

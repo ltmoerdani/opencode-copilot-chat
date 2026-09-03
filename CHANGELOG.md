@@ -2,6 +2,22 @@
 
 All notable changes to the **OpenCode Go BYOK Provider** extension are documented here.
 
+## [0.7.4] — 2026-09-03
+
+### Fixed
+
+- **`[Models]` `deepseek-v4-flash-free` / `laguna-s-2.1-free` blocked — dead upstream (#204).** Both were still listed by the Zen gateway but removed upstream, so every request failed with `Upstream request failed: Model is unavailable` while cluttering the picker. Added to `KNOWN_UNAVAILABLE_MODEL_IDS` (same change as community PR #205 — that PR becomes redundant once this ships). Documented in `docs/issues/88-20260903-issue204-block-unavailable-zen-free-models.md`.
+
+- **`[Models]` Grok models now route to the Responses API (#208).** The gateway serves grok exclusively via `/v1/responses`, but `MODEL_REGISTRY` had no grok row, so the family fell to the chat-completions catch-all and every request failed with `Model grok-4.6 is not supported for format oa-compat` (the gateway misuses HTTP 401 for format errors — not an API-key problem). One new registry row covers `grok-4.6`, `grok-4.5`, and `grok-build-0.1`; routing tests added. Documented in `docs/issues/89-20260903-issue208-grok-responses-routing.md`.
+
+- **`[Responses]` History tool-call item ids are normalized to the `fc_` namespace (#206).** A Responses `function_call` item requires its `id` to start with `fc_`, but history tool calls carry chat-completions-style `call_*` ids (echoed verbatim through VS Code's `LanguageModelToolCallPart`), so any follow-up request after a tool call was rejected with `Invalid 'input[N].id': 'call_...' Expected an ID that begins with 'fc'.` on `gpt-5.6-luna`. The item id is now regenerated as a synthetic `fc_` id while `call_id` keeps the original value, keeping the pairing with `function_call_output.call_id` intact. Documented in `docs/issues/90-20260903-issue206-luna-responses-fc-id-mismatch.md`.
+
+- **`[Thinking]` Sampling `repetition_penalty: 1.2` for `big-pickle` (#207).** The stealth free model repeated the same phrase forever mid-task in ~50% of complex agent runs. `FallbackThinking` now emits the same sampling-level penalty proven for MiMo (#36 / PR #163), gated to a pattern-explicit list so no other fallback-family model is affected; `requestsThinking()` stays `false`. Documented in `docs/issues/91-20260903-issue207-big-pickle-repetition-loop.md`.
+
+- **`[Agents]` New cleanup command for leftover Agents-window core settings (#213).** The settings auto-enabled on activation (`extensions.supportAgentsWindow`, `chat.agentHost.byokModels.enabled`) survive an uninstall — VS Code has no uninstall hook — leaving OpenCode models mirrored into the Agents window with no way to remove them ("permanently hijacked", VS Code 1.137). New command **OpenCode: Clean Up Agents Window Core Settings** force-reverts both settings even without the globalState markers; other extensions' entries are never touched, and normal (non-force) revert behavior is unchanged. Documented in `docs/issues/92-20260903-issue213-agents-window-leftover-settings.md`.
+
+- **`[Thinking]` `opencodego.thinking.*` settings are now read scope-robustly (#214).** Plain `config.get()` resolves scopes via the calling process, and the Agents-window agent-host process can resolve the workspace differently — making user-scope thinking levels fall back to the baked-in `off` defaults on new chats. Thinking keys are now read via `inspect()` preferring workspace, then user scope, before the default. Root cause on insiders 1.137 still to be reproduced; doc records the follow-up if the symptom persists (host-supplied `modelConfiguration` override). Documented in `docs/issues/93-20260903-issue214-thinking-settings-scope.md`.
+
 ## [0.7.3] — 2026-08-28
 
 ### Fixed

@@ -91,12 +91,23 @@ export async function ensureAgentsWindowSupport(context: vscode.ExtensionContext
 
 /**
  * Revert the core settings that {@link ensureAgentsWindowSupport} enabled on
- * this machine (and only those — settings the user configured manually are
- * left untouched).
+ * this machine. By default only settings the extension flipped itself are
+ * restored (tracked in globalState) — settings the user configured manually
+ * are left untouched.
+ *
+ * With `force` (issue #213) both settings are reverted even without a
+ * globalState marker — for machines where the extension was uninstalled
+ * without reverting first and the flipped settings were left behind
+ * ("permanently hijacked" Agents window). Other extensions'
+ * `extensions.supportAgentsWindow` entries are never touched. In force mode
+ * `chat.agentHost.byokModels.enabled` IS set to `false` unconditionally (the
+ * command is an explicit user-invoked cleanup); use the non-force variant to
+ * only revert settings this extension flipped itself.
  */
-export async function revertAgentsWindowSupport(context: vscode.ExtensionContext): Promise<void> {
+export async function revertAgentsWindowSupport(context: vscode.ExtensionContext, options?: { force?: boolean }): Promise<void> {
+  const force = options?.force === true;
   const extensionCfg = vscode.workspace.getConfiguration("extensions");
-  if (context.globalState.get<boolean>(SUPPORT_AGENTS_WINDOW_STATE_KEY)) {
+  if (force || context.globalState.get<boolean>(SUPPORT_AGENTS_WINDOW_STATE_KEY)) {
     const support = extensionCfg.get<Record<string, boolean>>(SUPPORT_AGENTS_WINDOW_SETTING, {});
     if (support[EXTENSION_ID]) {
       const next: Record<string, boolean> = Object.fromEntries(Object.entries(support).filter(([id]) => id !== EXTENSION_ID));
@@ -109,7 +120,7 @@ export async function revertAgentsWindowSupport(context: vscode.ExtensionContext
     await context.globalState.update(SUPPORT_AGENTS_WINDOW_STATE_KEY, undefined);
   }
 
-  if (context.globalState.get<boolean>(AGENTS_BYOK_BRIDGE_STATE_KEY)) {
+  if (force || context.globalState.get<boolean>(AGENTS_BYOK_BRIDGE_STATE_KEY)) {
     await vscode.workspace
       .getConfiguration("chat.agentHost")
       .update(AGENT_HOST_BYOK_ENABLED_SETTING, false, vscode.ConfigurationTarget.Global);

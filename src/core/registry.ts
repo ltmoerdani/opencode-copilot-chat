@@ -89,6 +89,18 @@ export const MODEL_REGISTRY: ModelRegistryEntry[] = [
     sdkPackage: "@ai-sdk/openai",
     thinkingFamily: "muse",
   },
+  // Grok (xAI) → OpenAI Responses API. The OpenCode gateway serves grok
+  // models exclusively via `/v1/responses` (@ai-sdk/openai, per the Zen
+  // endpoint table) — sending them to chat-completions ("oa-compat") is
+  // rejected with "Model grok-4.6 is not supported for format oa-compat"
+  // (issue #208).
+  {
+    family: "grok",
+    patterns: [/^grok-/i, /^grok-build-/i],
+    endpointKind: "responses",
+    sdkPackage: "@ai-sdk/openai",
+    thinkingFamily: null,
+  },
   // Everything else that has a dedicated thinking strategy → chat-completions.
   {
     family: "minimax",
