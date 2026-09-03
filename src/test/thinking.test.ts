@@ -175,6 +175,23 @@ describe("DeepSeekThinking — display (native reasoning model)", () => {
   });
 });
 
+describe("FallbackThinking — generic payload (issue #207)", () => {
+  it("big-pickle gets a sampling-level repetition_penalty", () => {
+    const payload = thinkingProviderFor("big-pickle").buildPayload(defaultSettings);
+    assert.deepEqual(payload, { repetition_penalty: 1.2 });
+  });
+
+  it("requestsThinking stays false — the penalty is not a thinking request", () => {
+    const provider = thinkingProviderFor("big-pickle");
+    assert.equal(provider.requestsThinking(defaultSettings), false);
+  });
+
+  it("other unknown-family models emit no thinking fields", () => {
+    const payload = thinkingProviderFor("hy3-preview").buildPayload(defaultSettings);
+    assert.deepEqual(payload, {});
+  });
+});
+
 describe("MimoThinking — payload + display (native reasoning model)", () => {
   it("mimo 'off' emits only repetition_penalty", () => {
     const payload = thinkingProviderFor("mimo-v2.5").buildPayload({ ...defaultSettings, mimo: "off" });
