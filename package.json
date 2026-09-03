@@ -538,7 +538,7 @@
     ".husky/*": "shellcheck"
   },
   "devDependencies": {
-    "@types/node": "^26.2.0",
+    "@types/node": "^26.4.0",
     "@types/vscode": "^1.125.0",
     "@vscode/vsce": "^3.9.2",
     "editorconfig-checker": "^6.1.1",
