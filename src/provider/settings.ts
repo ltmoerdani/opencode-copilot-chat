@@ -103,6 +103,24 @@ export function getRequestModelConfiguration(options: vscode.ProvideLanguageMode
   return opts.modelConfiguration ?? opts.configuration;
 }
 
+/**
+ * Scope-robust configuration read (issue #214).
+ *
+ * Plain `config.get()` merges workspace + user scope, but the Agents window
+ * runs this extension in a separate agent-host process that can resolve the
+ * workspace root differently (or have none at all), which made user-scope
+ * `opencodego.thinking.*` values fall back to the baked-in defaults ("off").
+ * Reading via `inspect()` prefers an explicitly set workspace value, then an
+ * explicitly set user value, and only then the fallback — so a thinking
+ * level set in User settings always wins over the default regardless of
+ * which process/scope resolves first.
+ */
+function readConfigValue<T>(config: vscode.WorkspaceConfiguration, key: string, fallback: T): T {
+  const inspected = config.inspect<T>(key);
+  const value = inspected?.workspaceValue ?? inspected?.globalValue;
+  return value === undefined ? fallback : value;
+}
+
 export function getSettings(): ApiSettings {
   const config = vscode.workspace.getConfiguration(CONFIG_SECTION);
 
@@ -133,43 +151,47 @@ export function getSettings(): ApiSettings {
       ) * 1000,
     thinking: {
       deepseek: validThinkingValue(
-        config.get(SETTING_THINKING_DEEPSEEK, THINKING_DEFAULTS.deepseek),
+        readConfigValue(config, SETTING_THINKING_DEEPSEEK, THINKING_DEFAULTS.deepseek),
         THINKING_ALLOWED_VALUES.deepseek,
         THINKING_DEFAULTS.deepseek,
       ),
-      glm: validThinkingValue(config.get(SETTING_THINKING_GLM, THINKING_DEFAULTS.glm), THINKING_ALLOWED_VALUES.glm, THINKING_DEFAULTS.glm),
+      glm: validThinkingValue(
+        readConfigValue(config, SETTING_THINKING_GLM, THINKING_DEFAULTS.glm),
+        THINKING_ALLOWED_VALUES.glm,
+        THINKING_DEFAULTS.glm,
+      ),
       kimi: validThinkingValue(
-        config.get(SETTING_THINKING_KIMI, THINKING_DEFAULTS.kimi),
+        readConfigValue(config, SETTING_THINKING_KIMI, THINKING_DEFAULTS.kimi),
         THINKING_ALLOWED_VALUES.kimi,
         THINKING_DEFAULTS.kimi,
       ),
       minimax: validThinkingValue(
-        config.get(SETTING_THINKING_MINIMAX, THINKING_DEFAULTS.minimax),
+        readConfigValue(config, SETTING_THINKING_MINIMAX, THINKING_DEFAULTS.minimax),
         THINKING_ALLOWED_VALUES.minimax,
         THINKING_DEFAULTS.minimax,
       ),
       openai: validThinkingValue(
-        config.get(SETTING_THINKING_OPENAI, THINKING_DEFAULTS.openai),
+        readConfigValue(config, SETTING_THINKING_OPENAI, THINKING_DEFAULTS.openai),
         THINKING_ALLOWED_VALUES.openai,
         THINKING_DEFAULTS.openai,
       ),
       qwen: validThinkingValue(
-        config.get(SETTING_THINKING_QWEN, THINKING_DEFAULTS.qwen),
+        readConfigValue(config, SETTING_THINKING_QWEN, THINKING_DEFAULTS.qwen),
         THINKING_ALLOWED_VALUES.qwen,
         THINKING_DEFAULTS.qwen,
       ),
       qwenBudget: validThinkingValue(
-        config.get(SETTING_THINKING_QWEN_BUDGET, THINKING_DEFAULTS.qwenBudget),
+        readConfigValue(config, SETTING_THINKING_QWEN_BUDGET, THINKING_DEFAULTS.qwenBudget),
         THINKING_ALLOWED_VALUES.qwenBudget,
         THINKING_DEFAULTS.qwenBudget,
       ),
       mimo: validThinkingValue(
-        config.get(SETTING_THINKING_MIMO, THINKING_DEFAULTS.mimo),
+        readConfigValue(config, SETTING_THINKING_MIMO, THINKING_DEFAULTS.mimo),
         THINKING_ALLOWED_VALUES.mimo,
         THINKING_DEFAULTS.mimo,
       ),
       muse: validThinkingValue(
-        config.get(SETTING_THINKING_MUSE, THINKING_DEFAULTS.muse),
+        readConfigValue(config, SETTING_THINKING_MUSE, THINKING_DEFAULTS.muse),
         THINKING_ALLOWED_VALUES.muse,
         THINKING_DEFAULTS.muse,
       ),
