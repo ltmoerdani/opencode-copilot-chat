@@ -25,6 +25,18 @@ function appendContextCacheLog(message: string): void {
   }
 }
 
+export function hashRawCacheKey(raw: string): string {
+  return createHash("sha256").update(raw, "utf8").digest("hex");
+}
+
+function normalizeDirForCacheKey(dir: string): string {
+  // Canonicalize separators so C:\a\b and C:/a/b hash identically.
+  // Drive-letter upper-casing keeps c:\ vs C:\ stable on Windows.
+  let out = dir.replace(/\\/g, "/");
+  if (out.length >= 2 && out[1] === ":" && out[0] !== out[0].toUpperCase()) out = out[0].toUpperCase() + out.slice(1);
+  return out;
+}
+
 function resolveRawProjectCacheKey(modelId: string): string | null {
   const env = process.env as Record<string, string | undefined>;
   const override = (env.OPENCODE_PROMPT_CACHE_KEY ?? env.OPENCODE_STICKY_SESSION_ID ?? "").trim();
@@ -38,7 +50,7 @@ function resolveRawProjectCacheKey(modelId: string): string | null {
     } catch {
       dir = "";
     }
-    if (dir.length >= 2 && dir[1] === ":" && dir[0] !== dir[0].toUpperCase()) dir = dir[0].toUpperCase() + dir.slice(1);
+    if (dir) dir = normalizeDirForCacheKey(dir);
     if (!dir) dir = modelId || "no-workspace";
     return `${user}@${host}:${dir}`;
   } catch {
@@ -49,7 +61,7 @@ function resolveRawProjectCacheKey(modelId: string): string | null {
 export function resolveProjectCacheKey(modelId: string): string | null {
   const raw = resolveRawProjectCacheKey(modelId);
   if (!raw) return null;
-  return createHash("sha256").update(raw, "utf8").digest("hex");
+  return hashRawCacheKey(raw);
 }
 
 // The official OpenCode client sends these headers on every request. The Zen

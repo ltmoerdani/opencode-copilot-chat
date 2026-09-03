@@ -221,7 +221,7 @@ function anthropicImageSource(part: OpenAiContentPart): AnthropicImageSource | u
 }
 
 function mapAnthropicTools(tools: readonly vscode.LanguageModelChatTool[] | undefined): AnthropicToolDefinition[] {
-  const sorted = [...(tools ?? [])].sort((a, b) => a.name.localeCompare(b.name));
+  const sorted = [...(tools ?? [])].sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
   return sorted.map((tool) => ({
     name: tool.name,
     description: tool.description,
