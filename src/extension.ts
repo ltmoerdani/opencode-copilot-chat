@@ -182,6 +182,17 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand("opencodezen.toggleProvider", () => toggleProviderEnabled(ZEN_VENDOR, "OpenCode Zen")),
     vscode.commands.registerCommand("opencodego.modelPickerDiagnostics", () => showModelPickerDiagnostics()),
     vscode.commands.registerCommand("opencodego.setThinkingEffort", () => showThinkingEffortPicker()),
+    vscode.commands.registerCommand("opencodego.revertAgentsWindowSupport", async () => {
+      // Issue #213: settings flipped by a previous install survive an
+      // uninstall (VS Code has no uninstall hook), leaving OpenCode models
+      // mirrored into the Agents window with no way to remove them. Force
+      // mode reverts both core settings regardless of the globalState
+      // markers, so it also cleans up machines in that state.
+      await revertAgentsWindowSupport(context, { force: true });
+      void vscode.window.showInformationMessage(
+        "OpenCode: reverted the Agents window core settings (extensions.supportAgentsWindow + chat.agentHost.byokModels.enabled). Reload the window for it to take effect.",
+      );
+    }),
     vscode.commands.registerCommand("opencodego.showUsageDetails", () => {
       showUsageWebview(context);
     }),

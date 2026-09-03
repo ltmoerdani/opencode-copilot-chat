@@ -107,6 +107,10 @@
         "title": "OpenCode: Set Thinking Effort..."
       },
       {
+        "command": "opencodego.revertAgentsWindowSupport",
+        "title": "OpenCode: Clean Up Agents Window Core Settings (fix leftover/hijacked models)"
+      },
+      {
         "command": "opencodego.showUsageDetails",
         "title": "OpenCode Go: Show Usage Details"
       },
