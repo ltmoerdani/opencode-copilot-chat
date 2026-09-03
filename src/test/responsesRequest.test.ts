@@ -101,16 +101,34 @@ describe("responsesInputItemsFromMessage", () => {
       ],
     });
 
-    assert.deepEqual(items, [
-      { role: "assistant", content: [{ type: "output_text", text: "let me check" }] },
-      {
-        type: "function_call",
-        id: "call_1",
-        call_id: "call_1",
-        name: "read_file",
-        arguments: '{"path":"a.ts"}',
-      },
-    ]);
+    assert.equal(items.length, 2);
+    assert.deepEqual(items[0], { role: "assistant", content: [{ type: "output_text", text: "let me check" }] });
+    const call = items[1];
+    assert.equal(call.type, "function_call");
+    // The item id must be rewritten into the fc_ namespace; call_id keeps the
+    // original id so it still pairs with the function_call_output.
+    assert.match(call.id as string, /^fc_/);
+    assert.equal(call.call_id, "call_1");
+    assert.equal(call.name, "read_file");
+    assert.equal(call.arguments, '{"path":"a.ts"}');
+  });
+
+  it("passes through function_call ids already in the fc_ namespace", () => {
+    const items = responsesInputItemsFromMessage({
+      role: "assistant",
+      content: null,
+      tool_calls: [
+        {
+          id: "fc_abc123",
+          type: "function",
+          function: { name: "grep", arguments: "{}" },
+        },
+      ],
+    });
+
+    assert.equal(items.length, 1);
+    assert.equal(items[0].id, "fc_abc123");
+    assert.equal(items[0].call_id, "fc_abc123");
   });
 
   it("degrades tool results with images to a text note", () => {
