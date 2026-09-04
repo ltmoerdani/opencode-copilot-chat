@@ -180,7 +180,17 @@ for (const step of steps) {
     console.log(`  ${pc.dim("-")} ${step.label} (nothing affected)`);
     continue;
   }
-  const { status, output } = run(step.cmd, step.args);
+  let { status, output } = run(step.cmd, step.args);
+  if (shouldRetryEditorconfig(step, status, output)) {
+    console.log(`  ${pc.yellow("↻")} ${step.label} (retrying after transient download failure)`);
+    const retried = run(step.cmd, step.args);
+    status = retried.status;
+    output = retried.output;
+  }
+  if (shouldSkipEditorconfig(step, status, output)) {
+    console.log(`  ${pc.yellow("⚠")} ${step.label} (skipped: checker binary download unavailable)`);
+    continue;
+  }
   if (status === 0) {
     console.log(`  ${pc.green("✔")} ${step.label}`);
   } else {
@@ -199,4 +209,20 @@ function indent(text: string): string {
     .split("\n")
     .map((line) => `    ${line}`)
     .join("\n");
+}
+
+function shouldRetryEditorconfig(step: StagedStep, status: number | null, output: string): boolean {
+  return step.label === "Editorconfig" && status !== 0 && isEditorconfigDownloadFailure(output);
+}
+
+function shouldSkipEditorconfig(step: StagedStep, status: number | null, output: string): boolean {
+  return step.label === "Editorconfig" && status !== 0 && isEditorconfigDownloadFailure(output);
+}
+
+function isEditorconfigDownloadFailure(output: string): boolean {
+  return (
+    output.includes("Failed to download binary") ||
+    /\bHttpError:.*\b(ECONNRESET|ETIMEDOUT|ENOTFOUND|EAI_AGAIN)\b/i.test(output) ||
+    /\bGET .* - 5\d\d\b/.test(output)
+  );
 }

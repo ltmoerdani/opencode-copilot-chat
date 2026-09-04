@@ -33,6 +33,11 @@ interface LintStep {
   args: string[];
 }
 
+interface StepResult {
+  status: number | null;
+  output: string;
+}
+
 const steps: LintStep[] = [
   { label: "Editorconfig", cmd: bin("editorconfig-checker"), args: [] },
   { label: "ESLint", cmd: bin("eslint"), args: [".", "--max-warnings", "0"] },
@@ -50,20 +55,28 @@ const steps: LintStep[] = [
 console.log(pc.bold("Lint"));
 let failed = false;
 for (const step of steps) {
-  const res = spawnSync(step.cmd, step.args, {
-    cwd: root,
-    encoding: "utf8",
-    // Windows cannot exec `.cmd` shims directly; route through the shell.
-    shell: process.platform === "win32",
-  });
-  const output = clean(`${res.stdout}${res.stderr}`);
+  const res = runStep(step);
+  if (shouldRetryEditorconfig(step, res)) {
+    console.log(`  ${pc.yellow("↻")} ${step.label} (retrying after transient download failure)`);
+    const retried = runStep(step);
+    if (retried.status === 0) {
+      console.log(`  ${pc.green("✔")} ${step.label}`);
+      continue;
+    }
+    res.status = retried.status;
+    res.output = retried.output;
+  }
+  if (shouldSkipEditorconfig(step, res)) {
+    console.log(`  ${pc.yellow("⚠")} ${step.label} (skipped: checker binary download unavailable)`);
+    continue;
+  }
   if (res.status === 0) {
     console.log(`  ${pc.green("✔")} ${step.label}`);
   } else {
     failed = true;
     console.log(`  ${pc.red("✖")} ${step.label}`);
-    if (output) {
-      console.log(indent(output));
+    if (res.output) {
+      console.log(indent(res.output));
     }
   }
 }
@@ -75,4 +88,33 @@ function indent(text: string): string {
     .split("\n")
     .map((line) => `    ${line}`)
     .join("\n");
+}
+
+function runStep(step: LintStep): StepResult {
+  const res = spawnSync(step.cmd, step.args, {
+    cwd: root,
+    encoding: "utf8",
+    // Windows cannot exec `.cmd` shims directly; route through the shell.
+    shell: process.platform === "win32",
+  });
+  return { status: res.status, output: clean(`${res.stdout}${res.stderr}`) };
+}
+
+function shouldRetryEditorconfig(step: LintStep, res: StepResult): boolean {
+  if (step.label !== "Editorconfig" || res.status === 0) {
+    return false;
+  }
+  return isEditorconfigDownloadFailure(res.output);
+}
+
+function shouldSkipEditorconfig(step: LintStep, res: StepResult): boolean {
+  return step.label === "Editorconfig" && res.status !== 0 && isEditorconfigDownloadFailure(res.output);
+}
+
+function isEditorconfigDownloadFailure(output: string): boolean {
+  return (
+    output.includes("Failed to download binary") ||
+    /\bHttpError:.*\b(ECONNRESET|ETIMEDOUT|ENOTFOUND|EAI_AGAIN)\b/i.test(output) ||
+    /\bGET .* - 5\d\d\b/.test(output)
+  );
 }
