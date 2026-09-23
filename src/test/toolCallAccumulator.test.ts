@@ -215,3 +215,33 @@ describe("ToolCallAccumulator — hasCompletePendingCalls (#184)", () => {
     assert.equal(acc.hasCompletePendingCalls(), true);
   });
 });
+
+describe("ToolCallAccumulator — argumentsDone replaces accumulated arguments (#244)", () => {
+  it("replaces pending arguments with the authoritative done value", () => {
+    const accumulator = new ToolCallAccumulator();
+    accumulator.collect([{ index: 0, id: "call_1", type: "function", function: { name: "search", arguments: '{"query":"what' } }]);
+    accumulator.collect([{ index: 0, function: { arguments: " is 2 plus 2?" } }]);
+
+    // Corrupted accumulation (deltas mis-joined by a gateway)
+    accumulator.collect([
+      {
+        index: 0,
+        type: "function",
+        function: { arguments: '{"query":"what is 2 plus 2?"}' },
+        argumentsDone: true,
+      },
+    ]);
+
+    const flushed = accumulator.flush();
+    assert.equal(flushed.length, 1);
+    assert.deepEqual(flushed[0].input, { query: "what is 2 plus 2?" });
+  });
+
+  it("append-only path unaffected when argumentsDone is absent", () => {
+    const accumulator = new ToolCallAccumulator();
+    accumulator.collect([{ index: 0, id: "call_1", type: "function", function: { name: "search", arguments: '{"a":' } }]);
+    accumulator.collect([{ index: 0, function: { arguments: "1}" } }]);
+    const flushed = accumulator.flush();
+    assert.deepEqual(flushed[0].input, { a: 1 });
+  });
+});

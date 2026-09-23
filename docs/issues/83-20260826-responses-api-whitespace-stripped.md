@@ -72,6 +72,8 @@ The bug affected two call sites in `src/core/routing.ts`:
 
 Non-text fields (`call_id`, `stop_reason`, `arguments_delta`) used `firstString()` correctly — `.trim()` is safe for identifiers and enums — and were left unchanged.
 
+> **⚠️ Superseded assumption (2026-09-24):** leaving `arguments_delta` on the trimming `firstString()` turned out to be wrong. Responses API argument fragments can split **inside JSON string values**, so per-fragment trimming corrupts tool-call arguments and triggers reasoning loops. Fixed in issue #244 — see [doc 107](107-20260924-issue244-tool-call-arguments-whitespace.md). The text/reasoning part of this fix remains intact and in force.
+
 ## Fix
 
 ### Changes in `src/core/routing.ts`
@@ -93,7 +95,7 @@ function firstStringRaw(...values: unknown[]): string | undefined {
 
 2. **`extractResponsesReasoningText()`** — changed to use `firstStringRaw()` for reasoning text deltas.
 
-3. `firstString()` is **unchanged** — it continues to be used for non-text fields (`call_id`, `stop_reason`, `arguments_delta`) where `.trim()` is appropriate.
+3. `firstString()` is **unchanged** in this fix — it stayed for non-text fields (`call_id`, `stop_reason`, `arguments_delta`). The `arguments_delta` part of that decision was later reversed by the #244 fix ([doc 107](107-20260924-issue244-tool-call-arguments-whitespace.md)); `call_id`/`stop_reason` still use `firstString()` today.
 
 ### Changes in `src/test/routing.test.ts`
 

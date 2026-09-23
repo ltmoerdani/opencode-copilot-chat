@@ -20,7 +20,7 @@ export interface FlushedToolCall {
   input: object;
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
+export function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
 
@@ -84,7 +84,14 @@ export class ToolCallAccumulator {
           pending.name += fn.name;
         }
         if (typeof fn.arguments === "string") {
-          pending.arguments += fn.arguments;
+          // `argumentsDone` marks the authoritative final-arguments event
+          // (response.function_call_arguments.done) — REPLACE, not append,
+          // so repairs accumulated delta corruption (issue #244).
+          if (toolCall.argumentsDone === true) {
+            pending.arguments = fn.arguments;
+          } else {
+            pending.arguments += fn.arguments;
+          }
         }
       }
 
