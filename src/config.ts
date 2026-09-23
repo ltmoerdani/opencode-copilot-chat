@@ -113,7 +113,12 @@ export const MODEL_LIST_CACHE_KEY_PREFIX = "opencode.modelListCache.v1";
 
 export const MODELS_DEV_API_URL = "https://models.dev/api.json";
 export const MODEL_METADATA_REVISION = "session-2026-05-21-b";
-export const MODEL_METADATA_CACHE_KEY = "opencode.modelMetadataCache.v5";
+// The cache key embeds the bundled-data revision: when a release syncs the
+// offline fallback tables (new revision), the key changes and every stale
+// persisted snapshot is abandoned automatically (issue #231 — users were
+// stuck on old limits like a 262K context for deepseek-v4.1-flash until the
+// 1-hour TTL refetched or they ran Refresh Models manually).
+export const MODEL_METADATA_CACHE_KEY = `opencode.modelMetadataCache.v6.${MODEL_METADATA_REVISION}`;
 export const MODEL_METADATA_CACHE_TTL_MS = 1 * 60 * 60 * 1000;
 export const DEFAULT_MODEL_CONTEXT_WINDOW = 262144;
 export const DEFAULT_MODEL_MAX_OUTPUT_TOKENS = 65536;

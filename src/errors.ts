@@ -55,9 +55,27 @@ export function buildOpenCodeRequestError(
     );
   }
 
-  const userMessage = `${providerDisplayName} API request failed (HTTP ${String(response.status)})${modelId ? ` for ${modelId}` : ""}: ${describeRouterUnavailable(apiError, apiMessage)}${capacityHint}`;
+  const userMessage = `${providerDisplayName} API request failed (HTTP ${String(response.status)})${modelId ? ` for ${modelId}` : ""}: ${describeFreeTierRestriction(apiMessage) ?? describeRouterUnavailable(apiError, apiMessage)}${capacityHint}`;
   const requestMessage = `${providerDisplayName} API request failed (${String(response.status)})${modelHint}${sizeHint}${capacityHint}: ${apiMessage}`;
   return new OpenCodeRequestError(requestMessage, userMessage);
+}
+
+/**
+ * Replace the raw gateway detail with an actionable hint when the request was
+ * rejected because the model is on OpenCode's free tier, which since Sep 17,
+ * 2026 is restricted to OpenCode's own clients (issues #235/#240 — policy, not
+ * a bug; bypassing it would violate OpenCode's terms). Returns undefined for
+ * any other error so the router/limit hints keep handling their cases.
+ */
+export function describeFreeTierRestriction(apiMessage: string): string | undefined {
+  if (!/free tier can only be used from within opencode/i.test(apiMessage)) {
+    return undefined;
+  }
+  return (
+    "OpenCode restricts this free-tier model to their official app " +
+    "(effective Sep 17, 2026). Use a paid OpenCode Go model, or run free models " +
+    "in the OpenCode app/CLI."
+  );
 }
 
 /**
