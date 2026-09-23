@@ -5,7 +5,6 @@ import { auxiliarySessionId } from "../request/headers";
 import type { ProviderVendor } from "../providerTypes";
 import type { ProviderDefinition } from "./definitions";
 import { configureUtilityModels, toggleProviderEnabled } from "../commands/providers";
-import { providerEnabledSetting } from "../providerEnablement";
 
 /**
  * Provider management UI flows (gear-icon menu + connection test). Pure with
@@ -22,18 +21,15 @@ export interface DialogDeps {
 
 /** Gear-icon quick-pick: test / refresh / utility models / diagnostics / enable. */
 export async function manageProvider(deps: DialogDeps): Promise<void> {
-  // Read via the base-vendor full key so agent variants (opencodego-agent,
-  // opencodezen-agent) follow the same switch as the vendor they mirror.
-  const providerEnabled = vscode.workspace.getConfiguration().get<boolean>(providerEnabledSetting(deps.definition.vendor), true);
   const choice = await vscode.window.showQuickPick(
     [
       { label: "Test Connection", action: "test" as const },
       { label: "Refresh Models", action: "refresh" as const },
       { label: "Configure Utility Models", action: "utility" as const },
       { label: "Open Diagnostics", action: "diagnostics" as const },
-      ...(providerEnabled
-        ? [{ label: "Remove from Language Models", action: "remove" as const }]
-        : [{ label: "Re-add to Language Models", action: "remove" as const }]),
+      // toggleProviderEnabled derives Remove vs Re-add from the current
+      // setting and confirms via its own quick-pick (issue #228).
+      { label: "Toggle Registration in Language Models…", action: "toggle" as const },
     ],
     {
       title: `Manage ${deps.definition.displayName}`,
@@ -45,7 +41,7 @@ export async function manageProvider(deps: DialogDeps): Promise<void> {
     return;
   }
 
-  if (choice.action === "remove") {
+  if (choice.action === "toggle") {
     await toggleProviderEnabled(deps.definition.vendor, deps.definition.displayName);
     return;
   }
