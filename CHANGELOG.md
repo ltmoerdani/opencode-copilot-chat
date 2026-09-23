@@ -2,6 +2,12 @@
 
 All notable changes to the **OpenCode Go BYOK Provider** extension are documented here.
 
+## [0.7.7] — 2026-09-24
+
+### Fixed
+
+- **`[Responses]` Whitespace is no longer stripped from tool-call arguments on OpenAI models (#244).** `response.function_call_arguments.delta` fragments went through the trimming `firstString()` helper — the exact per-chunk-`.trim()` bug class fixed for text deltas in #192 (doc 83), but on a path the #192 fix had deliberately left alone under the wrong assumption that arguments tolerate trimming. Responses API argument fragments are arbitrary JSON slices that can split inside string values ("hello wo + rld"), so trimming each fragment corrupted tool-call input on every GPT-family model (all route to `/v1/responses`) on both Go and Zen — and the mangled arguments sent the model into reasoning loops. Fix is three-layered: fragments now go through `firstStringRaw()` (root cause); a new `response.function_call_arguments.done` handler emits the final authoritative arguments tagged `argumentsDone: true`; and `ToolCallAccumulator` treats that flag as a REPLACE instead of an append, healing any gateway-side delta mis-join even when fragments are mangled upstream. Regression tests cover the mid-string fragment split, the done-event mapping, and the replace semantics. Documented in `docs/issues/107-20260924-issue244-tool-call-arguments-whitespace.md`.
+
 ## [0.7.6] — 2026-09-23
 
 ### Fixed

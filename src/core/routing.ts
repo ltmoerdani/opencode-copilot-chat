@@ -100,7 +100,11 @@ export function normalizeResponsesStreamEvent(data: unknown): unknown {
   }
 
   if (eventType === "response.function_call_arguments.delta") {
-    const delta = firstString(data.delta, data.arguments_delta);
+    // Arguments fragments can split INSIDE JSON string values (OpenAI's own
+    // accumulator does `output.arguments += event.delta` with no trimming),
+    // so per-fragment trimming corrupts values like "hello wo" + "rld" and
+    // triggers tool-call reasoning loops (issue #244, regression class of #192).
+    const delta = firstStringRaw(data.delta, data.arguments_delta);
     return delta
       ? {
           choices: [
@@ -142,6 +146,36 @@ export function normalizeResponsesStreamEvent(data: unknown): unknown {
   if (eventType === "response.output_text.done") {
     const text = firstStringRaw(data.text);
     return text ? { choices: [{ index: 0, delta: { responseDoneText: text }, finish_reason: null }] } : { choices: [] };
+  }
+
+  // response.function_call_arguments.done carries the FINAL arguments string.
+  // Use it as an authoritative repair: the accumulator REPLACES (not appends)
+  // the pending arguments so any corruption from mis-joined delta fragments is
+  // healed at stream end (issue #244).
+  if (eventType === "response.function_call_arguments.done") {
+    const args = firstStringRaw(data.arguments);
+    if (args === undefined) {
+      return { choices: [] };
+    }
+    return {
+      choices: [
+        {
+          index: 0,
+          delta: {
+            tool_calls: [
+              {
+                index: typeof data.output_index === "number" ? data.output_index : 0,
+                id: firstString(data.call_id, data.item_id) ?? "",
+                type: "function",
+                function: { arguments: args },
+                argumentsDone: true,
+              },
+            ],
+          },
+          finish_reason: null,
+        },
+      ],
+    };
   }
 
   if (eventType === "response.output_item.done") {

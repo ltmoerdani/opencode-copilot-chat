@@ -176,3 +176,42 @@ describe("normalizeResponsesStreamEvent — output_text.delta whitespace preserv
     assert.equal(normalized.join(""), "thisiswhattheresponselookslike");
   });
 });
+
+describe("normalizeResponsesStreamEvent — function_call_arguments whitespace preservation (#244)", () => {
+  it("preserves whitespace across argument fragments split inside JSON string values", () => {
+    // Regression of #244: fragments previously went through firstString()
+    // which trimmed each chunk, destroying spaces at fragment boundaries.
+    const fragments = ['{"query":"what', " is 2", " plus 2", `?"}`];
+
+    const normalized = fragments.map((fragment) => {
+      const result = normalizeResponsesStreamEvent({
+        type: "response.function_call_arguments.delta",
+        delta: fragment,
+      }) as { choices: { delta: { tool_calls: { function: { arguments: string } }[] } }[] };
+      return result.choices[0]?.delta.tool_calls[0]?.function.arguments ?? "";
+    });
+
+    assert.equal(normalized.join(""), `{"query":"what is 2 plus 2?"}`);
+  });
+
+  it("maps response.function_call_arguments.done to a replacing tool_calls delta", () => {
+    const result = normalizeResponsesStreamEvent({
+      type: "response.function_call_arguments.done",
+      output_index: 0,
+      call_id: "call_1",
+      arguments: `{"query":"hello world"}`,
+    }) as { choices: { delta: { tool_calls: Record<string, unknown>[] } }[] };
+
+    const call = result.choices[0]?.delta.tool_calls[0];
+    assert.equal(call.argumentsDone, true);
+    assert.equal((call.function as { arguments: string }).arguments, `{"query":"hello world"}`);
+    assert.equal(call.id, "call_1");
+  });
+
+  it("function_call_arguments.done with no arguments emits no choices", () => {
+    const result = normalizeResponsesStreamEvent({ type: "response.function_call_arguments.done" }) as {
+      choices?: unknown[];
+    };
+    assert.equal(result.choices?.length, 0);
+  });
+});

@@ -1,6 +1,20 @@
 # 🧠 OPENCODE COPILOT CHAT DEVLOG
 
-**Branch:** `chore/models-dev-data-sync` (work on `main`) | **Updated:** 2026-09-23 Asia/Jakarta | **Current Phase:** issue #226 fix — global `opencodego.thinking.*` now wins over the picker schema-default echo; verified end-to-end, pending commit.
+**Branch:** `main` (fix uncommitted, branch TBD) | **Updated:** 2026-09-24 Asia/Jakarta | **Current Phase:** issue #244 fix — tool-call arguments whitespace on Responses API; implemented + tested (489/489), docs synced, CHANGELOG `[0.7.7]`, VSIX 0.7.7 built + installed locally, pending commit.
+
+---
+
+## ✅ Issue #244 — Tool-call arguments whitespace stripped on OpenAI models — 2026-09-24
+
+**Scope:** regression-class bug of #192 (doc 83). The #192 fix moved text/reasoning deltas to `firstStringRaw()` but deliberately left `arguments_delta` on the trimming `firstString()` — assuming arguments tolerate trimming. Wrong: Responses API argument fragments are arbitrary JSON slices that split **inside string values** ("hello wo + rld"), so per-fragment trim corrupted tool-call input on every GPT-family model (all route to `/v1/responses`) on Go and Zen, and the model looped retrying mangled tool calls.
+
+**Verification vs official sources:** openai-node `response-accumulator.ts` accumulates via raw `output.arguments += event.delta` (no trim, no falsy filter); openai-node test mocks split argument streams on whitespace boundaries — exactly the case trimming destroys; `response.function_call_arguments.done` carries the final authoritative `arguments`. Reporter diagnostics (Go `gpt-5.6-luna`, Zen `gpt-5.6-sol`) confirmed every affected request hit the `responses` endpoint with HTTP 200 + repeat-request/98% cache-hit retry patterns.
+
+**Fix (3 layers):** (1) root cause — `function_call_arguments.delta` → `firstStringRaw()` in `core/routing.ts`; (2) new `function_call_arguments.done` handler emitting the final arguments tagged `argumentsDone: true`; (3) `ToolCallAccumulator.collect()` treats `argumentsDone` as REPLACE-not-append — self-healing any gateway-side delta mis-join.
+
+**Tests:** 5 new regression tests (fragment split mid-string-value, done-event mapping, done-without-args, replace semantics, append-only unaffected). **489/489 pass**, `npm run compile` + typecheck clean.
+
+Docs: `docs/issues/107-20260924-issue244-tool-call-arguments-whitespace.md`, doc 83 annotated (superseded assumption), CHANGELOG `[Unreleased]`.
 
 ---
 
