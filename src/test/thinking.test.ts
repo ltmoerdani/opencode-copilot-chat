@@ -4,6 +4,7 @@ import {
   bodyRequestsThinking,
   extractThinkingOverride,
   resolveThinkingConfig,
+  stripSchemaDefaultEcho,
   thinkingFamily,
   thinkingProviderFor,
   type ThinkingSettings,
@@ -443,14 +444,46 @@ describe("resolveThinkingConfig — provenance & priority", () => {
     assert.equal(resolved.overrideApplied, false);
   });
 
-  it("a delivered modelConfiguration equal to workspace still reports modelConfiguration source", () => {
+  it("a delivered schema-default echo is ignored so the workspace default wins (issue #226)", () => {
     const resolved = resolveThinkingConfig({
       modelId: "deepseek-v4-pro",
       workspace: defaultSettings,
       modelConfiguration: { reasoningEffort: "off" },
     });
     assert.equal(resolved.settings.deepseek, "off");
+    assert.equal(resolved.source, "workspace");
+    assert.equal(resolved.overrideApplied, false);
+  });
+
+  it("a schema-default echo does not mask a non-default workspace setting (issue #226)", () => {
+    const resolved = resolveThinkingConfig({
+      modelId: "deepseek-v4-pro",
+      workspace: { ...defaultSettings, deepseek: "high" },
+      modelConfiguration: { reasoningEffort: "off" },
+    });
+    assert.equal(resolved.settings.deepseek, "high");
+    assert.equal(resolved.source, "workspace");
+    assert.equal(resolved.overrideApplied, false);
+  });
+
+  it("echo stripping is per-key: a real choice beside an echo still applies", () => {
+    const resolved = resolveThinkingConfig({
+      modelId: "qwen3.6-plus",
+      workspace: defaultSettings,
+      modelConfiguration: { reasoningEffort: "off", thinkingBudget: "16384" },
+    });
+    assert.equal(resolved.settings.qwenBudget, "16384");
     assert.equal(resolved.source, "modelConfiguration");
+  });
+
+  it("models whose schema default is not 'off' strip their own default too (kimi-k2.7-code)", () => {
+    const resolved = resolveThinkingConfig({
+      modelId: "kimi-k2.7-code",
+      workspace: defaultSettings,
+      modelConfiguration: { reasoningEffort: "on" },
+    });
+    assert.equal(resolved.source, "workspace");
+    assert.equal(resolved.overrideApplied, false);
   });
 });
 
@@ -463,6 +496,15 @@ describe("extractThinkingOverride", () => {
     assert.equal(extractThinkingOverride(undefined), undefined);
     assert.equal(extractThinkingOverride({}), undefined);
     assert.equal(extractThinkingOverride({ contextSize: 5 }), undefined);
+  });
+
+  it("stripSchemaDefaultEcho drops keys equal to the declared default and keeps the rest", () => {
+    const defaults = { reasoningEffort: "off", thinkingBudget: "auto" };
+    assert.equal(stripSchemaDefaultEcho(undefined, defaults), undefined);
+    assert.deepEqual(stripSchemaDefaultEcho({ reasoningEffort: "off" }, defaults), undefined);
+    assert.deepEqual(stripSchemaDefaultEcho({ reasoningEffort: "high" }, defaults), { reasoningEffort: "high" });
+    // Keys without a declared default are kept as-is.
+    assert.deepEqual(stripSchemaDefaultEcho({ reasoningEffort: "on" }, {}), { reasoningEffort: "on" });
   });
 });
 

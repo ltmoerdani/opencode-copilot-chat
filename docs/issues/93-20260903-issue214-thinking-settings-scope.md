@@ -1,11 +1,11 @@
 # Issue #214 — Thinking Level Settings "don't do anything" → Scope-Robust Config Reading
 
-**Status:** ✅ Solved (branch `fix/issues-204-214-batch`, commit `609b344`) — ⚠️ fix is evidence-based but root cause on insiders 1.137 not yet reproduced locally
+**Status:** ✅ Solved — both halves closed: settings scope fixed here (v0.7.4, commit `609b344`); the remaining root cause (schema-default echo overriding the globals) fixed via [#226](https://github.com/ltmoerdani/opencode-copilot-chat/issues/226) — see [issue doc 100](100-20260923-issue226-thinking-default-echo.md), verified end-to-end 2026-09-23
 **Topic:** thinking / configuration-scope / agent-host
-**Updated:** 2026-09-03
+**Updated:** 2026-09-23
 **Tags:** #thinking #settings #configuration #agent-host
 **GitHub Issue:** [ltmoerdani/opencode-copilot-chat#214](https://github.com/ltmoerdani/opencode-copilot-chat/issues/214)
-**Related:** feature doc [02 — per-model thinking controls](../features/02-20260517-per-model-thinking-controls.md), issue doc [22 (thinking part bypass)](22-20260609-thinking-part-bypass.md)
+**Related:** feature doc [02 — per-model thinking controls](../features/02-20260517-per-model-thinking-controls.md), issue doc [22 (thinking part bypass)](22-20260609-thinking-part-bypass.md), issue doc [100 — #226 schema-default echo](100-20260923-issue226-thinking-default-echo.md)
 
 ---
 
@@ -42,7 +42,7 @@ An explicitly set workspace value wins, then an explicitly set user value, and o
 ## Verification
 
 - `npx tsc --noEmit` clean; 449/449 tests pass; staged-lint gate pass.
-- ⚠️ **Still to reproduce on VS Code insiders 1.137** (set `opencodego.thinking.mimo: "high"` in User settings → new chat → confirm `reasoning_effort` reaches the payload). If the symptom persists there, the next suspect is host-supplied `modelConfiguration` overriding the workspace baseline (see `resolveThinkingConfig` priority).
+- ✅ **RESOLVED 2026-09-23:** the symptom persisted on insiders 1.137 and the suspected second half was confirmed as the real root cause — VS Code echoes our picker schema default (`"off"`) into `modelConfiguration` on every request, which outranked the globals. Fixed and verified end-to-end via #226 (see [issue doc 100](100-20260923-issue226-thinking-default-echo.md)). This doc remains as the settings-scope half of the story.
 
 ## Lessons Learned
 

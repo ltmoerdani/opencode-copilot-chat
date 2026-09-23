@@ -1,6 +1,23 @@
 # 🧠 OPENCODE COPILOT CHAT DEVLOG
 
-**Branch:** `chore/models-dev-data-sync` | **Updated:** 2026-09-08 Asia/Jakarta | **Current Phase:** bundled model data sync — limits, pricing, fallback catalog synced to models.dev (2026-09-08); full lint gate pass, pending PR.
+**Branch:** `chore/models-dev-data-sync` (work on `main`) | **Updated:** 2026-09-23 Asia/Jakarta | **Current Phase:** issue #226 fix — global `opencodego.thinking.*` now wins over the picker schema-default echo; verified end-to-end, pending commit.
+
+---
+
+## ✅ Issue #226 — Schema-Default Echo Fix — 2026-09-23
+
+**Scope:** follow-up to #214/#93. VS Code merges our picker schema defaults into `modelConfiguration` on every request, so untouched reasoning-capable models arrived with `reasoningEffort: "off"` and the resolver let that echo beat the global `opencodego.thinking.*` settings.
+
+| Decision                       | Rationale                                                                                                                                                                                                                                                                               |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Option B — resolver-side strip | `stripSchemaDefaultEcho()` in `resolve.ts` drops override keys equal to the family's picker schema default before applying them. Lossless: VS Code itself strips default-equal values from persisted user picks, so a default-equal delivered value can never be a genuine user choice. |
+| Option A rejected              | Removing `default: "off"` from the schema would make the Agents-window host fall back to `medium`/`high` (`resolveDefaultReasoningEffort`) — silent Go credit burn — and the picker would lose its initial Off display. Verified against VS Code source.                                |
+
+**Verification:** `npm run compile` clean, full lint gate pass, 466/466 unit tests (5 new #226 regression tests; one old test that encoded the buggy priority updated), e2e simulation `tmp/e2e-issue226-thinking-echo.mjs` 4/4, and a real-model run (Go, `mimo-v2.6-flash` via Copilot Chat): echo delivered → `thinkingSource=workspace` → payload carries `reasoning_effort:"high"` with HTTP 200. Per-model picks still win (`thinkingSource=modelConfiguration`).
+
+**Notes:** picker still paints Off when only the global default is set — by design (picker reflects per-model config only); recorded as a UX note in the issue doc, not a bug.
+
+Docs: `docs/issues/100-20260923-issue226-thinking-default-echo.md`, `docs/issues/93` updated (second half closed), feature doc 02 updated, CHANGELOG `[Unreleased]`.
 
 ---
 

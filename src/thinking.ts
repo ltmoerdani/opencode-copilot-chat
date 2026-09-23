@@ -6,7 +6,7 @@
  */
 export { thinkingFamily, thinkingProviderFor } from "./thinking/provider";
 export type { ThinkingProvider } from "./thinking/provider";
-export { resolveThinkingConfig, extractThinkingOverride } from "./thinking/resolve";
+export { resolveThinkingConfig, extractThinkingOverride, stripSchemaDefaultEcho } from "./thinking/resolve";
 export type { ResolveThinkingConfigInput } from "./thinking/resolve";
 export { schemaFromReasoningOptions, genericReasoningSchema } from "./thinking/schema";
 export type { ThinkingSchema } from "./thinking/schema";

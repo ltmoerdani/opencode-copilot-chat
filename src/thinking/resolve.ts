@@ -33,11 +33,21 @@ export function resolveThinkingConfig(input: ResolveThinkingConfigInput): Resolv
   let source: ThinkingSource = "workspace";
   let overrideApplied = false;
 
-  // A delivered modelConfiguration always wins (even if its value equals the
-  // workspace baseline) — VS Code's per-model config is the single authority.
-  const liveOverride = extractThinkingOverride(input.modelConfiguration);
+  // A delivered modelConfiguration wins over the workspace baseline — but only
+  // when it carries a value the user actually chose. VS Code merges our picker
+  // schema defaults into the resolved per-model configuration on every request
+  // (`resolveModelConfiguration` in chatModelConfigurationLogic.ts merges
+  // defaults in every branch), and strips values equal to the schema default
+  // when persisting user picks — so a delivered value equal to our schema
+  // default can never be a genuine user choice; it is the picker baseline being
+  // echoed back (issue #226). Dropping it lets the global `opencodego.thinking.*`
+  // setting take effect for models the user never configured per-model.
+  const liveOverride = stripSchemaDefaultEcho(
+    extractThinkingOverride(input.modelConfiguration),
+    schemaDefaultsOf(provider.schema(input.metadata)),
+  );
   if (liveOverride) {
-    const next = provider.applyOverride(settings, input.modelConfiguration ?? {});
+    const next = provider.applyOverride(settings, { ...liveOverride });
     overrideApplied = next !== settings;
     settings = next;
     source = "modelConfiguration";
@@ -47,6 +57,42 @@ export function resolveThinkingConfig(input: ResolveThinkingConfigInput): Resolv
   settings = provider.normalize(settings);
 
   return { settings, source, overrideApplied };
+}
+
+/**
+ * Extract per-key defaults from a picker schema (same shape as VS Code's
+ * `extractSchemaDefaults`): properties with a declared `default` only.
+ */
+export function schemaDefaultsOf(schema: { properties: Record<string, unknown> } | undefined): Record<string, unknown> {
+  const defaults: Record<string, unknown> = {};
+  const properties = Object.entries(schema?.properties ?? {}) as Array<[string, { default?: unknown }]>;
+  for (const [key, prop] of properties) {
+    if (prop.default !== undefined) {
+      defaults[key] = prop.default;
+    }
+  }
+  return defaults;
+}
+
+/**
+ * Drop override keys whose delivered value equals the family's picker schema
+ * default — those are VS Code echoes of the baseline, not user choices (see
+ * `resolveThinkingConfig`). Keys with no declared default are kept as-is.
+ * Returns undefined when nothing survives.
+ */
+export function stripSchemaDefaultEcho(
+  override: ThinkingOverride | undefined,
+  defaults: Record<string, unknown>,
+): ThinkingOverride | undefined {
+  if (!override) return undefined;
+  const kept: ThinkingOverride = {};
+  for (const key of ["reasoningEffort", "thinkingMode", "thinkingBudget"] as const) {
+    const value = override[key];
+    if (value === undefined) continue;
+    if (key in defaults && defaults[key] === value) continue;
+    kept[key] = value;
+  }
+  return Object.keys(kept).length ? kept : undefined;
 }
 
 /**
