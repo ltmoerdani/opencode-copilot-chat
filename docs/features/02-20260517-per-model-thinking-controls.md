@@ -3,7 +3,7 @@
 # Per-Model Thinking Controls
 
 **Topic:** provider / models / thinking / vscode / copilot-chat
-**Updated:** 2026-08-21
+**Updated:** 2026-09-23
 **Tags:** #provider #models #thinking #vscode #copilot-chat #reasoning #byok
 **Supersedes:** —
 **Related:** PR [#155](https://github.com/ltmoerdani/opencode-copilot-chat/pull/155) (per-provider strategy refactor) · feature doc [`17-20260814-data-driven-model-registry.md`](17-20260814-data-driven-model-registry.md)
@@ -88,6 +88,8 @@ options.modelConfiguration;
 ```
 
 The extension reads that object and overlays only the selected model family's Thinking values onto the persistent defaults. This keeps changes scoped to the current model instead of accidentally changing every model family.
+
+> **Schema-default echo is stripped (#226).** VS Code merges our picker schema defaults into the resolved `modelConfiguration` on every request (`resolveModelConfiguration` merges defaults in every branch) and strips default-equal values from persisted user picks — so a delivered value equal to the family's schema default (e.g. `reasoningEffort: "off"`) can never be a genuine user choice; it is the baseline being echoed back. `resolveThinkingConfig` (`src/thinking/resolve.ts`, `stripSchemaDefaultEcho`) drops those keys before applying the override, letting the global `opencodego.thinking.*` defaults take effect for models the user never configured per-model. A default-equal value therefore means "fall through to workspace", and only non-default per-model picks win. Full write-up: `docs/issues/100-20260923-issue226-thinking-default-echo.md`.
 
 ### Command Fallback
 
