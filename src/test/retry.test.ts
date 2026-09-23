@@ -70,6 +70,40 @@ describe("analyzeHttp400ForRetry — reasoning_effort errors", () => {
   });
 });
 
+describe("analyzeHttp400ForRetry — reasoning echo missing (issue #239)", () => {
+  const echoError =
+    "Upstream request failed: [invalid_request_error] The `reasoning_content` in the thinking mode must be passed back to the API.";
+
+  it("strips reasoning_content from assistant messages and reasoning_effort", () => {
+    const body = {
+      model: "deepseek-v4.1-flash",
+      reasoning_effort: "low",
+      messages: [
+        { role: "user", content: "hello" },
+        { role: "assistant", content: "working", reasoning_content: "chain of thought", tool_calls: [] },
+        { role: "tool", tool_call_id: "call_1", content: "result" },
+      ],
+    };
+    const result = analyzeHttp400ForRetry(echoError, body);
+    assert.ok(result, "should be recoverable");
+    assert.deepEqual(result.body, {
+      model: "deepseek-v4.1-flash",
+      reasoning_effort: undefined,
+      messages: [
+        { role: "user", content: "hello" },
+        { role: "assistant", content: "working", reasoning_content: undefined, tool_calls: [] },
+        { role: "tool", tool_call_id: "call_1", content: "result" },
+      ],
+    });
+  });
+
+  it("reports no change when there is nothing to strip (no infinite retry)", () => {
+    const body = { model: "deepseek-v4.1-flash", messages: [{ role: "user", content: "hello" }] };
+    const result = analyzeHttp400ForRetry(echoError, body);
+    assert.equal(result, undefined, "patch must be a no-op when nothing changes");
+  });
+});
+
 describe("analyzeHttp400ForRetry — non-recoverable errors", () => {
   it("returns undefined for auth errors", () => {
     const body = { model: "test" };
