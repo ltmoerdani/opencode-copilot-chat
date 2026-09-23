@@ -68,7 +68,7 @@
       },
       {
         "command": "opencodego.toggleProvider",
-        "title": "OpenCode Go: Remove/Re-add Provider in Language Models"
+        "title": "OpenCode Go: Toggle Provider Registration in Language Models"
       },
       {
         "command": "opencodego.refreshModels",
@@ -92,7 +92,7 @@
       },
       {
         "command": "opencodezen.toggleProvider",
-        "title": "OpenCode Zen: Remove/Re-add Provider in Language Models"
+        "title": "OpenCode Zen: Toggle Provider Registration in Language Models"
       },
       {
         "command": "opencodezen.refreshModels",

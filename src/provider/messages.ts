@@ -1,8 +1,10 @@
 import * as vscode from "vscode";
 import { isInternalDataPart, isReasoningMarkerPart, readReasoningMarker } from "../chatParts";
+import { requiresStringToolContent } from "../models/modelCapabilities";
 import { MAX_HISTORY_IMAGES_KEPT, MAX_TOOL_RESULT_IMAGE_BYTES } from "../config";
 import { getImageDataUrlBase64Bytes, MAX_IMAGE_BASE64_BYTES, normalizeImageDataUrl } from "../imageNormalizer";
 import { shouldEchoThinkingHistory, thinkingTextFromValue } from "../reasoningHistory";
+import { withDeferredToolImageMessages } from "../request/shared";
 import type { ApiMessage, OpenAiContentPart, OpenAiToolCall } from "../request/types";
 import { partToText } from "./tokens";
 import type { ConvertedMessageResult } from "./definitions";
@@ -19,6 +21,9 @@ export async function convertMessage(
   const imageParts: OpenAiContentPart[] = [];
   const toolCalls: OpenAiToolCall[] = [];
   const toolResults: ApiMessage[] = [];
+  // Tool-result images deferred to a follow-up user message (see
+  // requiresStringToolContent — "defer" mode). Emitted by finish().
+  const deferredToolImageParts: OpenAiContentPart[] = [];
   let normalizedImageCount = 0;
 
   const normalizeImagePart = async (part: vscode.LanguageModelDataPart): Promise<string> => {
@@ -30,10 +35,14 @@ export async function convertMessage(
     return normalizedUrl;
   };
 
-  const finish = (messages: ApiMessage[]): ConvertedMessageResult => ({
-    messages,
-    normalizedImageCount,
-  });
+  const finish = (messages: ApiMessage[]): ConvertedMessageResult => {
+    // Tool images rejected in role:"tool" content but accepted in user
+    // content (verified against zen/go/v1 chat-completions for
+    // glm-5.3-flash: tool image_url → 422, user image_url → 200) are
+    // appended as a follow-up user message so vision capability is
+    // preserved. See withDeferredToolImageMessages for the CONTRACT.
+    return { messages: withDeferredToolImageMessages(messages, deferredToolImageParts), normalizedImageCount };
+  };
 
   for (const part of message.content) {
     if (part instanceof vscode.LanguageModelToolCallPart) {
@@ -92,38 +101,45 @@ export async function convertMessage(
       }
 
       let toolContent: string | OpenAiContentPart[];
-      if (toolImageParts.length > 0) {
-        // PROVIDER QUIRK: Xiaomi MiMo (and GLM-5.2) reject list-type tool
-        // message content with HTTP 400 "text is not set" (upstream issue
-        // anomalyco/opencode#32613). MiMo accepts multimodal content in
-        // user/assistant messages but strictly requires `role: "tool"`
-        // messages to have a plain string content. The OpenCode Go gateway
-        // passes list-type content through unchanged, so we must flatten it
-        // client-side for MiMo.
-        //
-        // For MiMo: emit a plain string — join text parts, and replace each
-        // image with a short placeholder note (the model cannot see tool
-        // images on MiMo upstream anyway, so we lose nothing and gain a
-        // working request). For other providers: keep the multimodal array
-        // (Kimi, GLM-5.1, MiniMax, Qwen all accept list-type tool content).
-        const isMimoModel = rawModelId !== undefined && /^mimo-/i.test(rawModelId);
-        if (isMimoModel) {
-          const flattened: string[] = [...toolTextParts];
+      // PROVIDER QUIRK: several chat-completions upstreams reject multimodal
+      // (list-type) content on role:"tool" messages while accepting the same
+      // parts in user/assistant messages. requiresStringToolContent() maps a
+      // model to its handling mode:
+      //   "drop"  — MiMo: upstream cannot see tool images at all (issue #38,
+      //             upstream anomalyco/opencode#32613); flatten to a string
+      //             and replace each image with a placeholder note.
+      //   "defer" — glm-5.3* (issue #233): tool-message image_url parts are
+      //             rejected with HTTP 422 "[invalid_request_error] Input
+      //             should be a valid string", but the SAME images in a user
+      //             message return 200. Flatten the tool message to a string
+      //             and move the images into a follow-up user message (see
+      //             finish()), preserving vision instead of dropping it.
+      //   null    — default: keep the multimodal array (Kimi, GLM-5.1/5.2,
+      //             MiniMax, Qwen all accept list-type tool content).
+      const stringToolContentMode = requiresStringToolContent(rawModelId);
+      if (toolImageParts.length > 0 && stringToolContentMode !== null) {
+        const flattened: string[] = [...toolTextParts];
+        if (stringToolContentMode === "drop") {
           for (let i = 0; i < toolImageParts.length; i++) {
             flattened.push(
               `[Tool returned an image attachment, but the MiMo upstream provider does not accept images in tool messages. Image ${String(i + 1)} of ${String(toolImageParts.length)} was dropped to keep the request valid.]`,
             );
           }
-          toolContent = flattened.join("\n");
         } else {
-          const multimodal: OpenAiContentPart[] = [];
-          const joinedText = toolTextParts.join("\n");
-          if (joinedText) {
-            multimodal.push({ type: "text", text: joinedText });
-          }
-          multimodal.push(...toolImageParts);
-          toolContent = multimodal;
+          flattened.push(
+            `[Tool returned ${toolImageParts.length === 1 ? "an image attachment" : `${String(toolImageParts.length)} image attachments`}; ${toolImageParts.length === 1 ? "it is" : "they are"} included in the following message.]`,
+          );
+          deferredToolImageParts.push(...toolImageParts);
         }
+        toolContent = flattened.join("\n");
+      } else if (toolImageParts.length > 0) {
+        const multimodal: OpenAiContentPart[] = [];
+        const joinedText = toolTextParts.join("\n");
+        if (joinedText) {
+          multimodal.push({ type: "text", text: joinedText });
+        }
+        multimodal.push(...toolImageParts);
+        toolContent = multimodal;
       } else {
         toolContent = toolTextParts.join("\n");
       }

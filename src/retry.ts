@@ -206,6 +206,35 @@ const RECOVERABLE_ERROR_PATTERNS: {
     },
     describe: () => "removed thinking_budget (not accepted by this model)",
   },
+
+  // --- Reasoning echo missing (DeepSeek V4 thinking mode) ---
+  // "The `reasoning_content` in the thinking mode must be passed back to the
+  // API." (issue #239). Happens when prior-turn reasoning is gone from the
+  // replayed history (Copilot Chat conversation summarization/compaction,
+  // history trimming, or a conversation started before thinking capture was
+  // active). Retrying without a patch fails forever — every turn re-400s —
+  // so we self-heal by stripping the reasoning_content echo from assistant
+  // messages AND turning reasoning_effort off, making the request
+  // self-contained. Dropping reasoning_effort stops the cycle: with thinking
+  // still on, the next response would emit new reasoning that compaction
+  // strips again, re-400ing the turn after.
+  {
+    pattern: /reasoning_content`? in the thinking mode must be passed back/i,
+    patch: (body) => {
+      const messages: unknown[] = Array.isArray(body.messages) ? body.messages : [];
+      return {
+        ...body,
+        messages: messages.map((message) => {
+          if (typeof message !== "object" || message === null) return message;
+          const msg = message as Record<string, unknown>;
+          if (msg.role !== "assistant" || msg.reasoning_content === undefined) return msg;
+          return { ...msg, reasoning_content: undefined };
+        }),
+        reasoning_effort: undefined,
+      };
+    },
+    describe: () => "stripped reasoning_content echo + reasoning_effort (history lost prior reasoning)",
+  },
   // budget_tokens — used by Mimo thinking payload to cap reasoning tokens
   {
     pattern: /extra inputs are not permitted.*budget_tokens/i,
