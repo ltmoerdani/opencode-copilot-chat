@@ -4,6 +4,7 @@ import { requiresStringToolContent } from "../models/modelCapabilities";
 import { MAX_HISTORY_IMAGES_KEPT, MAX_TOOL_RESULT_IMAGE_BYTES } from "../config";
 import { getImageDataUrlBase64Bytes, MAX_IMAGE_BASE64_BYTES, normalizeImageDataUrl } from "../imageNormalizer";
 import { shouldEchoThinkingHistory, thinkingTextFromValue } from "../reasoningHistory";
+import { withDeferredToolImageMessages } from "../request/shared";
 import type { ApiMessage, OpenAiContentPart, OpenAiToolCall } from "../request/types";
 import { partToText } from "./tokens";
 import type { ConvertedMessageResult } from "./definitions";
@@ -35,24 +36,12 @@ export async function convertMessage(
   };
 
   const finish = (messages: ApiMessage[]): ConvertedMessageResult => {
-    const result = [...messages];
-    if (deferredToolImageParts.length > 0) {
-      // Tool images rejected in role:"tool" content but accepted in user
-      // content (verified against zen/go/v1 chat-completions for
-      // glm-5.3-flash: tool image_url → 422, user image_url → 200). Append
-      // them as a follow-up user message so vision capability is preserved.
-      result.push({
-        role: "user",
-        content: [
-          {
-            type: "text",
-            text: "Images returned by a tool result (the upstream provider does not accept images inside tool messages):",
-          },
-          ...deferredToolImageParts,
-        ],
-      });
-    }
-    return { messages: result, normalizedImageCount };
+    // Tool images rejected in role:"tool" content but accepted in user
+    // content (verified against zen/go/v1 chat-completions for
+    // glm-5.3-flash: tool image_url → 422, user image_url → 200) are
+    // appended as a follow-up user message so vision capability is
+    // preserved. See withDeferredToolImageMessages for the CONTRACT.
+    return { messages: withDeferredToolImageMessages(messages, deferredToolImageParts), normalizedImageCount };
   };
 
   for (const part of message.content) {

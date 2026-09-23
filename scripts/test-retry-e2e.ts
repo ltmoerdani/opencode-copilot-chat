@@ -22,6 +22,7 @@ interface MockRequestBody {
   thinking?: { type?: unknown };
   temperature?: unknown;
   reasoning_effort?: unknown;
+  messages?: unknown;
 }
 
 /** JSON.parse returns `any`; shape it into a minimal, typed view of the body. */
@@ -63,6 +64,36 @@ function createMockServer() {
           res.writeHead(400, { "Content-Type": "application/json" });
           res.end(JSON.stringify({ error: { message: "reasoning_effort must be one of: low, medium, high, max" } }));
           return;
+        }
+
+        // DeepSeek V4.1 Flash thinking mode (issue #239): 400 when reasoning
+        // is still enabled OR any assistant history message carries a
+        // reasoning_content echo — mirrors the upstream validator that
+        // demands prior-turn reasoning be passed back.
+        if (model === "deepseek-v4.1-flash") {
+          const messages = Array.isArray(parsed.messages) ? parsed.messages : [];
+          const hasEcho = messages.some(
+            (m: unknown) =>
+              typeof m === "object" &&
+              m !== null &&
+              (m as { role?: unknown; reasoning_content?: unknown }).role === "assistant" &&
+              (m as { reasoning_content?: unknown }).reasoning_content !== undefined,
+          );
+          if (parsed.reasoning_effort !== undefined || hasEcho) {
+            res.writeHead(400, { "Content-Type": "application/json" });
+            res.end(
+              JSON.stringify({
+                error: {
+                  param: null,
+                  type: "invalid_request_error",
+                  code: "invalid_request_error",
+                  message:
+                    "Upstream request failed: [invalid_request_error] The `reasoning_content` in the thinking mode must be passed back to the API.",
+                },
+              }),
+            );
+            return;
+          }
         }
 
         // MiniMax M2.7: reject thinking.type "disabled"
@@ -161,6 +192,40 @@ const TEST_CASES: TestCase[] = [
   {
     name: "Kimi K2.5: thinking enabled → no 400 (no retry needed)",
     badBody: { model: "kimi-k2.5", messages: [{ role: "user", content: "Hi" }], max_tokens: 10, thinking: { type: "enabled" } },
+    expectedPatch: (b) => b,
+  },
+  {
+    // Issue #239: reasoning lost from history while thinking is still on.
+    // The upstream 400s demanding the echo back; the patch strips the echo
+    // AND reasoning_effort so the request is self-contained again.
+    name: "DeepSeek V4.1 Flash: reasoning echo missing → strip echo + effort",
+    badBody: {
+      model: "deepseek-v4.1-flash",
+      max_tokens: 10,
+      reasoning_effort: "low",
+      messages: [
+        { role: "user", content: "do a task" },
+        { role: "assistant", content: "working", reasoning_content: "lost chain of thought", tool_calls: [] },
+        { role: "tool", tool_call_id: "call_1", content: "tool output" },
+      ],
+    },
+    expectedPatch: (b) => {
+      const messages = (b.messages as Array<Record<string, unknown>>).map((m) =>
+        m.role === "assistant" ? { ...m, reasoning_content: undefined } : m,
+      );
+      return { ...b, messages, reasoning_effort: undefined };
+    },
+  },
+  {
+    name: "DeepSeek V4.1 Flash: no echo + no effort → 200 (healthy request)",
+    badBody: {
+      model: "deepseek-v4.1-flash",
+      max_tokens: 10,
+      messages: [
+        { role: "user", content: "do a task" },
+        { role: "assistant", content: "working" },
+      ],
+    },
     expectedPatch: (b) => b,
   },
 ];
