@@ -183,6 +183,43 @@ export const HISTORY_TRIM_SAFETY_MARGIN_TOKENS = 2048;
  */
 export const HISTORY_TRIM_TARGET_RATIO = 0.7;
 /**
+ * Cache-stable trim headroom: when a trim is unavoidable, the trimmer drops
+ * past the minimal fit until the payload sits at least this far below the
+ * budget (the *low-water* mark). A minimal cut leaves almost no slack, so the
+ * next turn's growth re-trims with a different cut point — and the provider's
+ * prefix cache only reuses the bytes before the first changed message, so each
+ * moved cut re-bills the whole conversation at full input price (observed:
+ * hit rate collapses from ~99% to ~11%, only system + tools cached). Dropping
+ * a fixed headroom keeps the cut point stable for several turns: one miss per
+ * trim epoch instead of one miss on nearly every turn at the context ceiling.
+ * Sized as {@link HISTORY_TRIM_HEADROOM_RATIO} of the budget — floored by
+ * {@link HISTORY_TRIM_HEADROOM_MIN_TOKENS} (never more than 10% of the budget,
+ * so a small budget is not dominated) and capped by
+ * {@link HISTORY_TRIM_HEADROOM_MAX_TOKENS}. Applies to the byte ceiling too,
+ * scaled by {@link HISTORY_BYTES_PER_TOKEN}.
+ */
+export const HISTORY_TRIM_HEADROOM_RATIO = 0.03;
+export const HISTORY_TRIM_HEADROOM_MIN_TOKENS = 8_192;
+export const HISTORY_TRIM_HEADROOM_MAX_TOKENS = 32_768;
+/**
+ * Cut-step alignment for the trimmed history: after the low-water crossing,
+ * the cut is advanced to the next multiple of this many dropped tokens. The
+ * crossing on its own hugs the low-water mark within one unit, so the slack
+ * left for the following turns is bounded by a single unit's size — once
+ * per-turn growth approaches that size the cut advances on nearly every turn
+ * and re-bills the whole conversation (observed live 2026-09-20 evening:
+ * ~2.7K-token units with ~1K growth per request advanced the cut every 1-3
+ * requests, a 12.4% cache miss each time, for hours — while a morning session
+ * whose dropped units happened to include large tool results held the cut for
+ * 13 consecutive trims). Aligning the cut to a fixed step means every advance
+ * buys up to one step of accumulated growth — a stable window of roughly
+ * `step / per-turn growth` turns — at the cost of dropping at most one step of
+ * extra old context. Applies to the byte ceiling too, scaled by
+ * {@link HISTORY_BYTES_PER_TOKEN}, and is capped at 10% of the budget so a
+ * small budget is never dominated.
+ */
+export const HISTORY_TRIM_CUT_STEP_TOKENS = 32_768;
+/**
  * Hard ceiling on the serialized request payload (bytes). Even after token
  * trimming, a single oversized turn or an inaccurate token estimate can still
  * produce a payload the gateway rejects — the reporter hit a 503 at ~783 KB —

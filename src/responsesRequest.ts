@@ -9,6 +9,7 @@ export interface ResponsesRequestEnvelopeOptions {
   tools?: readonly unknown[];
   toolChoice?: unknown;
   truncation?: "auto" | "disabled";
+  promptCacheKey?: string;
 }
 
 /**
@@ -46,6 +47,7 @@ export function buildResponsesRequestEnvelope(options: ResponsesRequestEnvelopeO
     max_output_tokens: options.maxOutputTokens,
     truncation: options.truncation ?? "auto",
     ...(options.temperature === undefined ? {} : { temperature: options.temperature }),
+    ...(options.promptCacheKey ? { prompt_cache_key: options.promptCacheKey } : {}),
     stream: true,
     ...(options.thinkingPayload ?? {}),
     ...(tools.length > 0 ? { tools, tool_choice: options.toolChoice } : {}),

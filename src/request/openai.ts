@@ -12,6 +12,7 @@ import { lookupModelRegistryEntry } from "../core/registry";
 import { buildResponsesRequestEnvelope, pairResponsesFunctionCallItems, responsesInputItemsFromMessage } from "../responsesRequest";
 import { thinkingProviderFor } from "../thinking";
 import { sanitizeToolSchema } from "./schema";
+import { resolveProjectCacheKey } from "./headers";
 import { messagesHaveImages } from "./shared";
 import type { ResolvedModelMetadata } from "../models/metadata";
 import type { ModelLimits } from "../models/modelLimits";
@@ -39,6 +40,10 @@ export function buildChatCompletionsRequestBody(
     max_tokens: limits.maxOutputTokens,
     stream: true,
     stream_options: { include_usage: true },
+    ...(() => {
+      const k = resolveProjectCacheKey(modelId);
+      return k ? { prompt_cache_key: k } : {};
+    })(),
     ...thinkingPayload,
     ...(tools.length ? { tools, tool_choice: toolChoice(options.toolMode) } : {}),
   };
@@ -66,6 +71,10 @@ export function buildResponsesRequestBody(
     model: modelId,
     input,
     maxOutputTokens: limits.maxOutputTokens,
+    ...(() => {
+      const k = resolveProjectCacheKey(modelId);
+      return k ? { promptCacheKey: k } : {};
+    })(),
     // Muse Spark gateway requires `truncation: "disabled"` — requests whose
     // input exceeds the 1M context window will hard-fail (HTTP 400) instead
     // of being silently truncated upstream. This is a gateway constraint,
@@ -80,7 +89,8 @@ export function buildResponsesRequestBody(
 }
 
 function mapOpenAiTools(tools: readonly vscode.LanguageModelChatTool[] | undefined): OpenAiToolDefinition[] {
-  return (tools ?? []).map((tool) => ({
+  const sorted = [...(tools ?? [])].sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
+  return sorted.map((tool) => ({
     type: "function",
     function: {
       name: tool.name,
@@ -92,7 +102,8 @@ function mapOpenAiTools(tools: readonly vscode.LanguageModelChatTool[] | undefin
 
 function mapResponsesTools(tools: readonly vscode.LanguageModelChatTool[] | undefined, modelId?: string): Record<string, unknown>[] {
   const needsTruncation = isMuseFamily(modelId ?? "");
-  return (tools ?? []).map((tool) => ({
+  const sorted = [...(tools ?? [])].sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
+  return sorted.map((tool) => ({
     type: "function",
     name: needsTruncation ? truncateToolName(tool.name) : tool.name,
     description: tool.description,
