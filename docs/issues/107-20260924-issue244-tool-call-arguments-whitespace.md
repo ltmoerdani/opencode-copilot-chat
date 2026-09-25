@@ -54,6 +54,8 @@ The reporter's OpenCode Diagnostics dumps (Go + Zen) corroborate the root cause:
 
 Design note: the done-event path makes the fix **permanent** — even if some gateway trims or mangles delta fragments, the final `response.function_call_arguments.done` value overwrites the accumulated string, matching official SDK semantics (`output.arguments = event.arguments`).
 
+> **⚠️ Follow-up regression (fixed in 0.7.8):** the original repair delta also forwarded `id: firstString(call_id, item_id)` — and the real luna done event carries only `item_id` (`fc_1`), which the accumulator adopted, clobbering the real `call_*` identity and causing `400 No tool output found` (item ids are reused across turns). See [doc 108](108-20260925-issue244-followup-done-event-id-clobber.md). The arguments-only repair remains; identity is never touched.
+
 ## Tests
 
 - `src/test/routing.test.ts` — "function_call_arguments whitespace preservation (#244)": fragments split inside a JSON string value must preserve the space; done-event mapping; done-event without arguments emits no choices.

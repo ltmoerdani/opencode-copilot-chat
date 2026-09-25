@@ -137,6 +137,10 @@ export function responsesInputItemsFromMessage(message: ResponsesApiMessage): Re
  * - A `function_call` with no output is dropped too (the gateway 400s on it;
  *   keeping it would fail the entire turn).
  * - The first output wins if a call_id is duplicated.
+ * - Duplicate `function_call` items sharing one call_id are collapsed to the
+ *   first (self-heals histories poisoned by 0.7.7's id-clobbering bug, where
+ *   reused `fc_*` item ids made two turns emit the same call id; #244
+ *   follow-up).
  */
 export function pairResponsesFunctionCallItems(items: Record<string, unknown>[]): Record<string, unknown>[] {
   const callIdsWithOutput = new Set<string>();
@@ -156,6 +160,7 @@ export function pairResponsesFunctionCallItems(items: Record<string, unknown>[])
     }
   }
   const consumedOutputs = new Set<string>();
+  const seenCalls = new Set<string>();
   return items.filter((item) => {
     const callId = item.call_id;
     if (item.type === "function_call_output") {
@@ -164,7 +169,16 @@ export function pairResponsesFunctionCallItems(items: Record<string, unknown>[])
       return matched;
     }
     if (item.type === "function_call") {
-      return typeof callId === "string" && callIdsWithOutput.has(callId);
+      if (typeof callId !== "string" || !callIdsWithOutput.has(callId)) {
+        return false;
+      }
+      // Collapse duplicate function_call items: one output can only serve one
+      // call, so extras with the same call_id would 400 at the gateway.
+      if (seenCalls.has(callId)) {
+        return false;
+      }
+      seenCalls.add(callId);
+      return true;
     }
     return true;
   });

@@ -1,6 +1,20 @@
 # 🧠 OPENCODE COPILOT CHAT DEVLOG
 
-**Branch:** `main` (fix uncommitted, branch TBD) | **Updated:** 2026-09-24 Asia/Jakarta | **Current Phase:** issue #244 fix — tool-call arguments whitespace on Responses API; implemented + tested (489/489), docs synced, CHANGELOG `[0.7.7]`, VSIX 0.7.7 built + installed locally, pending commit.
+**Branch:** `fix/issue244-followup-id-clobber` (work on `main`) | **Updated:** 2026-09-25 Asia/Jakarta | **Current Phase:** #244 follow-up — 0.7.7 done-event repair clobbered tool-call identity (`400 No tool output found`); fixed in 3 layers, 493/493 tests, 0.7.8 pending release.
+
+---
+
+## ✅ #244 Follow-up — done-event id clobber → 400 No tool output found — 2026-09-25
+
+**Scope:** regression OF the #244 fix (0.7.7), reported by the same user 18h later: every OpenAI-model request 400s with `No tool output found for function call call_*` (#216 error class). The done-event repair delta built `id: firstString(call_id, item_id)` — but the real luna done event carries only `item_id: "fc_1"`, which the accumulator adopted, REPLACING the real `call_*` id. Item ids are reused across turns → two turns with `fc_1` = two function_calls against one output at the gateway → 400. Proven empirically by replaying the captured luna event shapes (part id came out `fc_1` instead of `call_Vf1vzJwf...`).
+
+**Fix (3 layers):** (1) done event forwards `id` only when a real `call_id` is present — repair is arguments-only; (2) `ToolCallAccumulator` captures id once, never overwritten; (3) `pairResponsesFunctionCallItems` collapses duplicate function_call items sharing a call_id — poisoned histories self-heal.
+
+**Tests:** 4 new in `src/test/issue244-followup-regression.test.ts` (identity preserved, round-trip pairing, #244 arguments repair preserved, poisoned-history dedupe). **493/493 pass**, compile clean.
+
+**Lesson:** a streaming repair event must never mutate call identity; `firstString(call_id, item_id)`-style fallbacks across semantically different identifiers are the trap.
+
+Docs: `docs/issues/108`, doc 107 annotated, CHANGELOG `[0.7.8]`.
 
 ---
 

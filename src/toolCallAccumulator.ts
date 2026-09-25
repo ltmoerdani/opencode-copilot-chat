@@ -74,7 +74,14 @@ export class ToolCallAccumulator {
         name: "",
         arguments: "",
       };
-      if (typeof toolCall.id === "string") {
+      // IDENTITY RULE (0.7.7 regression, #244 follow-up): an id is captured
+      // once (from the first fragment that carries one) and never overwritten
+      // by a later fragment. Late fragments may carry `item_id`-shaped ids
+      // (e.g. Responses `function_call_arguments.done` with only `fc_1`) that
+      // are reused across turns — adopting them corrupts the call id that
+      // history pairing and the gateway's function_call/_output matching
+      // depend on.
+      if (typeof toolCall.id === "string" && toolCall.id && !pending.id) {
         pending.id = toolCall.id;
       }
 
