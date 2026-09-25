@@ -2,6 +2,12 @@
 
 All notable changes to the **OpenCode Go BYOK Provider** extension are documented here.
 
+## [0.7.8] — 2026-09-25
+
+### Fixed
+
+- **`[Responses]` The #244 done-event repair no longer corrupts tool-call identity — the 0.7.7 regression causing `400 No tool output found for function call call_*` is fixed (#244 follow-up).** The real luna `response.function_call_arguments.done` event carries only `item_id` (`fc_1`), never `call_id`. The repair delta built `id: firstString(call_id, item_id)` and the accumulator adopted it, REPLACING the real `call_*` id captured from `output_item.added` — and item ids are reused across turns. Two turns both carrying `fc_1` produced two `function_call` items against one `function_call_output` at the gateway, which rejects the whole request with `No tool output found`. Fix: the done event now repairs **arguments only** (id forwarded only when a real `call_id` is present); `ToolCallAccumulator` captures an id once and never lets a later fragment overwrite it; and `pairResponsesFunctionCallItems` collapses duplicate `function_call` items sharing a call_id, self-healing histories already poisoned by 0.7.7. The identity rule is enforced on every Responses entry point — `output_item.added` and the full-response mapping no longer fall back to `item.id` either. Proven empirically against the captured luna event shapes (part id stays `call_*` end to end) plus a 17-check E2E simulation of the full tool-call loop. Documented in `docs/issues/108-20260925-issue244-followup-done-event-id-clobber.md`.
+
 ## [0.7.7] — 2026-09-24
 
 ### Fixed

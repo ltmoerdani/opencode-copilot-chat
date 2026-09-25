@@ -78,6 +78,10 @@ export function normalizeResponsesStreamEvent(data: unknown): unknown {
   if (eventType === "response.output_item.added") {
     const item = data.item;
     if (isRecord(item) && item.type === "function_call" && typeof item.name === "string") {
+      // IDENTITY RULE (#244 follow-up): call identity comes ONLY from
+      // `call_id`. Never fall back to `item.id` (`fc_*`) — item ids are
+      // reused across turns and would collide in replayed history.
+      const callId = typeof item.call_id === "string" && item.call_id.trim() ? item.call_id : "";
       return {
         choices: [
           {
@@ -86,7 +90,7 @@ export function normalizeResponsesStreamEvent(data: unknown): unknown {
               tool_calls: [
                 {
                   index: typeof data.output_index === "number" ? data.output_index : 0,
-                  id: firstString(item.call_id, item.id) ?? "",
+                  id: callId,
                   type: "function",
                   function: { name: item.name, arguments: "" },
                 },
@@ -152,11 +156,16 @@ export function normalizeResponsesStreamEvent(data: unknown): unknown {
   // Use it as an authoritative repair: the accumulator REPLACES (not appends)
   // the pending arguments so any corruption from mis-joined delta fragments is
   // healed at stream end (issue #244).
+  // IDENTITY RULE (0.7.7 regression): the done event may carry only `item_id`
+  // (e.g. `fc_1` on gpt-5.6-luna) — item ids are REUSED across turns, so they
+  // must never become the tool-call part id. Only a real `call_id` is
+  // forwarded; the accumulator keeps the id captured from output_item.added.
   if (eventType === "response.function_call_arguments.done") {
     const args = firstStringRaw(data.arguments);
     if (args === undefined) {
       return { choices: [] };
     }
+    const callId = typeof data.call_id === "string" && data.call_id.trim() ? data.call_id : undefined;
     return {
       choices: [
         {
@@ -165,7 +174,7 @@ export function normalizeResponsesStreamEvent(data: unknown): unknown {
             tool_calls: [
               {
                 index: typeof data.output_index === "number" ? data.output_index : 0,
-                id: firstString(data.call_id, data.item_id) ?? "",
+                ...(callId ? { id: callId } : {}),
                 type: "function",
                 function: { arguments: args },
                 argumentsDone: true,
@@ -237,7 +246,9 @@ export function normalizeResponsesFullResponse(data: unknown): unknown {
 
     if (item.type === "function_call" && typeof item.name === "string") {
       toolCalls.push({
-        id: firstString(item.call_id, item.id) ?? "",
+        // IDENTITY RULE (#244 follow-up): call_id only — no item.id fallback
+        // (fc_* item ids are reused across turns; see added-handler above).
+        id: firstString(item.call_id) ?? "",
         type: "function",
         function: {
           name: item.name,
