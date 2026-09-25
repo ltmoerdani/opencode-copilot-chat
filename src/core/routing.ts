@@ -78,6 +78,10 @@ export function normalizeResponsesStreamEvent(data: unknown): unknown {
   if (eventType === "response.output_item.added") {
     const item = data.item;
     if (isRecord(item) && item.type === "function_call" && typeof item.name === "string") {
+      // IDENTITY RULE (#244 follow-up): call identity comes ONLY from
+      // `call_id`. Never fall back to `item.id` (`fc_*`) — item ids are
+      // reused across turns and would collide in replayed history.
+      const callId = typeof item.call_id === "string" && item.call_id.trim() ? item.call_id : "";
       return {
         choices: [
           {
@@ -86,7 +90,7 @@ export function normalizeResponsesStreamEvent(data: unknown): unknown {
               tool_calls: [
                 {
                   index: typeof data.output_index === "number" ? data.output_index : 0,
-                  id: firstString(item.call_id, item.id) ?? "",
+                  id: callId,
                   type: "function",
                   function: { name: item.name, arguments: "" },
                 },
@@ -242,7 +246,9 @@ export function normalizeResponsesFullResponse(data: unknown): unknown {
 
     if (item.type === "function_call" && typeof item.name === "string") {
       toolCalls.push({
-        id: firstString(item.call_id, item.id) ?? "",
+        // IDENTITY RULE (#244 follow-up): call_id only — no item.id fallback
+        // (fc_* item ids are reused across turns; see added-handler above).
+        id: firstString(item.call_id) ?? "",
         type: "function",
         function: {
           name: item.name,

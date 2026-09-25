@@ -42,18 +42,39 @@ Proven empirically: replaying the captured luna event sequence through `normaliz
 | Defense    | `src/toolCallAccumulator.ts` | An id is captured **once** (first fragment that carries one) and never overwritten by later fragments                                                                        |
 | Self-heal  | `src/responsesRequest.ts`    | `pairResponsesFunctionCallItems` collapses duplicate `function_call` items sharing one call_id (keeps the first) — histories already poisoned by 0.7.7 recover automatically |
 
+### Identity Rule extended to every Responses entry point
+
+The post-fix audit found the same latent fallback in two more places and removed it — **no Responses path may ever derive call identity from `item.id`**:
+
+- `output_item.added` handler: `firstString(item.call_id, item.id)` → `call_id` only (empty → the flush fabricates a unique id, which cannot collide).
+- `normalizeResponsesFullResponse` function_call mapping: same fallback removed.
+
+Gateways that always send `call_id` (all known real shapes) are unaffected; only the hypothetical call_id-less shape changes behavior, and strictly for the better.
+
 The `argumentsDone` REPLACE repair for arguments (the actual #244 fix) is preserved and pinned by test.
 
 ## Tests
 
-`src/test/issue244-followup-regression.test.ts` (renamed from the repro):
+`src/test/issue244-followup-regression.test.ts` (renamed from the repro) — 6 tests:
 
 1. Part id stays `call_*` when done carries only `item_id` (the exact reported shape).
 2. Full round-trip: wire request pairs function_call with its output.
 3. `argumentsDone` still repairs mis-joined arguments (#244 fix preserved).
 4. Pairing collapses duplicate function_call items (poisoned-history self-heal).
+5. `output_item.added` without `call_id` never adopts the `fc_` item id.
+6. `normalizeResponsesFullResponse` maps `call_id` only (no `item.id` fallback).
 
-Verification: **493/493** tests pass, `npm run compile` clean.
+### Pre-release E2E (`tmp/e2e-issue244-prerelease.mjs` — 17/17 checks)
+
+Full Copilot Chat loop simulated without VS Code, against the captured luna shapes:
+
+- Turn 1: stream → part id = gateway `call_id`, arguments `"what is 2 plus 2?"` keep their spaces (the original #244 symptom).
+- Turn 2: history replay → wire request → pairing call/output = 1:1, no 400 possible.
+- Turn 3: second turn reusing item id `fc_1` (the 0.7.7 poison) stays clean.
+- Poisoned-history self-heal: a history already written by 0.7.7 collapses to 1 call + 1 output — users recover without clearing the chat.
+- Non-stream full-response path sanity.
+
+Verification: **495/495** unit tests, `npm run lint` 7/7, retry E2E mock server 9/9, `npm run compile` clean.
 
 ## Lesson Recorded
 

@@ -1,6 +1,6 @@
 # 🧠 OPENCODE COPILOT CHAT DEVLOG
 
-**Branch:** `fix/issue244-followup-id-clobber` (work on `main`) | **Updated:** 2026-09-25 Asia/Jakarta | **Current Phase:** #244 follow-up — 0.7.7 done-event repair clobbered tool-call identity (`400 No tool output found`); fixed in 3 layers, 493/493 tests, 0.7.8 pending release.
+**Branch:** `fix/issue244-followup-id-clobber` (work on `main`) | **Updated:** 2026-09-25 Asia/Jakarta | **Current Phase:** #244 follow-up fix complete + deep-verified (495/495 tests, lint 7/7, retry E2E 9/9, pre-release E2E 17/17); 0.7.8 pending push/PR/build.
 
 ---
 

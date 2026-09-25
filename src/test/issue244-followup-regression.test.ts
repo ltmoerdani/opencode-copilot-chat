@@ -168,3 +168,36 @@ describe("#244 follow-up: done event repairs arguments, never identity", () => {
     assert.equal(outs.length, 1, `expected 1 function_call_output after dedupe, got ${String(outs.length)}`);
   });
 });
+
+describe("#244 follow-up: identity rule — no item.id fallback anywhere", () => {
+  before(async () => {
+    const routing = await import("../core/routing.js");
+    normalizeResponsesStreamEvent = routing.normalizeResponsesStreamEvent;
+    const responses = await import("../responsesRequest.js");
+    responsesInputItemsFromMessage = responses.responsesInputItemsFromMessage;
+    pairResponsesFunctionCallItems = responses.pairResponsesFunctionCallItems;
+  });
+
+  it("output_item.added without call_id does NOT adopt the fc_ item id", () => {
+    const result = normalizeResponsesStreamEvent({
+      type: "response.output_item.added",
+      output_index: 0,
+      // No call_id — the old firstString(item.call_id, item.id) fallback
+      // adopted "fc_1", which is reused across turns.
+      item: { id: "fc_1", type: "function_call", status: "in_progress", name: "read_file", arguments: "" },
+    }) as { choices: { delta: { tool_calls: { id?: string }[] } }[] };
+    const call = result.choices[0].delta.tool_calls[0];
+    assert.notEqual(call.id, "fc_1", "item id must never become call identity");
+  });
+
+  it("normalizeResponsesFullResponse maps function_call call_id only (no item.id fallback)", async () => {
+    const routing = await import("../core/routing.js");
+    const full = routing.normalizeResponsesFullResponse({
+      response: {
+        output: [{ type: "function_call", id: "fc_7", call_id: "call_OK", name: "search", arguments: '{"q":"x"}' }],
+        stop_reason: "tool_calls",
+      },
+    }) as { choices: { message: { tool_calls: { id: string }[] } }[] };
+    assert.equal(full.choices[0]?.message.tool_calls[0]?.id, "call_OK");
+  });
+});
