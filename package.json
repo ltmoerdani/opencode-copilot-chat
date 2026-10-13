@@ -560,7 +560,7 @@
     "@vscode/vsce": "^3.9.2",
     "editorconfig-checker": "^6.2.0",
     "eslint": "^10.8.1",
-    "eslint-plugin-jsonc": "^3.4.1",
+    "eslint-plugin-jsonc": "^3.4.2",
     "eslint-plugin-yml": "^3.8.1",
     "husky": "^9.1.7",
     "jiti": "^2.7.0",
