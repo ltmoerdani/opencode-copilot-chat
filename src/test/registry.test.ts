@@ -11,6 +11,7 @@ const goProvider: ProviderRoutingDefinition = {
   chatCompletionsUrl: "https://go.example/v1/chat/completions",
   messagesUrl: "https://go.example/v1/messages",
   modelsUrl: "https://go.example/v1/models",
+  googleModelsUrl: "https://go.example/google/v1/models",
   responsesUrl: "https://go.example/v1/responses",
 };
 const zenProvider: ProviderRoutingDefinition = {
@@ -51,10 +52,25 @@ describe("model registry — data-driven transport routing", () => {
     }
   });
 
-  it("routes Gemini to the Google API on Zen but chat-completions on Go", () => {
+  it("routes Gemini to the Google API on every vendor", () => {
+    // Zen has no dedicated Google base → the route builds from modelsUrl.
     assert.equal(resolveModelRouting("gemini-3.5-flash", zenProvider).endpointKind, "google");
     assert.equal(resolveModelRouting("gemini-3.5-flash", zenProvider).endpointUrl, `${zenProvider.modelsUrl}/gemini-3.5-flash`);
-    assert.equal(resolveModelRouting("gemini-3.5-flash", goProvider).endpointKind, "chat-completions");
+    // Go serves the Google route on its own base (googleModelsUrl).
+    assert.equal(resolveModelRouting("gemini-4-argon-contributor", goProvider).endpointKind, "google");
+    assert.equal(
+      resolveModelRouting("gemini-4-argon-contributor", goProvider).endpointUrl,
+      `${goProvider.googleModelsUrl}/gemini-4-argon-contributor`,
+    );
+    // Agent-host variants resolve to their base vendor first.
+    const agentGo: ProviderRoutingDefinition = { ...goProvider, vendor: "opencodego-agent" };
+    const agentZen: ProviderRoutingDefinition = { ...zenProvider, vendor: "opencodezen-agent" };
+    assert.equal(resolveModelRouting("gemini-4-argon-contributor", agentGo).endpointKind, "google");
+    assert.equal(
+      resolveModelRouting("gemini-4-argon-contributor", agentGo).endpointUrl,
+      `${goProvider.googleModelsUrl}/gemini-4-argon-contributor`,
+    );
+    assert.equal(resolveModelRouting("gemini-3.5-flash", agentZen).endpointKind, "google");
   });
 
   it("routes Muse Spark to the Responses API on every vendor", () => {
@@ -103,11 +119,12 @@ describe("model registry — data-driven thinking family", () => {
     assert.equal(thinkingFamily("qwen3.7-max"), "qwen");
     assert.equal(thinkingFamily("mimo-v2.5"), "mimo");
     assert.equal(thinkingFamily("muse-spark-1.2-contributor"), "muse");
+    assert.equal(thinkingFamily("gemini-4-argon-contributor"), "gemini");
+    assert.equal(thinkingFamily("gemini-3.5-flash"), "gemini");
   });
 
   it("returns null for families without a dedicated strategy", () => {
     assert.equal(thinkingFamily("claude-sonnet-4-6"), null);
-    assert.equal(thinkingFamily("gemini-3.5-flash"), null);
     assert.equal(thinkingFamily("hy3"), null);
     assert.equal(thinkingFamily("unknown-model"), null);
   });
@@ -115,14 +132,15 @@ describe("model registry — data-driven thinking family", () => {
 
 describe("model registry — lookup mechanics", () => {
   it("honors vendor restrictions when a vendor is given", () => {
-    assert.equal(lookupModelRegistryEntry("gemini-3.5-flash", "opencodezen").endpointKind, "google");
-    assert.equal(lookupModelRegistryEntry("gemini-3.5-flash", "opencodego").endpointKind, "chat-completions");
     assert.equal(lookupModelRegistryEntry("minimax-m2.7", "opencodego").endpointKind, "messages");
     assert.equal(lookupModelRegistryEntry("minimax-m2.7", "opencodezen").endpointKind, "chat-completions");
+    // Gemini is NOT vendor-restricted — both vendors serve it Google-native.
+    assert.equal(lookupModelRegistryEntry("gemini-4-argon-contributor", "opencodego").endpointKind, "google");
+    assert.equal(lookupModelRegistryEntry("gemini-3.5-flash", "opencodezen").endpointKind, "google");
   });
 
   it("ignores vendor restrictions when no vendor is given (thinking-family lookup)", () => {
-    assert.equal(lookupModelRegistryEntry("gemini-3.5-flash").thinkingFamily, null);
+    assert.equal(lookupModelRegistryEntry("gemini-3.5-flash").thinkingFamily, "gemini");
     assert.equal(lookupModelRegistryEntry("minimax-m2.7").thinkingFamily, "minimax");
   });
 

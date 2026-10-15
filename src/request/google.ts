@@ -1,32 +1,46 @@
 /**
  * Google (Gemini) request body builder.
  *
- * Builds the Google generateContent wire payload (Gemini models on the Zen
- * gateway).
+ * Builds the Google generateContent wire payload (Gemini models on the Zen and
+ * Go gateways).
  *
  * CONTRACT: pure functions only — `vscode` is used as a TYPE and for the
  * `LanguageModelChatToolMode` enum value only; no extension-host side effects.
  */
 import * as vscode from "vscode";
 import { joinedTextContent } from "../responsesRequest";
+import { thinkingProviderFor } from "../thinking";
+import type { ResolvedModelMetadata } from "../models/metadata";
 import { parseToolInput } from "../toolCallAccumulator";
 import { sanitizeToolSchema } from "./schema";
+import { messagesHaveImages } from "./shared";
 import type { ModelLimits } from "../models/modelLimits";
 import type { ApiMessage, ApiSettings } from "./types";
 
 export function buildGoogleGenerateContentBody(
+  modelId: string,
   messages: ApiMessage[],
   options: vscode.ProvideLanguageModelChatResponseOptions,
   settings: ApiSettings,
+  metadata: ResolvedModelMetadata,
   limits: ModelLimits,
 ): Record<string, unknown> {
   const tools = mapGoogleTools(options.tools);
+  // Google-native thinking: the Gemini strategy returns a `thinkingConfig`
+  // fragment that belongs INSIDE `generationConfig` (unlike the flat
+  // OpenAI/Anthropic shapes).
+  const thinkingPayload = thinkingProviderFor(modelId, metadata).buildPayload(settings.thinking, {
+    hasImageInput: messagesHaveImages(messages),
+    endpoint: "google",
+  });
 
   return {
     contents: googleContentsFromMessages(messages),
     generationConfig: {
       maxOutputTokens: limits.maxOutputTokens,
-      temperature: settings.temperature,
+      // Only send temperature if the model supports it (not deprecated)
+      ...(metadata.temperature !== false ? { temperature: settings.temperature } : {}),
+      ...thinkingPayload,
     },
     ...(tools.length ? { tools: [{ functionDeclarations: tools }], toolConfig: googleToolConfig(options.toolMode) } : {}),
   };

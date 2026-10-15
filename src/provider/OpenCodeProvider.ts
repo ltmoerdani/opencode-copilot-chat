@@ -401,7 +401,7 @@ export class OpenCodeProvider implements vscode.LanguageModelChatProvider<OpenCo
           providerDisplayName: this.definition.displayName,
           apiKey,
           modelId: rawModelId,
-          body: buildGoogleGenerateContentBody(apiMessages, options, settings, limits),
+          body: buildGoogleGenerateContentBody(rawModelId, apiMessages, options, settings, metadata, limits),
           requestHeaders,
           progress,
           token,

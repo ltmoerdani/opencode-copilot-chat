@@ -13,11 +13,12 @@
  *
  * The generic payload is only valid on the OpenAI-compatible chat-completions
  * endpoint. Family-less models routed elsewhere — `claude-*` to Anthropic
- * messages, `gemini-*` to Google, `grok-*` to the Responses API — keep their
- * existing no-op behaviour: `reasoning_effort` means nothing on those wire
- * formats, so surfacing a picker there would be a control that silently does
- * nothing (or gets the request rejected). `endpointKind` comes from the shared
- * model registry, so this stays data-driven rather than a name list.
+ * messages, `grok-*` to the Responses API — keep their existing no-op
+ * behaviour: `reasoning_effort` means nothing on those wire formats, so
+ * surfacing a picker there would be a control that silently does nothing (or
+ * gets the request rejected). `endpointKind` comes from the shared model
+ * registry, so this stays data-driven rather than a name list. (Gemini has its
+ * own Google-native strategy — see `thinking/gemini.ts`.)
  *
  * `reasoning_content` is always treated as genuine CoT (never visible text).
  */

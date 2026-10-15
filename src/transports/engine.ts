@@ -487,26 +487,28 @@ export async function streamOpenCodeResponse(options: StreamOpenCodeResponseOpti
       );
     }
 
-    // Diagnostic: when the gateway reported completion tokens but our
-    // extractor found nothing, dump raw SSE data to identify format mismatches.
-    // This helps diagnose issues like #93 where the model generates tokens
-    // but the response content is in an unrecognized format.
+    // Diagnostic: when the stream delivered data frames but nothing extracted
+    // into parts, dump the raw SSE events to identify format mismatches between
+    // gateway output and our extractor. This helps diagnose issues like #93
+    // where the model generates content in an unrecognized format (e.g. the
+    // empty Google-route response that arrived as 5 unparsed events).
+    //
+    // NOTE: the earlier `completionTokens > 0` precondition made this dump
+    // unreachable on transports whose usage fields weren't captured (Google
+    // `usageMetadata`), so "bytes arrived, nothing extracted" must not depend
+    // on usage accounting.
     //
     // ISSUE #217 follow-up: skip the dump when a healthy finish_reason was
     // extracted. Tool-call responses on the Responses API (gpt-5.6-luna) emit
     // parts via the transport's finally flush AFTER this block runs, so
     // extractedPartCount is legitimately 0 here while the stream is perfectly
-    // healthy — the dump would false-positive on every tool-call turn.
+    // healthy — the dump would false-positive on every tool-call turn. A
+    // healthy-finish-but-empty stream is left to the response-summary line and
+    // `opencodego.debugReasoning` instead.
     const healthyFinish = typeof usageSummary.finishReason === "string" && usageSummary.finishReason !== "error";
-    if (
-      usageSummary.completionTokens &&
-      usageSummary.completionTokens > 0 &&
-      extractedPartCount === 0 &&
-      !healthyFinish &&
-      rawSseData.length > 0
-    ) {
+    if (extractedPartCount === 0 && !healthyFinish && rawSseData.length > 0) {
       options.output?.appendLine(
-        `[diag-empty-response] model=${options.modelId} completionTokens=${String(usageSummary.completionTokens)} totalEvents=${String(totalEvents)} rawSseDataCount=${String(rawSseData.length)}`,
+        `[diag-empty-response] model=${options.modelId} completionTokens=${String(usageSummary.completionTokens ?? "n/a")} totalEvents=${String(totalEvents)} rawSseDataCount=${String(rawSseData.length)}`,
       );
       for (let i = 0; i < rawSseData.length; i++) {
         options.output?.appendLine(`[diag-sse-event-${String(i)}] ${truncateForLog(JSON.stringify(rawSseData[i]))}`);

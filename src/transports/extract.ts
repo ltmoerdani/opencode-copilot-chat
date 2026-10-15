@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import { normalizeGoogleFinishReason, normalizeGoogleUsage } from "../core/routing";
 import { parseToolInput } from "../toolCallAccumulator";
 import { isRecord } from "../utils";
 import { thinkingPartConstructor, type RequestUsageSummary } from "./streamParts";
@@ -178,10 +179,11 @@ export function updateRequestUsageSummary(summary: RequestUsageSummary, data: un
   }
 
   // Responses API nests usage under response.usage (response.completed event);
-  // OpenAI/Anthropic put it at top-level usage. Check both.
+  // OpenAI/Anthropic put it at top-level usage. Google (Gemini) sends camelCase
+  // counts under `usageMetadata`, normalized to the same OpenAI shape. Check all.
   const rawUsage = isRecord(data.usage) ? data.usage : undefined;
   const responseUsage = isRecord(data.response) && isRecord(data.response.usage) ? data.response.usage : undefined;
-  const usage = rawUsage ?? responseUsage;
+  const usage = rawUsage ?? responseUsage ?? normalizeGoogleUsage(data.usageMetadata);
   if (usage) {
     // OpenAI-compatible fields
     const promptTokens = typeof usage.prompt_tokens === "number" ? usage.prompt_tokens : undefined;
@@ -239,6 +241,16 @@ export function updateRequestUsageSummary(summary: RequestUsageSummary, data: un
   const firstChoice = Array.isArray(data.choices) && isRecord(data.choices[0]) ? data.choices[0] : undefined;
   if (firstChoice && typeof firstChoice.finish_reason === "string") {
     summary.finishReason = firstChoice.finish_reason;
+  }
+
+  // Google (Gemini) reports `candidates[0].finishReason` (STOP/MAX_TOKENS/…)
+  // on raw events — the Google normalizer maps it for the extractor only, so
+  // the summary needs its own capture here.
+  const googleCandidate = Array.isArray(data.candidates) && isRecord(data.candidates[0]) ? data.candidates[0] : undefined;
+  if (googleCandidate && typeof googleCandidate.finishReason === "string") {
+    const parts = isRecord(googleCandidate.content) && Array.isArray(googleCandidate.content.parts) ? googleCandidate.content.parts : [];
+    const hasToolCalls = parts.some((part) => isRecord(part) && isRecord(part.functionCall));
+    summary.finishReason = normalizeGoogleFinishReason(googleCandidate.finishReason, hasToolCalls) ?? googleCandidate.finishReason;
   }
 }
 

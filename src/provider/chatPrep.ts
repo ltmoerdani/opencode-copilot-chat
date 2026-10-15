@@ -280,7 +280,14 @@ export async function prepareChatRequest(
 
   const thinkingPayload = thinkingProviderFor(rawModelId, metadata).buildPayload(settings.thinking, {
     hasImageInput: hasImageInput && metadata.supportsVision,
-    endpoint: routing.endpointKind === "messages" ? "messages" : routing.endpointKind === "responses" ? "responses" : "chat",
+    endpoint:
+      routing.endpointKind === "messages"
+        ? "messages"
+        : routing.endpointKind === "responses"
+          ? "responses"
+          : routing.endpointKind === "google"
+            ? "google"
+            : "chat",
   });
   const requestHeaders = buildOpenCodeRequestHeaders(messages, options, rawModelId);
   // NOTE: no output channel is created here. Channels are process-wide singletons

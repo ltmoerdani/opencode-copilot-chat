@@ -198,7 +198,7 @@ Deprecated/unavailable models are filtered before registration. Per-provider lim
 | Family                                                | Endpoint                         | Why                  |
 | ----------------------------------------------------- | -------------------------------- | -------------------- |
 | Zen GPT (`gpt-*`)                                     | `/responses`                     | OpenAI native        |
-| Zen Gemini (`gemini-*`)                               | `:streamGenerateContent?alt=sse` | Google native        |
+| Gemini (`gemini-*`, Zen + Go)                         | `:streamGenerateContent?alt=sse` | Google native        |
 | Zen Claude (`claude-*`) + Go MiniMax (`minimax-m2.*`) | `/messages`                      | Anthropic-compatible |
 | Everything else (Qwen, DeepSeek, GLM, Kimi, MiMo…)    | `/chat/completions`              | OpenAI-compatible    |
 
@@ -248,6 +248,7 @@ Per-model reasoning configuration, dynamically enhanced with `reasoning_options`
 | **MiniMax**                    | `off` / `on`                                                                          | `opencodego.thinking.minimax`              |
 | **Mimo (Xiaomi)**              | `off` / `low` / `medium` / `high`                                                     | `opencodego.thinking.mimo`                 |
 | **Qwen**                       | `auto` / `on` / `off` + `thinking_budget` (4096–81920)                                | `opencodego.thinking.qwen` + `.qwenBudget` |
+| **Gemini (Google)**            | `off` / `on` / `low` / `medium` / `high` (`thinkingLevel`, thoughts streamed)         | `opencodego.thinking.gemini`               |
 | **Any future reasoning model** | `off` / `low` / `medium` / `high` / `xhigh` / `max` (auto-detected from `models.dev`) | `opencodego.thinking.generic`              |
 
 > **`opencodego.debugReasoning`** writes provider `reasoning_content` to **Output → OpenCode** for debugging.
@@ -414,6 +415,7 @@ Provider diagnostics also include the VS Code/extension versions, extension host
 | `opencodego.thinking.mimo`                | `"off"`                         | `off`/`low`/`medium`/`high`                                                                                            |
 | `opencodego.thinking.qwen`                | `"off"`                         | `auto`/`on`/`off`                                                                                                      |
 | `opencodego.thinking.qwenBudget`          | `"auto"`                        | `auto`/`4096`/`16384`/`32768`/`81920`                                                                                  |
+| `opencodego.thinking.gemini`              | `"off"`                         | `off`/`on`/`low`/`medium`/`high`                                                                                       |
 
 <details>
 <summary><b>📜 Full settings reference with descriptions</b></summary>

@@ -16,6 +16,13 @@ export interface ThinkingSettings {
   mimo: "off" | "low" | "medium" | "high";
   muse: "off" | "low" | "medium" | "high" | "xhigh";
   /**
+   * Google-native (Gemini) thinking level sent as
+   * `generationConfig.thinkingConfig.thinkingLevel`. `"off"` sends no thinking
+   * config at all (the model's own default applies); `"on"` surfaces thoughts
+   * without pinning a level.
+   */
+  gemini: "off" | "on" | "low" | "medium" | "high";
+  /**
    * Effort for models with no dedicated thinking family, sent as a plain
    * OpenAI-compatible `reasoning_effort`. `"off"` sends nothing.
    *
@@ -27,7 +34,7 @@ export interface ThinkingSettings {
 }
 
 /** Detected thinking family for a raw model id. `null` = no known family. */
-export type ThinkingFamily = "deepseek" | "glm" | "kimi" | "minimax" | "openai" | "qwen" | "mimo" | "muse" | null;
+export type ThinkingFamily = "deepseek" | "glm" | "kimi" | "minimax" | "openai" | "qwen" | "mimo" | "muse" | "gemini" | null;
 
 /**
  * Which configuration layer supplied the effective thinking value.
@@ -56,6 +63,6 @@ export interface ThinkingOverride {
 export interface BuildThinkingPayloadOptions {
   /** Whether the request carries image input (affects Qwen auto behavior). */
   hasImageInput?: boolean;
-  /** Endpoint the request will hit — changes the payload shape (Qwen). */
-  endpoint?: "chat" | "messages" | "responses";
+  /** Endpoint the request will hit — changes the payload shape (Qwen, Gemini). */
+  endpoint?: "chat" | "messages" | "responses" | "google";
 }

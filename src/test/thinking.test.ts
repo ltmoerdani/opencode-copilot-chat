@@ -22,6 +22,7 @@ const defaultSettings: ThinkingSettings = {
   qwenBudget: "auto",
   mimo: "off",
   muse: "off",
+  gemini: "off",
   generic: "off",
 };
 
@@ -339,8 +340,10 @@ describe("FallbackThinking — unknown models without reasoning support", () => 
 describe("FallbackThinking — family-less models on non-chat endpoints stay inert", () => {
   // `reasoning_effort` means nothing on these wire formats, so a picker there
   // would be a control that silently does nothing (or 400s the request).
-  it("claude-*, gemini-* and grok-* get neither picker nor payload", () => {
-    for (const id of ["claude-sonnet-4.6", "gemini-3.5-pro", "grok-4.6"]) {
+  // gemini-* used to sit here too — it now owns a Google-native strategy (see
+  // the GeminiThinking block).
+  it("claude-* and grok-* get neither picker nor payload", () => {
+    for (const id of ["claude-sonnet-4.6", "grok-4.6"]) {
       const provider = thinkingProviderFor(id, genericReasoningMetadata);
       assert.equal(provider.schema(genericReasoningMetadata), undefined, `expected no picker for ${id}`);
       assert.deepEqual(provider.buildPayload({ ...defaultSettings, generic: "high" }), {}, `expected no payload for ${id}`);
@@ -447,6 +450,40 @@ describe("MuseThinking — payload + display (native reasoning model)", () => {
     const responsesUrl = "https://opencode.ai/zen/go/v1/responses";
     assert.equal(provider.treatReasoningAsContent(responsesUrl, { ...defaultSettings, muse: "off" }), false);
     assert.equal(provider.treatReasoningAsContent(responsesUrl, { ...defaultSettings, muse: "high" }), false);
+  });
+});
+
+describe("GeminiThinking — payload (Google thinkingConfig)", () => {
+  it("gemini 'off' emits empty object (model default, no thinking config)", () => {
+    const payload = thinkingProviderFor("gemini-4-argon-contributor").buildPayload({ ...defaultSettings, gemini: "off" });
+    assert.deepEqual(payload, {});
+  });
+
+  it("gemini 'high' emits thinkingConfig.thinkingLevel + includeThoughts", () => {
+    const payload = thinkingProviderFor("gemini-4-argon-contributor").buildPayload(
+      { ...defaultSettings, gemini: "high" },
+      { endpoint: "google" },
+    );
+    assert.deepEqual(payload, { thinkingConfig: { includeThoughts: true, thinkingLevel: "high" } });
+  });
+
+  it("gemini 'on' surfaces thoughts without pinning a level", () => {
+    const payload = thinkingProviderFor("gemini-4-argon-contributor").buildPayload({ ...defaultSettings, gemini: "on" });
+    assert.deepEqual(payload, { thinkingConfig: { includeThoughts: true } });
+  });
+
+  it("requestsThinking mirrors the picked level", () => {
+    const provider = thinkingProviderFor("gemini-4-argon-contributor");
+    assert.equal(provider.requestsThinking({ ...defaultSettings, gemini: "off" }), false);
+    assert.equal(provider.requestsThinking({ ...defaultSettings, gemini: "low" }), true);
+  });
+
+  it("never surfaces reasoning_content as visible text (thought parts are CoT)", () => {
+    const provider = thinkingProviderFor("gemini-3.5-flash");
+    assert.equal(
+      provider.treatReasoningAsContent("https://opencode.ai/zen/v1/models/gemini-3.5-flash", { ...defaultSettings, gemini: "high" }),
+      false,
+    );
   });
 });
 
@@ -743,6 +780,7 @@ describe("schema defaults stay aligned with THINKING_DEFAULTS", () => {
       ["qwen3.6-plus", "qwen"],
       ["mimo-v2.5", "mimo"],
       ["muse-spark-1.2-contributor", "muse"],
+      ["gemini-4-argon-contributor", "gemini"],
     ];
     for (const [modelId, key] of cases) {
       const schema = thinkingProviderFor(modelId).schema();

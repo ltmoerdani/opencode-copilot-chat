@@ -116,22 +116,22 @@ interface ModelRegistryEntry {
 
 ### Current rows (11 families + catch-all)
 
-| Order | Family          | Patterns                                                   | endpointKind     | thinkingFamily | vendors     |
-| ----- | --------------- | ---------------------------------------------------------- | ---------------- | -------------- | ----------- |
-| 1     | `gpt`           | `/^gpt-/i`                                                 | responses        | openai         | —           |
-| 2     | `claude`        | `/^claude-/i`                                              | messages         | null           | —           |
-| 3     | `minimax-m2`    | `/^minimax-m2\./i`                                         | messages         | minimax        | opencodego  |
-| 4     | `qwen-messages` | `/^qwen3\.(?:5\|6)-plus(?:-free)?$/i`, `/^qwen3\.7-max$/i` | messages         | qwen           | —           |
-| 5     | `gemini`        | `/^gemini-/i`                                              | google           | null           | opencodezen |
-| 6     | `minimax`       | `/^minimax-/i`                                             | chat-completions | minimax        | —           |
-| 7     | `deepseek`      | `/^deepseek-/i`                                            | chat-completions | deepseek       | —           |
-| 8     | `glm`           | `/^glm-/i`                                                 | chat-completions | glm            | —           |
-| 9     | `kimi`          | `/^kimi-/i`                                                | chat-completions | kimi           | —           |
-| 10    | `mimo`          | `/^mimo-/i`                                                | chat-completions | mimo           | —           |
-| 11    | `qwen`          | `/^qwen3(?:\.\|-)/i`                                       | chat-completions | qwen           | —           |
-| 12    | `default`       | `/.*/`                                                     | chat-completions | null           | —           |
+| Order | Family          | Patterns                                                   | endpointKind     | thinkingFamily | vendors    |
+| ----- | --------------- | ---------------------------------------------------------- | ---------------- | -------------- | ---------- |
+| 1     | `gpt`           | `/^gpt-/i`                                                 | responses        | openai         | —          |
+| 2     | `claude`        | `/^claude-/i`                                              | messages         | null           | —          |
+| 3     | `minimax-m2`    | `/^minimax-m2\./i`                                         | messages         | minimax        | opencodego |
+| 4     | `qwen-messages` | `/^qwen3\.(?:5\|6)-plus(?:-free)?$/i`, `/^qwen3\.7-max$/i` | messages         | qwen           | —          |
+| 5     | `gemini`        | `/^gemini-/i`                                              | google           | gemini         | —          |
+| 6     | `minimax`       | `/^minimax-/i`                                             | chat-completions | minimax        | —          |
+| 7     | `deepseek`      | `/^deepseek-/i`                                            | chat-completions | deepseek       | —          |
+| 8     | `glm`           | `/^glm-/i`                                                 | chat-completions | glm            | —          |
+| 9     | `kimi`          | `/^kimi-/i`                                                | chat-completions | kimi           | —          |
+| 10    | `mimo`          | `/^mimo-/i`                                                | chat-completions | mimo           | —          |
+| 11    | `qwen`          | `/^qwen3(?:\.\|-)/i`                                       | chat-completions | qwen           | —          |
+| 12    | `default`       | `/.*/`                                                     | chat-completions | null           | —          |
 
-**Vendor-restriction semantics:** `minimax-m2.*` served by **Go** → Messages API (Anthropic); on **Zen** it falls through to the generic `minimax` row → chat-completions. `gemini-*` served by **Zen** → Google API; on Go → chat-completions. Agent-host variants are resolved to their base vendor via `resolveBaseVendor()` before lookup.
+**Vendor-restriction semantics:** `minimax-m2.*` served by **Go** → Messages API (Anthropic); on **Zen** it falls through to the generic `minimax` row → chat-completions. `gemini-*` → Google API on **both** vendors; the route base is `googleModelsUrl ?? modelsUrl`, so Go's built-in gateway uses its own Google base while Zen (and any custom `apiBaseUrl` gateway) keeps building from `modelsUrl`. Agent-host variants are resolved to their base vendor via `resolveBaseVendor()` before lookup.
 
 ### How to add a model family
 
@@ -149,7 +149,7 @@ interface ModelRegistryEntry {
 | `claude-`                                                   | **messages** (Anthropic)             | any vendor                                                                             |
 | `minimax-m2.*` (Go)                                         | **messages**                         | on Zen → chat-completions                                                              |
 | `qwen3.5-plus(-free)`, `qwen3.6-plus(-free)`, `qwen3.7-max` | **messages**                         | others → chat-completions                                                              |
-| `gemini-*` (Zen)                                            | **google**                           | on Go → chat-completions                                                               |
+| `gemini-*` (Zen + Go)                                       | **google**                           | Go uses `googleModelsUrl` base, Zen uses `modelsUrl`                                   |
 | everything else                                             | **chat-completions**                 | default                                                                                |
 
 ---

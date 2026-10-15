@@ -305,6 +305,51 @@ describe("updateRequestUsageSummary — Responses nested usage", () => {
   });
 });
 
+describe("updateRequestUsageSummary — Google usageMetadata + finishReason", () => {
+  let updateRequestUsageSummary: typeof import("../transports/extract.js").updateRequestUsageSummary;
+
+  before(async () => {
+    const mod = await import("../transports/extract.js");
+    updateRequestUsageSummary = mod.updateRequestUsageSummary;
+  });
+
+  it("maps usageMetadata counts (thoughts + cached content included)", () => {
+    const summary: { promptTokens?: number; completionTokens?: number; totalTokens?: number; cachedTokens?: number } = {};
+    updateRequestUsageSummary(summary, {
+      candidates: [{ content: { parts: [{ text: "hi" }] }, finishReason: "STOP" }],
+      usageMetadata: {
+        promptTokenCount: 38026,
+        candidatesTokenCount: 78,
+        thoughtsTokenCount: 620,
+        totalTokenCount: 38724,
+        cachedContentTokenCount: 32768,
+      },
+    });
+    assert.equal(summary.promptTokens, 38026);
+    assert.equal(summary.completionTokens, 698);
+    assert.equal(summary.totalTokens, 38724);
+    assert.equal(summary.cachedTokens, 32768);
+  });
+
+  it("maps candidates[].finishReason (STOP → stop, MAX_TOKENS → length)", () => {
+    const summary: { finishReason?: string } = {};
+    updateRequestUsageSummary(summary, { candidates: [{ content: { parts: [{ text: "hi" }] }, finishReason: "STOP" }] });
+    assert.equal(summary.finishReason, "stop");
+
+    const lengthSummary: { finishReason?: string } = {};
+    updateRequestUsageSummary(lengthSummary, { candidates: [{ finishReason: "MAX_TOKENS" }] });
+    assert.equal(lengthSummary.finishReason, "length");
+  });
+
+  it("maps a Gemini tool-call finish to 'tool_calls'", () => {
+    const summary: { finishReason?: string } = {};
+    updateRequestUsageSummary(summary, {
+      candidates: [{ content: { parts: [{ functionCall: { name: "read_file" } }] }, finishReason: "STOP" }],
+    });
+    assert.equal(summary.finishReason, "tool_calls");
+  });
+});
+
 describe("OpenAiResponseExtractor — thinkTag carry flushing before tool calls", () => {
   it("emits pending thinkFilter carry as TextPart before tool calls on finish_reason: 'tool_calls'", () => {
     const filter = new ThinkTagFilter();

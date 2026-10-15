@@ -4,6 +4,7 @@ import {
   apiRoutesFromBaseUrl,
   CONFIG_SECTION,
   DEFAULT_GO_API_BASE_URL,
+  DEFAULT_GO_GOOGLE_MODELS_URL,
   DEFAULT_ZEN_API_BASE_URL,
   FALLBACK_USER_AGENT,
   FREE_ZEN_MODEL_IDS,
@@ -22,6 +23,11 @@ export interface ProviderDefinition {
   displayName: string;
   modelNamePrefix: string;
   modelsUrl: string;
+  /**
+   * Base of the Google-native (Gemini) generate route. Absent = `modelsUrl`
+   * (Zen); Go's built-in gateway serves that route on a different base.
+   */
+  googleModelsUrl?: string;
   chatCompletionsUrl: string;
   messagesUrl: string;
   responsesUrl?: string;
@@ -105,6 +111,7 @@ function providerVariant(
     displayName,
     modelNamePrefix: base.modelNamePrefix,
     modelsUrl: base.modelsUrl,
+    googleModelsUrl: base.googleModelsUrl,
     chatCompletionsUrl: base.chatCompletionsUrl,
     messagesUrl: base.messagesUrl,
     responsesUrl: base.responsesUrl,
@@ -118,13 +125,18 @@ function providerVariant(
 export const PROVIDERS: Record<ProviderDefinition["vendor"], ProviderDefinition> = (() => {
   // Routes derive from the configured apiBaseUrl setting so a custom compatible
   // gateway replaces the built-in opencode.ai endpoints end-to-end (issue #247).
-  const goRoutes = apiRoutesFromBaseUrl(configuredApiBaseUrl(GO_VENDOR));
+  const goBase = configuredApiBaseUrl(GO_VENDOR);
+  const goRoutes = apiRoutesFromBaseUrl(goBase);
   const zenRoutes = apiRoutesFromBaseUrl(configuredApiBaseUrl(ZEN_VENDOR));
   const go: ProviderDefinition = {
     vendor: GO_VENDOR,
     displayName: "OpenCode Go",
     modelNamePrefix: "OpenCode Go",
     modelsUrl: goRoutes.modelsUrl,
+    // Go's Google-native (Gemini) route sits on its own base on the built-in
+    // gateway (DEFAULT_GO_GOOGLE_MODELS_URL); a configured apiBaseUrl keeps
+    // driving every route end-to-end (issue #247).
+    googleModelsUrl: goBase === DEFAULT_GO_API_BASE_URL ? DEFAULT_GO_GOOGLE_MODELS_URL : goRoutes.modelsUrl,
     chatCompletionsUrl: goRoutes.chatCompletionsUrl,
     messagesUrl: goRoutes.messagesUrl,
     responsesUrl: goRoutes.responsesUrl,

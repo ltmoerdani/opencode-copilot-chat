@@ -19,5 +19,12 @@ export interface ProviderRoutingDefinition {
   chatCompletionsUrl: string;
   messagesUrl: string;
   modelsUrl: string;
+  /**
+   * Base of the Google-native generate route (`{base}/{modelId}:streamGenerateContent`).
+   * Absent = same base as `modelsUrl` (Zen and custom gateways). Only Go's
+   * built-in gateway serves that route on a different base (issue #247 keeps a
+   * configured `apiBaseUrl` in charge of every route).
+   */
+  googleModelsUrl?: string;
   responsesUrl?: string;
 }

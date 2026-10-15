@@ -202,7 +202,7 @@ Routing is centralized in `src/routing.ts`.
 | Claude family                      | `messages`         | `/zen/v1/messages`                          |
 | Go MiniMax M2 family               | `messages`         | `/zen/go/v1/messages`                       |
 | Qwen 3.5/3.6 Plus and Qwen 3.7 Max | `messages`         | provider messages endpoint                  |
-| Zen Gemini family                  | `google`           | `streamGenerateContent?alt=sse` style route |
+| Gemini family (Zen + Go)           | `google`           | `streamGenerateContent?alt=sse` style route |
 | All other models                   | `chat-completions` | provider chat-completions endpoint          |
 
 The request layer maps VS Code chat parts and tools into the correct request body for the selected endpoint.

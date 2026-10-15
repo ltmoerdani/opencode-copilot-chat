@@ -61,6 +61,7 @@ export const SETTING_THINKING_QWEN = "thinking.qwen";
 export const SETTING_THINKING_QWEN_BUDGET = "thinking.qwenBudget";
 export const SETTING_THINKING_MIMO = "thinking.mimo";
 export const SETTING_THINKING_MUSE = "thinking.muse";
+export const SETTING_THINKING_GEMINI = "thinking.gemini";
 export const SETTING_THINKING_GENERIC = "thinking.generic";
 
 // ─── Inline completions (issue #49) ─────────────────────────────────────────
@@ -128,6 +129,15 @@ export const DEFAULT_MODEL_MAX_OUTPUT_TOKENS = 65536;
 
 /** Default OpenCode Go API base URL; can be overridden in VS Code settings. */
 export const DEFAULT_GO_API_BASE_URL = "https://opencode.ai/zen/go/v1";
+/**
+ * Base of the Google-native (Gemini) generate route on the built-in Go gateway.
+ * Go serves that route on a different base than the rest of its routes: the
+ * `/zen/go/v1/models/{id}:streamGenerateContent` path is not routed at all
+ * (404), while `/inference/go/v1/models/{id}` is (verified 2026-10-14). A
+ * configured `apiBaseUrl` drives every route including this one (issue #247),
+ * so only the built-in default carries the split (see `provider/definitions.ts`).
+ */
+export const DEFAULT_GO_GOOGLE_MODELS_URL = "https://opencode.ai/inference/go/v1/models";
 /** Default OpenCode Zen API base URL; can be overridden in VS Code settings. */
 export const DEFAULT_ZEN_API_BASE_URL = "https://opencode.ai/zen/v1";
 
@@ -426,5 +436,6 @@ export const THINKING_DEFAULTS = {
   qwenBudget: "auto",
   mimo: "off",
   muse: "off",
+  gemini: "off",
   generic: "off",
 } as const;

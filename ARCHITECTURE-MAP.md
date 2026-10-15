@@ -234,7 +234,7 @@ flowchart TD
 | Claude        | `/^claude-/i`                                             | `messages`         | `null`         | any                                        |
 | MiniMax m2.x  | `/^minimax-m2\./i`                                        | `messages`         | `minimax`      | `opencodego` only (Zen → chat-completions) |
 | Qwen Messages | `/^qwen3\.(?:5\|6)-plus(?:-free)?$/` · `/^qwen3\.7-max$/` | `messages`         | `qwen`         | any                                        |
-| Gemini        | `/^gemini-/i`                                             | `google`           | `null`         | `opencodezen` only                         |
+| Gemini        | `/^gemini-/i`                                             | `google`           | `gemini`       | any                                        |
 | MiniMax       | `/^minimax-/i`                                            | `chat-completions` | `minimax`      | any                                        |
 | DeepSeek      | `/^deepseek-/i`                                           | `chat-completions` | `deepseek`     | any                                        |
 | GLM           | `/^glm-/i`                                                | `chat-completions` | `glm`          | any                                        |
@@ -245,7 +245,7 @@ flowchart TD
 
 > **Scope note:** context limits / capabilities / cost are **NOT** in this table — they stay metadata-driven (live models.dev via `src/models/metadata.ts`). Do not duplicate them into a static table.
 
-**Endpoint URL resolution** (`resolveModelRouting`): agent-host variants resolve to their base vendor first; `responses` → `provider.responsesUrl`, `messages` → `provider.messagesUrl`, `google` → `${provider.modelsUrl}/${modelId}`, default → `provider.chatCompletionsUrl`.
+**Endpoint URL resolution** (`resolveModelRouting`): agent-host variants resolve to their base vendor first; `responses` → `provider.responsesUrl`, `messages` → `provider.messagesUrl`, `google` → `${provider.googleModelsUrl ?? provider.modelsUrl}/${modelId}`, default → `provider.chatCompletionsUrl`.
 
 ---
 
@@ -476,7 +476,7 @@ On push/PR to `main`/`develop`, Node 20: `npm ci` → `compile` → `lint` (with
 - **Activation:** `onStartupFinished`, `onLanguageModelChatProvider:opencodego`, `onLanguageModelChatProvider:opencodezen`
 - **Contribution points:** `commands` (16), `configuration` (35+ keys), `languageModelChatProviders` (4 vendors: `opencodego`, `opencodezen`, `opencodego-agent`, `opencodezen-agent`)
 - **4 providers:** Go (paid) + Zen (free default) + agent-host variants mirroring each base vendor
-- **Endpoints:** `https://opencode.ai/zen/{go/,}v1/{models,chat/completions,messages,responses}` + `https://opencode.ai/zen/go/v1/usage` (server meters) + `https://models.dev/api.json` (metadata)
+- **Endpoints:** `https://opencode.ai/zen/{go/,}v1/{models,chat/completions,messages,responses}` + `https://opencode.ai/inference/go/v1/models` (Go Gemini route, see `googleModelsUrl`) + `https://opencode.ai/zen/go/v1/usage` (server meters) + `https://models.dev/api.json` (metadata)
 
 ---
 

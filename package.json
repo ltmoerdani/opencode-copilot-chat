@@ -457,6 +457,18 @@
           "default": "off",
           "markdownDescription": "Thinking mode for Muse Spark models (`muse-spark-1.2-contributor`, `muse-spark-1.2-contributor-free`). Maps to the Responses API `reasoning.effort` field. Higher effort increases reasoning depth and may increase latency and usage."
         },
+        "opencodego.thinking.gemini": {
+          "type": "string",
+          "enum": [
+            "off",
+            "on",
+            "low",
+            "medium",
+            "high"
+          ],
+          "default": "off",
+          "markdownDescription": "Thinking level for Gemini models (Google API wire format). Maps to `generationConfig.thinkingConfig.thinkingLevel` and sets `includeThoughts: true` so reasoning streams into the thinking panel. `off` sends no thinking config (model default); `on` surfaces thoughts without pinning a level. Higher levels increase reasoning depth and latency."
+        },
         "opencodego.thinking.generic": {
           "type": "string",
           "enum": [

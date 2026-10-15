@@ -70,14 +70,16 @@ export const MODEL_REGISTRY: ModelRegistryEntry[] = [
     sdkPackage: "@ai-sdk/anthropic",
     thinkingFamily: "qwen",
   },
-  // Gemini family served by Zen → Google Generative Language API.
+  // Gemini family → Google Generative Language API. Both vendors serve Gemini
+  // Google-native (models.dev marks these `@ai-sdk/google`), so no vendor
+  // restriction; the Go gateway needs a different route base instead
+  // (`googleModelsUrl`, see `providerTypes.ts`).
   {
     family: "gemini",
     patterns: [/^gemini-/i],
     endpointKind: "google",
     sdkPackage: "@ai-sdk/google",
-    thinkingFamily: null,
-    vendors: ["opencodezen"],
+    thinkingFamily: "gemini",
   },
   // Muse Spark 1.2 (Meta) → OpenAI Responses API (per OpenCode Go docs).
   // The gateway rejects chat-completions parameters (stream_options,

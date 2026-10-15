@@ -32,7 +32,9 @@ export function resolveModelRouting(
       endpointUrl = provider.messagesUrl;
       break;
     case "google":
-      endpointUrl = `${provider.modelsUrl}/${modelId}`;
+      // Go's built-in gateway serves the Google route on its own base
+      // (`googleModelsUrl`); Zen — and any custom gateway — uses `modelsUrl`.
+      endpointUrl = `${provider.googleModelsUrl ?? provider.modelsUrl}/${modelId}`;
       break;
     default:
       endpointUrl = provider.chatCompletionsUrl;
@@ -470,7 +472,11 @@ function extractResponsesReasoningText(data: Record<string, unknown>): string {
   return "";
 }
 
-function normalizeGoogleUsage(usage: unknown): Record<string, unknown> | undefined {
+/**
+ * Map Google `usageMetadata` to the OpenAI-style usage shape consumed by
+ * `updateRequestUsageSummary` (exported for the transport usage accounting).
+ */
+export function normalizeGoogleUsage(usage: unknown): Record<string, unknown> | undefined {
   if (!isRecord(usage)) {
     return undefined;
   }
@@ -498,7 +504,7 @@ function normalizeGoogleUsage(usage: unknown): Record<string, unknown> | undefin
   };
 }
 
-function normalizeGoogleFinishReason(
+export function normalizeGoogleFinishReason(
   finishReason: string | undefined,
   hasToolCalls: boolean,
 ): "stop" | "tool_calls" | "length" | "content_filter" | null {

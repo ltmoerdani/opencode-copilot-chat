@@ -18,6 +18,8 @@ export { MiniMaxThinking } from "./thinking/minimax";
 export { OpenAiThinking } from "./thinking/openai";
 export { QwenThinking } from "./thinking/qwen";
 export { MimoThinking } from "./thinking/mimo";
+export { MuseThinking } from "./thinking/muse";
+export { GeminiThinking } from "./thinking/gemini";
 export { FallbackThinking } from "./thinking/fallback";
 export type {
   ThinkingSettings,
