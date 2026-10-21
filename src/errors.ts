@@ -76,19 +76,22 @@ export function buildOpenCodeRequestError(
  */
 /**
  * Replace the raw gateway detail with an actionable hint when the upstream
- * serving endpoint for the model is down. Observed on Go free preview models
- * as HTTP 402 `Upstream request failed: Endpoint is unavailable.` — the
- * gateway still lists the model and validates it (a dummy-key probe passes
- * model validation), but no healthy backend serves it. Distinct from
- * `Model is unavailable` (#204), which marks a model removed upstream.
+ * serving endpoint for the model is down. Observed across many models as
+ * `Upstream request failed: Endpoint is unavailable.` with varying status
+ * codes (402 longcat-2.5-preview-free, 429 deepseek/gemini, 503, 451 — see
+ * upstream anomalyco/opencode #55607, #56796, #57613, #57851). These are
+ * per-model upstream incidents tracked on status.opencode.ai and typically
+ * resolve within hours, so the model must stay selectable — NOT blocklisted.
+ * Distinct from `Model is unavailable` (#204), which marks a model removed
+ * upstream.
  */
 export function describeEndpointUnavailable(apiMessage: string): string | undefined {
   if (!/endpoint is unavailable/i.test(apiMessage)) {
     return undefined;
   }
   return (
-    "OpenCode's upstream for this model is unavailable right now - limited-time preview models " +
-    "can drop out while the gateway still lists them. Retry in a few minutes, or switch to another model."
+    "OpenCode's upstream for this model is unavailable right now - usually a temporary OpenCode-side " +
+    "incident (check status.opencode.ai). Retry in a few minutes, or switch to another model."
   );
 }
 

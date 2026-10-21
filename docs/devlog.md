@@ -14,6 +14,8 @@
 
 **Lesson:** a detector that returns a fallback instead of undefined poisons every `??` chained after it — check chain links' contracts, not just the new link. And gateway /models listing + model-validation pass ≠ serving availability (three distinct availability layers: catalog, validation, serving).
 
+**Follow-up CORRECTED:** first read ("1.4KB request also 402s → upstream dead → blocklist") was WRONG and was reverted before commit (blocklist + revert squashed away). The ">24h persistent" claim was a timestamp misjudgment — all failures were one ~1-min burst (Oct 21 19:49-50 UTC), sitting in the aftermath of status.opencode.ai's "Free inference upstream" incident (Oct 21 05:54–19:28 UTC). Upstream tracker: `Endpoint is unavailable` = generic per-model incident error (anomalyco/opencode #55607 for this exact model — closed fixed Oct 16; #56796; #57613; various 402/429/503). Temporary incident → model stays selectable; hint refined to point at status.opencode.ai. **Lesson: check the status page + upstream issue tracker BEFORE declaring a model dead, and compare failure TIMESTAMPS against incident windows — not session dates against each other.**
+
 Docs: `docs/issues/116-20261022-longcat-endpoint-unavailable.md`, CHANGELOG `[Unreleased]`.
 
 ---

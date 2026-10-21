@@ -43,6 +43,7 @@ describe("describeEndpointUnavailable (longcat-2.5-preview-free 402)", () => {
     const hint = describeEndpointUnavailable("Upstream request failed: Endpoint is unavailable.");
     assert.ok(hint, "should produce a hint");
     assert.match(hint, /unavailable right now/);
+    assert.match(hint, /status\.opencode\.ai/);
     assert.match(hint, /switch to another model/);
   });
 
