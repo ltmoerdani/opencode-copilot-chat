@@ -25,7 +25,7 @@ import {
   buildGoogleGenerateContentBody,
   buildResponsesRequestBody,
 } from "../request/builders";
-import { buildResponsesToolNameMap } from "../request/openai";
+import { buildToolNameMap } from "../request/openai";
 
 import { runtimeDiagnosticsLines } from "../runtimeDiagnostics";
 import { estimateTokenCount } from "../tokenEstimate";
@@ -386,7 +386,7 @@ export class OpenCodeProvider implements vscode.LanguageModelChatProvider<OpenCo
           onTransportSummary,
           stripThinkTags: settings.stripThinkTags,
           forceStripThinkTags,
-          toolNameMap: buildResponsesToolNameMap(options.tools, rawModelId),
+          toolNameMap: buildToolNameMap(options.tools, rawModelId),
           onReasoningContent: (toolCallIds, reasoningContent) => {
             this.storeReasoningContent(toolCallIds, reasoningContent);
           },
@@ -443,6 +443,7 @@ export class OpenCodeProvider implements vscode.LanguageModelChatProvider<OpenCo
         stripThinkTags: settings.stripThinkTags,
         forceStripThinkTags,
         treatReasoningAsContent: thinkingProviderFor(rawModelId).treatReasoningAsContent(routing.endpointUrl, settings.thinking),
+        toolNameMap: buildToolNameMap(options.tools, rawModelId),
         onReasoningContent: (toolCallIds, reasoningContent) => {
           this.storeReasoningContent(toolCallIds, reasoningContent);
         },

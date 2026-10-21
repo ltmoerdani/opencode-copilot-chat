@@ -49,10 +49,11 @@ export interface StreamRequestOptions {
    */
   forceStripThinkTags?: boolean;
   /**
-   * Truncated → original tool name map for the Responses API round-trip.
-   * Muse Spark truncates names >64 chars at request build time; the
-   * extractor reverse-looks up before emitting `LanguageModelToolCallPart`.
-   * Only set for the Responses transport when truncation was applied.
+   * Truncated → original tool name map for the tool-call round-trip.
+   * Muse (Responses) and Beam (chat-completions) upstreams enforce the
+   * OpenAI 64-char function-name limit, so their request builders truncate
+   * names at request build time; the extractor reverse-looks up before
+   * emitting `LanguageModelToolCallPart`. Only set when truncation applied.
    */
   toolNameMap?: ReadonlyMap<string, string>;
 }

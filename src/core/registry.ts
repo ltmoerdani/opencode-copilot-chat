@@ -140,6 +140,16 @@ export const MODEL_REGISTRY: ModelRegistryEntry[] = [
     sdkPackage: "@ai-sdk/openai-compatible",
     thinkingFamily: "qwen",
   },
+  // Beam → chat-completions. Its upstream enforces the OpenAI 64-char
+  // function-name limit (HTTP 400 invalid_value on tools[N].function.name),
+  // so it joins muse in the tool-name truncation gate (request/openai.ts).
+  {
+    family: "beam",
+    patterns: [/^beam-/i],
+    endpointKind: "chat-completions",
+    sdkPackage: "@ai-sdk/openai-compatible",
+    thinkingFamily: null,
+  },
   // Catch-all: unknown families use chat-completions with the generic strategy.
   { family: "default", patterns: [/.*/], endpointKind: "chat-completions", sdkPackage: "@ai-sdk/openai-compatible", thinkingFamily: null },
 ];

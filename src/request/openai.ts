@@ -26,7 +26,7 @@ export function buildChatCompletionsRequestBody(
   metadata: ResolvedModelMetadata,
   limits: ModelLimits,
 ): Record<string, unknown> {
-  const tools = mapOpenAiTools(options.tools);
+  const tools = mapOpenAiTools(options.tools, modelId);
   const thinkingPayload = thinkingProviderFor(modelId, metadata).buildPayload(settings.thinking, {
     hasImageInput: messagesHaveImages(messages),
     endpoint: "chat",
@@ -88,12 +88,13 @@ export function buildResponsesRequestBody(
   });
 }
 
-function mapOpenAiTools(tools: readonly vscode.LanguageModelChatTool[] | undefined): OpenAiToolDefinition[] {
+function mapOpenAiTools(tools: readonly vscode.LanguageModelChatTool[] | undefined, modelId?: string): OpenAiToolDefinition[] {
+  const needsTruncation = needsToolNameTruncation(modelId ?? "");
   const sorted = [...(tools ?? [])].sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
   return sorted.map((tool) => ({
     type: "function",
     function: {
-      name: tool.name,
+      name: needsTruncation ? truncateToolName(tool.name) : tool.name,
       description: tool.description,
       parameters: sanitizeToolSchema(tool.inputSchema),
     },
@@ -101,7 +102,7 @@ function mapOpenAiTools(tools: readonly vscode.LanguageModelChatTool[] | undefin
 }
 
 function mapResponsesTools(tools: readonly vscode.LanguageModelChatTool[] | undefined, modelId?: string): Record<string, unknown>[] {
-  const needsTruncation = isMuseFamily(modelId ?? "");
+  const needsTruncation = needsToolNameTruncation(modelId ?? "");
   const sorted = [...(tools ?? [])].sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
   return sorted.map((tool) => ({
     type: "function",
@@ -111,7 +112,7 @@ function mapResponsesTools(tools: readonly vscode.LanguageModelChatTool[] | unde
   }));
 }
 
-// --- Muse Spark tool-name truncation (Responses API limit: 64 chars) ----------
+// --- Tool-name truncation (OpenAI 64-char limit: muse + beam families) --------
 
 const MUSE_MAX_TOOL_NAME = 64;
 const MUSE_HASH_SUFFIX_LEN = 8;
@@ -121,6 +122,21 @@ export function isMuseFamily(modelId: string): boolean {
     return false;
   }
   return lookupModelRegistryEntry(modelId).family === "muse";
+}
+
+/**
+ * Models whose upstream enforces the OpenAI 64-char function-name limit.
+ * Muse (Responses API, issue #165) and Beam (chat-completions, reported
+ * 2026-10-22) reject longer tool names with HTTP 400 invalid_value, so the
+ * request builders truncate via {@link truncateToolName} and the extractors
+ * reverse the map before emitting tool-call parts.
+ */
+export function needsToolNameTruncation(modelId: string): boolean {
+  if (!modelId) {
+    return false;
+  }
+  const { family } = lookupModelRegistryEntry(modelId);
+  return family === "muse" || family === "beam";
 }
 
 export function truncateToolName(name: string): string {
@@ -133,16 +149,14 @@ export function truncateToolName(name: string): string {
 }
 
 /**
- * Build a truncated → original tool name map for the Responses extractor
- * round-trip. Only Muse-family models truncate, so non-Muse models return
- * an empty map. Mirrors the `toolNamesById` pattern in `src/request/google.ts`.
+ * Build a truncated → original tool name map for the extractor round-trip
+ * (Responses and chat-completions transports). Only models gated by
+ * {@link needsToolNameTruncation} truncate, so other models return an empty
+ * map. Mirrors the `toolNamesById` pattern in `src/request/google.ts`.
  */
-export function buildResponsesToolNameMap(
-  tools: readonly vscode.LanguageModelChatTool[] | undefined,
-  modelId: string,
-): Map<string, string> {
+export function buildToolNameMap(tools: readonly vscode.LanguageModelChatTool[] | undefined, modelId: string): Map<string, string> {
   const map = new Map<string, string>();
-  if (!isMuseFamily(modelId) || !tools?.length) {
+  if (!needsToolNameTruncation(modelId) || !tools?.length) {
     return map;
   }
   for (const tool of tools) {

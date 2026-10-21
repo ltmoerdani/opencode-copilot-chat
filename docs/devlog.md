@@ -1,6 +1,20 @@
 # 🧠 OPENCODE COPILOT CHAT DEVLOG
 
-**Branch:** `fix/tool-schema-depth-limit` (work on `main`) | **Updated:** 2026-10-21 Asia/Jakarta | **Current Phase:** Muse Responses-API tool-schema depth clamp implemented (`MAX_TOOL_SCHEMA_DEPTH` + tests), lint green — pending live Muse retry after reload and commit approval.
+**Branch:** `fix/beam-tool-name-length` (stacked on `fix/tool-schema-depth-limit`) | **Updated:** 2026-10-22 Asia/Jakarta | **Current Phase:** Beam tool-name truncation implemented on chat-completions (556/556 tests, lint green), commit pending approval; schema-depth fix committed (`019bd45`), live Muse retry still pending.
+
+---
+
+## ✅ Beam-free 400 — tool names > 64 chars on chat-completions — 2026-10-22
+
+**Scope:** `beam-free` rejected every Copilot Chat request with `Upstream request failed: [invalid_value] Invalid value for 'tools[7].function.name': maximum string length is 64`. Same 64-char limit class as Muse/#165 — but the #165 truncation only ran in `mapResponsesTools` (Responses API), while beam routes to chat-completions where `mapOpenAiTools` passed names through untouched.
+
+**Fix:** `beam` family row in the registry (`/^beam-/i`, chat-completions); shared `needsToolNameTruncation()` gate (muse + beam) applied in BOTH tool mappers; `buildResponsesToolNameMap` → `buildToolNameMap` and re-gated; chat-completions transport forwards `toolNameMap` into `OpenAiResponseExtractor` so the model's truncated name maps back to VS Code's original tool. `isMuseFamily` kept for `truncation: "disabled"`.
+
+**Tests:** 5 new (beam chat-completions truncation, ungated passthrough, gate truth table, beam round-trip, beam routing/thinking-null). 556/556 pass, lint 7/7 green.
+
+**Lesson:** a wire-limit workaround wired to one transport leaks when a second upstream starts enforcing the same limit — gate protocol constraints by limit, not by endpoint. (Same theme as doc 114: constraints belong in the shared sanitizer/builder layer.)
+
+Docs: `docs/issues/115-20261022-beam-tool-name-length.md`, CHANGELOG `[Unreleased]`.
 
 ---
 
