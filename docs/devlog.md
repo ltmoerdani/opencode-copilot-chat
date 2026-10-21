@@ -1,6 +1,20 @@
 # 🧠 OPENCODE COPILOT CHAT DEVLOG
 
-**Branch:** `fix/beam-tool-name-length` (stacked on `fix/tool-schema-depth-limit`) | **Updated:** 2026-10-22 Asia/Jakarta | **Current Phase:** Beam tool-name truncation implemented on chat-completions (556/556 tests, lint green), commit pending approval; schema-depth fix committed (`019bd45`), live Muse retry still pending.
+**Branch:** `fix/tool-schema-depth-limit` (all three gateway-quirk fixes consolidated here) | **Updated:** 2026-10-22 Asia/Jakarta | **Current Phase:** longcat 402 error-hint fix implemented (559/559, lint green) — commit next; beam fix `8707410` + schema-depth `019bd45` committed; push/PR + live retries still pending.
+
+---
+
+## ✅ LongCat free 402 — "Endpoint is unavailable" raw upstream text — 2026-10-22
+
+**Scope:** `longcat-2.5-preview-free` 402s with `Upstream request failed: Endpoint is unavailable.` rendered raw — HTTP 402 (Payment Required) misleads Go subscribers and gives no action. Probes: model still in Go catalog (37 ids), dummy-key POST → 401 at credential check (model passes validation), so the 402 is upstream-SERVING-time — Router.Unavailable family via a different door. NOT #204 class (that was `Model is unavailable` = removed upstream, blocklist); model deliberately kept visible (limited-time preview, still routed).
+
+**Fix:** `describeEndpointUnavailable()` hint mapped on `/endpoint is unavailable/i`, chained after free-tier + Router.Unavailable. Side-fix: `describeRouterUnavailable()` returned the fallback string on mismatch (never undefined), silently short-circuiting the whole `??` hint chain — now returns undefined. No retry added (Router.Unavailable precedent: map, don't auto-retry). capacityHint untouched (5xx-gated by design).
+
+**Tests:** 3 new in `errors.test.ts` (match, pass-through, full 402 path asserting hint in both message+userMessage, raw text not leaked — #258 contract). 559/559 pass, lint 7/7.
+
+**Lesson:** a detector that returns a fallback instead of undefined poisons every `??` chained after it — check chain links' contracts, not just the new link. And gateway /models listing + model-validation pass ≠ serving availability (three distinct availability layers: catalog, validation, serving).
+
+Docs: `docs/issues/116-20261022-longcat-endpoint-unavailable.md`, CHANGELOG `[Unreleased]`.
 
 ---
 

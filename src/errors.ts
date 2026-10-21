@@ -60,7 +60,8 @@ export function buildOpenCodeRequestError(
   // JSON with no explanation), while `userMessage` feeds the toast. The raw
   // upstream body is still preserved in the provider output channel
   // (`[http-error-body]` in transports/engine.ts), so no diagnostic is lost.
-  const hint = describeFreeTierRestriction(apiMessage) ?? describeRouterUnavailable(apiError, apiMessage);
+  const hint =
+    describeFreeTierRestriction(apiMessage) ?? describeRouterUnavailable(apiError) ?? describeEndpointUnavailable(apiMessage) ?? apiMessage;
   const userMessage = `${providerDisplayName} API request failed (HTTP ${String(response.status)})${modelId ? ` for ${modelId}` : ""}: ${hint}${capacityHint}`;
   const requestMessage = `${providerDisplayName} API request failed (${String(response.status)})${modelHint}${sizeHint}${capacityHint}: ${hint}`;
   return new OpenCodeRequestError(requestMessage, userMessage);
@@ -73,6 +74,24 @@ export function buildOpenCodeRequestError(
  * a bug; bypassing it would violate OpenCode's terms). Returns undefined for
  * any other error so the router/limit hints keep handling their cases.
  */
+/**
+ * Replace the raw gateway detail with an actionable hint when the upstream
+ * serving endpoint for the model is down. Observed on Go free preview models
+ * as HTTP 402 `Upstream request failed: Endpoint is unavailable.` — the
+ * gateway still lists the model and validates it (a dummy-key probe passes
+ * model validation), but no healthy backend serves it. Distinct from
+ * `Model is unavailable` (#204), which marks a model removed upstream.
+ */
+export function describeEndpointUnavailable(apiMessage: string): string | undefined {
+  if (!/endpoint is unavailable/i.test(apiMessage)) {
+    return undefined;
+  }
+  return (
+    "OpenCode's upstream for this model is unavailable right now - limited-time preview models " +
+    "can drop out while the gateway still lists them. Retry in a few minutes, or switch to another model."
+  );
+}
+
 export function describeFreeTierRestriction(apiMessage: string): string | undefined {
   if (!/free tier can only be used from within opencode/i.test(apiMessage)) {
     return undefined;
@@ -87,12 +106,13 @@ export function describeFreeTierRestriction(apiMessage: string): string | undefi
 /**
  * Replace the raw gateway JSON detail with an actionable hint when the error
  * is the transient `Router.Unavailable` condition (no healthy backend for
- * the model right now). Returns the original message otherwise.
+ * the model right now). Returns undefined otherwise so later hint detectors
+ * in the chain still get their turn.
  */
-function describeRouterUnavailable(apiError: ParsedApiError, fallback: string): string {
+function describeRouterUnavailable(apiError: ParsedApiError): string | undefined {
   const type = apiError.type?.toLowerCase() ?? "";
   if (!type.includes("routerunavailable")) {
-    return fallback;
+    return undefined;
   }
   return "OpenCode's router has no healthy backend for this model right now. Retry in a few seconds, or switch to another model.";
 }
