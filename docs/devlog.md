@@ -1,6 +1,20 @@
 # 🧠 OPENCODE COPILOT CHAT DEVLOG
 
-**Branch:** `fix/fim-default-model-dead` (work on `main`) | **Updated:** 2026-10-20 Asia/Jakarta | **Current Phase:** FIM default-model fix committed locally (`cb9f4f0`), docs synced (doc 113 + feature doc 15 + CHANGELOG `[Unreleased]`), real-key probe done — `qwen3.6-plus` verified 1459ms TTFB / `reasoningChars=0`; pending: push/PR approval.
+**Branch:** `fix/tool-schema-depth-limit` (work on `main`) | **Updated:** 2026-10-21 Asia/Jakarta | **Current Phase:** Muse Responses-API tool-schema depth clamp implemented (`MAX_TOOL_SCHEMA_DEPTH` + tests), lint green — pending live Muse retry after reload and commit approval.
+
+---
+
+## ✅ Muse Spark 400 — tool schema nesting depth > 10 — 2026-10-21
+
+**Scope:** `muse-spark-1.3-contributor` rejected every Copilot Chat request with HTTP 400 `JSON schema exceeds the maximum nesting depth of 10 levels` (`payloadBytes=274790`). Muse is routed to the Responses API, where the gateway validates tool schemas and rejects the whole request when any subschema nests deeper than 10 levels. The shared `sanitizeToolSchema` handled `$ref` cycles but had no depth guard, so large MCP tool sets (Postman's collection → item → request → body/auth tree is the obvious offender) crossed the limit. Chat-completions models never hit it — the same tools worked there.
+
+**Fix:** `MAX_TOOL_SCHEMA_DEPTH = 10` in `src/config.ts`; `sanitizeJsonSchemaNode` now carries `depth` through `properties`/`items`/`additionalProperties`/`anyOf`/`oneOf`/`allOf` and resolved `$ref` targets. At the ceiling it emits a childless node with leaf keywords only (`type`, `description`, `enum`, …) — returning `{}` for children would not help because the empty child still counts as a level. Applies to all four request builders via the shared sanitizer.
+
+**Tests:** 3 new in `src/test/schema.test.ts` (25-level object cap, exactly-at-limit preserved, 25-level array cap). 551/551 pass; `npm run lint` green. Live Muse retry pending after reload.
+
+**Lesson:** a sanitizer that flattens `$ref` but never caps depth can still produce a schema the upstream rejects; depth is a protocol constraint like size, not an implementation detail.
+
+Docs: `docs/issues/114-20261021-muse-tool-schema-depth-limit.md`, CHANGELOG `[Unreleased]`.
 
 ---
 

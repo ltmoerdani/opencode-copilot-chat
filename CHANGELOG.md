@@ -2,6 +2,12 @@
 
 All notable changes to the **OpenCode Go BYOK Provider** extension are documented here.
 
+## [Unreleased]
+
+### Fixed
+
+- **`[Tool calling]` Muse Spark no longer fails with HTTP 400 `JSON schema exceeds the maximum nesting depth of 10 levels` when large MCP tool sets are attached.** `sanitizeToolSchema` resolved `$ref`/`$defs` and stripped unsupported keywords but never limited nesting depth, so deeply nested MCP schemas (the Postman `createCollection` → `item` → `request` → `body`/`auth` tree is the clearest case) exceeded the Responses API's 10-level limit and the gateway rejected the whole request before generation started — chat-completions models were unaffected, which is why the same tool set worked everywhere except `muse-*` (the `grok-*` Responses route shared the latent bug). The sanitizer now tracks depth through `properties`, `items`, `additionalProperties`, `anyOf`/`oneOf`/`allOf`, and resolved `$ref` targets; at `MAX_TOOL_SCHEMA_DEPTH` (10) it emits a childless node with leaf keywords only, because an empty child would still count as a level upstream. The guard lives in the shared sanitizer, so all four request builders inherit it. Three regression tests pin the cap, the exactly-at-limit case, and array `items` counting. Documented in `docs/issues/114-20261021-muse-tool-schema-depth-limit.md`.
+
 ## [0.7.10] — 2026-10-20
 
 ### Added

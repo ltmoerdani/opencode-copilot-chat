@@ -280,6 +280,17 @@ export const MAX_IMAGE_BASE64_BYTES = 5 * 1024 * 1024;
 export const MAX_IMAGE_WIDTH = 2_000;
 export const MAX_IMAGE_HEIGHT = 2_000;
 
+// ─── Tool schema limits ──────────────────────────────────────────────────────
+
+/**
+ * Maximum tool-schema nesting depth accepted by the OpenCode gateway. Deeper
+ * schemas are rejected with HTTP 400 ("JSON schema exceeds the maximum nesting
+ * depth of 10 levels") — observed on the Responses API with Muse Spark and
+ * deeply nested MCP tool schemas. {@link sanitizeToolSchema} truncates any
+ * branch that would cross this ceiling.
+ */
+export const MAX_TOOL_SCHEMA_DEPTH = 10;
+
 // ─── Go usage tracking ───────────────────────────────────────────────────────
 
 /** OpenCode Go subscription limits in USD (https://opencode.ai/docs/go). */
