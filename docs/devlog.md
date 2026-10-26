@@ -1,6 +1,50 @@
 # 🧠 OPENCODE COPILOT CHAT DEVLOG
 
-**Branch:** `fix/fim-default-model-dead` (work on `main`) | **Updated:** 2026-10-20 Asia/Jakarta | **Current Phase:** FIM default-model fix committed locally (`cb9f4f0`), docs synced (doc 113 + feature doc 15 + CHANGELOG `[Unreleased]`), real-key probe done — `qwen3.6-plus` verified 1459ms TTFB / `reasoningChars=0`; pending: push/PR approval.
+**Branch:** `fix/tool-schema-depth-limit` (all three gateway-quirk fixes consolidated here) | **Updated:** 2026-10-22 Asia/Jakarta | **Current Phase:** longcat 402 error-hint fix implemented (559/559, lint green) — commit next; beam fix `8707410` + schema-depth `019bd45` committed; push/PR + live retries still pending.
+
+---
+
+## ✅ LongCat free 402 — "Endpoint is unavailable" raw upstream text — 2026-10-22
+
+**Scope:** `longcat-2.5-preview-free` 402s with `Upstream request failed: Endpoint is unavailable.` rendered raw — HTTP 402 (Payment Required) misleads Go subscribers and gives no action. Probes: model still in Go catalog (37 ids), dummy-key POST → 401 at credential check (model passes validation), so the 402 is upstream-SERVING-time — Router.Unavailable family via a different door. NOT #204 class (that was `Model is unavailable` = removed upstream, blocklist); model deliberately kept visible (limited-time preview, still routed).
+
+**Fix:** `describeEndpointUnavailable()` hint mapped on `/endpoint is unavailable/i`, chained after free-tier + Router.Unavailable. Side-fix: `describeRouterUnavailable()` returned the fallback string on mismatch (never undefined), silently short-circuiting the whole `??` hint chain — now returns undefined. No retry added (Router.Unavailable precedent: map, don't auto-retry). capacityHint untouched (5xx-gated by design).
+
+**Tests:** 3 new in `errors.test.ts` (match, pass-through, full 402 path asserting hint in both message+userMessage, raw text not leaked — #258 contract). 559/559 pass, lint 7/7.
+
+**Lesson:** a detector that returns a fallback instead of undefined poisons every `??` chained after it — check chain links' contracts, not just the new link. And gateway /models listing + model-validation pass ≠ serving availability (three distinct availability layers: catalog, validation, serving).
+
+**Follow-up CORRECTED:** first read ("1.4KB request also 402s → upstream dead → blocklist") was WRONG and was reverted before commit (blocklist + revert squashed away). The ">24h persistent" claim was a timestamp misjudgment — all failures were one ~1-min burst (Oct 21 19:49-50 UTC), sitting in the aftermath of status.opencode.ai's "Free inference upstream" incident (Oct 21 05:54–19:28 UTC). Upstream tracker: `Endpoint is unavailable` = generic per-model incident error (anomalyco/opencode #55607 for this exact model — closed fixed Oct 16; #56796; #57613; various 402/429/503). Temporary incident → model stays selectable; hint refined to point at status.opencode.ai. **Lesson: check the status page + upstream issue tracker BEFORE declaring a model dead, and compare failure TIMESTAMPS against incident windows — not session dates against each other.**
+
+Docs: `docs/issues/116-20261022-longcat-endpoint-unavailable.md`, CHANGELOG `[Unreleased]`.
+
+---
+
+## ✅ Beam-free 400 — tool names > 64 chars on chat-completions — 2026-10-22
+
+**Scope:** `beam-free` rejected every Copilot Chat request with `Upstream request failed: [invalid_value] Invalid value for 'tools[7].function.name': maximum string length is 64`. Same 64-char limit class as Muse/#165 — but the #165 truncation only ran in `mapResponsesTools` (Responses API), while beam routes to chat-completions where `mapOpenAiTools` passed names through untouched.
+
+**Fix:** `beam` family row in the registry (`/^beam-/i`, chat-completions); shared `needsToolNameTruncation()` gate (muse + beam) applied in BOTH tool mappers; `buildResponsesToolNameMap` → `buildToolNameMap` and re-gated; chat-completions transport forwards `toolNameMap` into `OpenAiResponseExtractor` so the model's truncated name maps back to VS Code's original tool. `isMuseFamily` kept for `truncation: "disabled"`.
+
+**Tests:** 5 new (beam chat-completions truncation, ungated passthrough, gate truth table, beam round-trip, beam routing/thinking-null). 556/556 pass, lint 7/7 green.
+
+**Lesson:** a wire-limit workaround wired to one transport leaks when a second upstream starts enforcing the same limit — gate protocol constraints by limit, not by endpoint. (Same theme as doc 114: constraints belong in the shared sanitizer/builder layer.)
+
+Docs: `docs/issues/115-20261022-beam-tool-name-length.md`, CHANGELOG `[Unreleased]`.
+
+---
+
+## ✅ Muse Spark 400 — tool schema nesting depth > 10 — 2026-10-21
+
+**Scope:** `muse-spark-1.3-contributor` rejected every Copilot Chat request with HTTP 400 `JSON schema exceeds the maximum nesting depth of 10 levels` (`payloadBytes=274790`). Muse is routed to the Responses API, where the gateway validates tool schemas and rejects the whole request when any subschema nests deeper than 10 levels. The shared `sanitizeToolSchema` handled `$ref` cycles but had no depth guard, so large MCP tool sets (Postman's collection → item → request → body/auth tree is the obvious offender) crossed the limit. Chat-completions models never hit it — the same tools worked there.
+
+**Fix:** `MAX_TOOL_SCHEMA_DEPTH = 10` in `src/config.ts`; `sanitizeJsonSchemaNode` now carries `depth` through `properties`/`items`/`additionalProperties`/`anyOf`/`oneOf`/`allOf` and resolved `$ref` targets. At the ceiling it emits a childless node with leaf keywords only (`type`, `description`, `enum`, …) — returning `{}` for children would not help because the empty child still counts as a level. Applies to all four request builders via the shared sanitizer.
+
+**Tests:** 3 new in `src/test/schema.test.ts` (25-level object cap, exactly-at-limit preserved, 25-level array cap). 551/551 pass; `npm run lint` green. Live Muse retry pending after reload.
+
+**Lesson:** a sanitizer that flattens `$ref` but never caps depth can still produce a schema the upstream rejects; depth is a protocol constraint like size, not an implementation detail.
+
+Docs: `docs/issues/114-20261021-muse-tool-schema-depth-limit.md`, CHANGELOG `[Unreleased]`.
 
 ---
 

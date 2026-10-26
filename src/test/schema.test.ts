@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+import { MAX_TOOL_SCHEMA_DEPTH } from "../config.js";
 import { sanitizeToolSchema } from "../request/schema.js";
 
 describe("sanitizeToolSchema", () => {
@@ -90,4 +91,77 @@ describe("sanitizeToolSchema", () => {
     assert.deepEqual(result.properties.code, { type: "string", pattern: "^[a-z]+$", description: "a code" });
     assert.deepEqual(result.properties.mode, { type: "string", enum: ["on", "off"], default: "off" });
   });
+
+  it("caps nested object schemas at MAX_TOOL_SCHEMA_DEPTH", () => {
+    const result = sanitizeToolSchema(nestedObjectSchema(25));
+
+    assert.equal(schemaDepth(result), MAX_TOOL_SCHEMA_DEPTH);
+
+    const ceiling = deepestSchemaNode(result);
+    assert.equal(ceiling.type, "object");
+    assert.equal(ceiling.properties, undefined, "a node on the ceiling must not carry child schemas");
+  });
+
+  it("keeps schemas that fit within the depth limit intact", () => {
+    const result = sanitizeToolSchema(nestedObjectSchema(MAX_TOOL_SCHEMA_DEPTH - 1));
+
+    assert.equal(schemaDepth(result), MAX_TOOL_SCHEMA_DEPTH);
+    assert.equal(deepestSchemaNode(result).type, "string");
+  });
+
+  it("counts array items toward the depth limit", () => {
+    let nested: Record<string, unknown> = { type: "string" };
+    for (let level = 0; level < 25; level++) {
+      nested = { type: "array", items: nested };
+    }
+
+    const result = sanitizeToolSchema({ type: "object", properties: { nested } });
+
+    assert.equal(schemaDepth(result), MAX_TOOL_SCHEMA_DEPTH);
+  });
 });
+
+function nestedObjectSchema(levels: number): Record<string, unknown> {
+  let schema: Record<string, unknown> = { type: "string" };
+  for (let level = 0; level < levels; level++) {
+    schema = { type: "object", properties: { child: schema }, required: ["child"] };
+  }
+  return schema;
+}
+
+function deepestSchemaNode(schema: unknown): Record<string, unknown> {
+  let node = schema as Record<string, unknown>;
+  while (node.properties && typeof node.properties === "object") {
+    node = (node.properties as Record<string, unknown>).child as Record<string, unknown>;
+  }
+  return node;
+}
+
+function schemaDepth(value: unknown, depth = 1): number {
+  if (!value || typeof value !== "object") {
+    return depth;
+  }
+
+  const schema = value as Record<string, unknown>;
+  let max = depth;
+  if (schema.properties && typeof schema.properties === "object") {
+    for (const child of Object.values(schema.properties as Record<string, unknown>)) {
+      max = Math.max(max, schemaDepth(child, depth + 1));
+    }
+  }
+  if (schema.items && typeof schema.items === "object") {
+    max = Math.max(max, schemaDepth(schema.items, depth + 1));
+  }
+  if (schema.additionalProperties && typeof schema.additionalProperties === "object") {
+    max = Math.max(max, schemaDepth(schema.additionalProperties, depth + 1));
+  }
+  for (const keyword of ["anyOf", "oneOf", "allOf"] as const) {
+    const variants = schema[keyword];
+    if (Array.isArray(variants)) {
+      for (const variant of variants) {
+        max = Math.max(max, schemaDepth(variant, depth + 1));
+      }
+    }
+  }
+  return max;
+}

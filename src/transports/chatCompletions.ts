@@ -30,6 +30,7 @@ export async function streamChatCompletions(options: StreamRequestOptions): Prom
     options.requestHeaders["x-opencode-request"],
     options.output,
     treatReasoningAsContent,
+    options.toolNameMap,
   );
 
   try {

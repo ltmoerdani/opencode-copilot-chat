@@ -89,7 +89,7 @@ describe("model registry — data-driven transport routing", () => {
   });
 
   it("defaults every other known family to chat-completions", () => {
-    for (const modelId of ["deepseek-v4-flash", "glm-5.1", "kimi-k2.6", "mimo-v2.5", "qwen3.8-max"]) {
+    for (const modelId of ["deepseek-v4-flash", "glm-5.1", "kimi-k2.6", "mimo-v2.5", "qwen3.8-max", "beam-free"]) {
       assert.equal(resolveModelRouting(modelId, goProvider).endpointKind, "chat-completions", modelId);
       assert.equal(resolveModelRouting(modelId, zenProvider).endpointKind, "chat-completions", modelId);
     }
@@ -125,6 +125,7 @@ describe("model registry — data-driven thinking family", () => {
 
   it("returns null for families without a dedicated strategy", () => {
     assert.equal(thinkingFamily("claude-sonnet-4-6"), null);
+    assert.equal(thinkingFamily("beam-free"), null);
     assert.equal(thinkingFamily("hy3"), null);
     assert.equal(thinkingFamily("unknown-model"), null);
   });
