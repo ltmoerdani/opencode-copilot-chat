@@ -382,33 +382,33 @@ Provider diagnostics also include the VS Code/extension versions, extension host
 
 ## 🔧 Settings
 
-| Setting                                   | Default                         | Description                                                                                                            |
-| ----------------------------------------- | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| `opencodego.apiBaseUrl`                   | `https://opencode.ai/zen/go/v1` | Base URL for a Go-compatible gateway; the extension appends the required API routes. Reload after changing.            |
-| `opencodezen.apiBaseUrl`                  | `https://opencode.ai/zen/v1`    | Base URL for a Zen-compatible gateway; the extension appends the required API routes. Reload after changing.           |
-| `opencodego.temperature`                  | `0.2`                           | Sampling temperature (`0`–`2`)                                                                                         |
-| `opencodego.maxTokens`                    | `0`                             | Max output token override (`0` = per-model max)                                                                        |
-| `opencodego.maxInputTokens`               | `0`                             | Context window override (`0` = per-model default)                                                                      |
-| `opencodego.debugReasoning`               | `false`                         | Log `reasoning_content` to Output panel                                                                                |
-| `opencodego.requestTimeoutSeconds`        | `600`                           | Total request timeout                                                                                                  |
-| `opencodego.streamIdleTimeoutSeconds`     | `120`                           | Cancel if stream goes idle                                                                                             |
-| `opencodego.showUsageStatusBar`           | `true`                          | Show usage summary in status bar                                                                                       |
-| `opencodego.showProviderPrefix`           | `true`                          | Include `OpenCode Go` / `OpenCode Zen` in model names                                                                  |
-| `opencodego.visionProxyWholeConversation` | `false`                         | Vision proxy: describe the whole conversation instead of only the message with a new image (more context, more tokens) |
-| `opencodego.freeOnly`                     | `true`                          | Zen: free models only. `false` = include paid                                                                          |
-| `opencodego.enabled`                      | `true`                          | Register the OpenCode Go provider. `false` removes it from Language Models & every picker (keys kept)                  |
-| `opencodezen.enabled`                     | `true`                          | Register the OpenCode Zen provider. `false` removes it from Language Models & every picker (keys kept)                 |
-| `opencodego.agentsWindow`                 | `true`                          | Expose agent-host model variants (`targetChatSessionType`) for the Agents window                                       |
-| `opencodego.showAgentModelsInManagePanel` | `false`                         | Show agent vendors in Manage Language Models panel                                                                     |
-| `opencodego.stripThinkTags`               | `"auto"`                        | Strip `<think>` tags (`never`/`auto`/`always`)                                                                         |
-| `opencodego.thinking.deepseek`            | `"off"`                         | `off`/`low`/`medium`/`high`/`max`                                                                                      |
-| `opencodego.thinking.glm`                 | `"off"`                         | `off`/`high`/`max`                                                                                                     |
-| `opencodego.thinking.kimi`                | `"off"`                         | `on`/`off`                                                                                                             |
-| `opencodego.thinking.minimax`             | `"off"`                         | `off`/`on`                                                                                                             |
-| `opencodego.thinking.mimo`                | `"off"`                         | `off`/`low`/`medium`/`high`                                                                                            |
-| `opencodego.thinking.qwen`                | `"off"`                         | `auto`/`on`/`off`                                                                                                      |
-| `opencodego.thinking.qwenBudget`          | `"auto"`                        | `auto`/`4096`/`16384`/`32768`/`81920`                                                                                  |
-| `opencodego.thinking.gemini`              | `"off"`                         | `off`/`on`/`low`/`medium`/`high`                                                                                       |
+| Setting                                   | Default                         | Description                                                                                                                        |
+| ----------------------------------------- | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `opencodego.apiBaseUrl`                   | `https://opencode.ai/zen/go/v1` | Base URL for a Go-compatible gateway; the extension appends the required API routes. Reload after changing.                        |
+| `opencodezen.apiBaseUrl`                  | `https://opencode.ai/zen/v1`    | Base URL for a Zen-compatible gateway; the extension appends the required API routes. Reload after changing.                       |
+| `opencodego.temperature`                  | `0.2`                           | Sampling temperature (`0`–`2`)                                                                                                     |
+| `opencodego.maxTokens`                    | `0`                             | Max output token override (`0` = per-model max)                                                                                    |
+| `opencodego.maxInputTokens`               | `0`                             | Context window override (`0` = per-model default)                                                                                  |
+| `opencodego.debugReasoning`               | `false`                         | Log `reasoning_content` to Output panel                                                                                            |
+| `opencodego.requestTimeoutSeconds`        | `600`                           | Total request timeout                                                                                                              |
+| `opencodego.streamIdleTimeoutSeconds`     | `120`                           | Cancel if stream goes idle                                                                                                         |
+| `opencodego.showUsageStatusBar`           | `true`                          | Show usage summary in status bar                                                                                                   |
+| `opencodego.showProviderPrefix`           | `true`                          | Include `OpenCode Go` / `OpenCode Zen` in model names                                                                              |
+| `opencodego.visionProxyWholeConversation` | `false`                         | Vision proxy: describe the whole conversation instead of only the message with a new image (more context, more tokens)             |
+| `opencodego.freeOnly`                     | `true`                          | Deprecated (0.7.10, Zen free-tier policy #265): ignored — Zen free models are always hidden. Kept so existing settings don't error |
+| `opencodego.enabled`                      | `true`                          | Register the OpenCode Go provider. `false` removes it from Language Models & every picker (keys kept)                              |
+| `opencodezen.enabled`                     | `true`                          | Register the OpenCode Zen provider. `false` removes it from Language Models & every picker (keys kept)                             |
+| `opencodego.agentsWindow`                 | `true`                          | Expose agent-host model variants (`targetChatSessionType`) for the Agents window                                                   |
+| `opencodego.showAgentModelsInManagePanel` | `false`                         | Show agent vendors in Manage Language Models panel                                                                                 |
+| `opencodego.stripThinkTags`               | `"auto"`                        | Strip `<think>` tags (`never`/`auto`/`always`)                                                                                     |
+| `opencodego.thinking.deepseek`            | `"off"`                         | `off`/`low`/`medium`/`high`/`max`                                                                                                  |
+| `opencodego.thinking.glm`                 | `"off"`                         | `off`/`high`/`max`                                                                                                                 |
+| `opencodego.thinking.kimi`                | `"off"`                         | `on`/`off`                                                                                                                         |
+| `opencodego.thinking.minimax`             | `"off"`                         | `off`/`on`                                                                                                                         |
+| `opencodego.thinking.mimo`                | `"off"`                         | `off`/`low`/`medium`/`high`                                                                                                        |
+| `opencodego.thinking.qwen`                | `"off"`                         | `auto`/`on`/`off`                                                                                                                  |
+| `opencodego.thinking.qwenBudget`          | `"auto"`                        | `auto`/`4096`/`16384`/`32768`/`81920`                                                                                              |
+| `opencodego.thinking.gemini`              | `"off"`                         | `off`/`on`/`low`/`medium`/`high`                                                                                                   |
 
 <details>
 <summary><b>📜 Full settings reference with descriptions</b></summary>

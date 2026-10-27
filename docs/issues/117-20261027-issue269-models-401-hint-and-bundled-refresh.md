@@ -4,7 +4,7 @@
 **Topic:** provider / models / errors / fallback
 **Updated:** 2026-10-27
 **Tags:** #provider #models #errors #fallback #fetch-models
-**Related:** issue [#269](https://github.com/ltmoerdani/opencode-copilot-chat/issues/269), doc [100 — bundled model data sync](100-20260908-bundled-model-data-sync.md), doc [112 — Zen free-tier policy](112-20261020-zen-free-tier-policy-followup.md), doc [78 — deprecated cross-check #182](78-20260822-issue182-deprecated-model-gateway-crosscheck.md)
+**Related:** issue [#269](https://github.com/ltmoerdani/opencode-copilot-chat/issues/269) (closed), PR [#271](https://github.com/ltmoerdani/opencode-copilot-chat/pull/271) (merged, merge commit `e959a86`), doc [100 — bundled model data sync](100-20260908-bundled-model-data-sync.md), doc [112 — Zen free-tier policy](112-20261020-zen-free-tier-policy-followup.md), doc [78 — deprecated cross-check #182](78-20260822-issue182-deprecated-model-gateway-crosscheck.md)
 
 ---
 

@@ -1,6 +1,22 @@
 # 🧠 OPENCODE COPILOT CHAT DEVLOG
 
-**Branch:** `fix/tool-schema-depth-limit` (all three gateway-quirk fixes consolidated here) | **Updated:** 2026-10-22 Asia/Jakarta | **Current Phase:** longcat 402 error-hint fix implemented (559/559, lint green) — commit next; beam fix `8707410` + schema-depth `019bd45` committed; push/PR + live retries still pending.
+**Branch:** `main` | **Updated:** 2026-10-27 Asia/Jakarta | **Current Phase:** issue #269 fix merged via PR #271 (merge commit `e959a86`) — 401 key-rejected hint + bundled catalog refresh (Go 27→38, Zen 42→72), 561/561 tests, lint 7/7, reporter reply posted, issue auto-closed. Release 0.7.11 not yet cut (CHANGELOG still `[Unreleased]`).
+
+---
+
+## ✅ Issue #269 — fetchModels 401 on both providers + stale bundled catalogs — 2026-10-27
+
+**Scope:** reporter's model picker never showed `deepseek-v4.1-flash`; logs showed every `fetchModels` 401 on both Go and Zen. Live probes (×3, deterministic): the `/models` endpoints are a public catalog — anonymous 200, invalid `Authorization: Bearer` 401 — so a 401 there always means the stored key was rejected (official docs curl the endpoint without auth; status page clean; no upstream gateway defect). With the live catalog unreachable, the 2026-09-08 bundled snapshot took over: Go bundled 27 vs 38 live (missing `deepseek-v4.1-flash`, 2 dead ids), Zen 42 vs 84 live.
+
+**Forensics:** the reporter's 38-entry `Filtered unavailable/deprecated models` line matches the pre-#266 `freeOnly` keep-free filter exactly (37 non-free + `deepseek-v4-flash-free`), so that session was still running pre-0.7.10 code — VS Code swaps extensions only on reload. On current main the fallback is fail-open (the deprecated filter needs live ids, #182), showing ~37 stale Zen models instead — same stale-bundled problem either way.
+
+**Fix (PR #271, merge commit `e959a86`):** `isUnauthorizedModelListError()` in `modelList.ts` — a 401 logs "stored API key was rejected → Manage Provider" next to the fallback notice (fires on the cached branch too; 401 stays non-transient, single attempt; `retry.ts` classification untouched). Bundled refresh mirroring the live catalogs 2026-10-27: Go 27→38, Zen 42→72 (minus policy-hidden free tier, non-chat `jev-*`, junk `test`/`claude-opus-5-5-backup`). `deepseek-v4-flash` deliberately NOT blocklisted — the plain id still appears (flakily) on Zen and `KNOWN_UNAVAILABLE_MODEL_IDS` is vendor-agnostic.
+
+**Tests:** 2 new in `src/test/modelList401Hint.test.ts` (401 → hint + bundled fallback + exactly one attempt; non-401 → no hint). 561/561 pass, lint 7/7.
+
+**Lesson:** classify the gateway with probes before reading logs as behavior — three probe classes (anonymous, invalid bearer, upstream issue search) pinned the root cause before any code changed. Bundled-fallback staleness is invisible until the day it becomes the only path: "missing model" was really "key rejected + September snapshot". Reporter follow-up included the Go "Global region" privacy requirement for DeepSeek (anomalyco/opencode#50155).
+
+Docs: `docs/issues/117-20261027-issue269-models-401-hint-and-bundled-refresh.md`, CHANGELOG `[Unreleased]`. Issue #269 closed via "Fixes #269"; reporter reply posted after draft approval.
 
 ---
 
