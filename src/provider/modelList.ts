@@ -13,6 +13,17 @@ import { auxiliarySessionId } from "../request/headers";
 import { resolveBaseVendor } from "../providerTypes";
 
 /**
+ * A 401 from the models endpoint means the STORED key was rejected — the
+ * endpoint itself is a public catalog (the official docs curl it without
+ * auth), so this is a key problem, never a list/gateway problem (issue
+ * #269). Matched on the message shape thrown in `fetch()` so the
+ * `retry.ts` classification (which parses the same prefix) stays untouched.
+ */
+function isUnauthorizedModelListError(error: unknown): boolean {
+  return getErrorMessage(error).includes("Model list request failed (401)");
+}
+
+/**
  * Fetches the live `/models` list with retry/backoff and cancellation support,
  * caching the last successful snapshot in globalState (TTL-guarded) so
  * transient failures fall back to fresh data instead of the bundled list.
@@ -129,6 +140,15 @@ export class ModelListFetcher {
     }
 
     // Final failure: prefer cached snapshot (still fresh), then bundled list.
+    // Issue #269: 401 = the stored key was rejected; the bare "Unauthorized"
+    // line reads like a fetch bug, so point at the actual fix. The hint
+    // applies to the cached branch below too — same root cause.
+    if (isUnauthorizedModelListError(lastError)) {
+      this.deps.log(
+        `[fetchModels] ${this.deps.definition.displayName}: the stored API key was rejected (401). ` +
+          `Update or clear it via "${this.deps.definition.displayName}: Manage Provider" — requests will keep failing until then.`,
+      );
+    }
     const cached = this.loadCached();
     if (cached) {
       this.deps.log(
