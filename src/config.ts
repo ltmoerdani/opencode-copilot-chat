@@ -29,7 +29,7 @@ export function secretKeyFor(vendor: "opencodego" | "opencodezen"): string {
 /** Client name sent in the `x-opencode-client` header. */
 export const OPEN_CODE_CLIENT = "vscode-copilot-chat";
 /** Fallback only — overridden at runtime from packageJSON.version. */
-export const FALLBACK_USER_AGENT = "opencode-copilot-chat/0.6.0 VSCode";
+export const FALLBACK_USER_AGENT = "opencode-copilot-chat/0.7.11 VSCode";
 /** Configuration section under which all extension settings live. */
 export const CONFIG_SECTION = "opencodego";
 
