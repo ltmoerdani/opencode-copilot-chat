@@ -185,6 +185,19 @@ export function updateRequestUsageSummary(summary: RequestUsageSummary, data: un
   const responseUsage = isRecord(data.response) && isRecord(data.response.usage) ? data.response.usage : undefined;
   const usage = rawUsage ?? responseUsage ?? normalizeGoogleUsage(data.usageMetadata);
   if (usage) {
+    const openCodeUsage = isRecord(usage.opencode) ? usage.opencode : undefined;
+    if (openCodeUsage) {
+      if (typeof openCodeUsage.allowance === "number" && Number.isFinite(openCodeUsage.allowance) && openCodeUsage.allowance >= 0) {
+        summary.allowance = openCodeUsage.allowance;
+      }
+      if (typeof openCodeUsage.list_cost === "number" && Number.isFinite(openCodeUsage.list_cost) && openCodeUsage.list_cost >= 0) {
+        summary.listCost = openCodeUsage.list_cost;
+      }
+      if (typeof openCodeUsage.billing_source === "string") {
+        summary.billingSource = openCodeUsage.billing_source;
+      }
+    }
+
     // OpenAI-compatible fields
     const promptTokens = typeof usage.prompt_tokens === "number" ? usage.prompt_tokens : undefined;
     const completionTokens = typeof usage.completion_tokens === "number" ? usage.completion_tokens : undefined;

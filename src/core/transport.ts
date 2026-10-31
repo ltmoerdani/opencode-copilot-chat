@@ -78,6 +78,12 @@ export interface TransportRequestSummary {
   finishReason?: string;
   /** Credits for VS Code session cost (1 credit = $0.01). */
   copilotCredits?: number;
+  /** Go allowance counted by OpenCode after model/policy weighting, in USD. */
+  allowance?: number;
+  /** Go list-price equivalent reported alongside allowance, in USD. */
+  listCost?: number;
+  /** Upstream billing source, for diagnostics and future provider-specific handling. */
+  billingSource?: string;
   rateLimitSummary?: string;
   abortedReason?: "request-timeout" | "stream-idle-timeout" | "cancelled" | "truncated-retry" | "stalled-retry";
   errorMessage?: string;

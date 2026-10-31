@@ -129,6 +129,9 @@ export async function streamOpenCodeResponse(options: StreamOpenCodeResponseOpti
       ...(usageSummary.completionTokens === undefined ? {} : { completionTokens: usageSummary.completionTokens }),
       ...(usageSummary.totalTokens === undefined ? {} : { totalTokens: usageSummary.totalTokens }),
       ...(usageSummary.cachedTokens === undefined ? {} : { cachedTokens: usageSummary.cachedTokens }),
+      ...(usageSummary.allowance === undefined ? {} : { allowance: usageSummary.allowance }),
+      ...(usageSummary.listCost === undefined ? {} : { listCost: usageSummary.listCost }),
+      ...(usageSummary.billingSource === undefined ? {} : { billingSource: usageSummary.billingSource }),
       ...(usageSummary.finishReason === undefined ? {} : { finishReason: usageSummary.finishReason }),
       ...extra,
     };

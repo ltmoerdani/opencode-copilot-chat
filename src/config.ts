@@ -293,7 +293,7 @@ export const MAX_TOOL_SCHEMA_DEPTH = 10;
 
 // ─── Go usage tracking ───────────────────────────────────────────────────────
 
-/** OpenCode Go subscription limits in USD (https://opencode.ai/docs/go). */
+/** Fallback Go limits in USD; live server meters expose percentage/reset only. */
 export const GO_LIMITS = {
   session: 12, // $12 per rolling 5-hour window
   weekly: 30, // $30 per week (Mon–Mon UTC)

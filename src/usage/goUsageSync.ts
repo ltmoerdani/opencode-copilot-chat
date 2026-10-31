@@ -106,28 +106,28 @@ export async function fetchGoUsage(
 /**
  * Merge server-accurate meters onto a locally-computed summary.
  *
- * The endpoint reports percent + resetsAt but not raw spend, so `spent` is
- * derived as `limit × percent / 100` to keep the status bar and tooltip
- * internally consistent (the percent itself is authoritative). Today /
- * Yesterday / per-session spend stay local — the API does not return them.
+ * The endpoint reports percent + resetsAt but not raw spend. Keep the local
+ * allowance total when available instead of deriving a nominal dollar amount
+ * from a hardcoded model tier. The percentage and reset time remain the only
+ * server-authoritative subscription meter values. Today / Yesterday /
+ * per-session spend stay local — the API does not return them.
  */
 export function mergeServerUsage(
   summary: UsageSummary,
   api: GoUsageApiResponse,
-  limits: { session: number; weekly: number; monthly: number },
+  _limits: { session: number; weekly: number; monthly: number },
 ): UsageSummary {
-  const period = (server: GoUsagePeriod, limit: number): UsageSummary["session"] => ({
-    spent: Math.round(limit * (server.percent / 100) * 100) / 100,
-    limit,
+  const period = (server: GoUsagePeriod, local: UsageSummary["session"]): UsageSummary["session"] => ({
+    spent: local.spent,
     percent: server.percent,
     resetsAt: new Date(server.resetsAt),
   });
 
   return {
     ...summary,
-    session: period(api.usage.rolling, limits.session),
-    weekly: period(api.usage.weekly, limits.weekly),
-    monthly: period(api.usage.monthly, limits.monthly),
+    session: period(api.usage.rolling, summary.session),
+    weekly: period(api.usage.weekly, summary.weekly),
+    monthly: period(api.usage.monthly, summary.monthly),
     // Server meters are real account-wide data — never report "no data"
     // when a snapshot exists (e.g. a fresh install with CLI usage).
     hasData: true,

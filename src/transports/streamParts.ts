@@ -33,6 +33,9 @@ interface RequestUsageSummary {
   cachedTokens?: number;
   finishReason?: string;
   copilotCredits?: number;
+  allowance?: number;
+  listCost?: number;
+  billingSource?: string;
 }
 
 function reportProgressPart(

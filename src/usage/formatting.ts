@@ -47,13 +47,15 @@ export function buildUsageQuickPickItems(summary: UsageSummary, syncedFromServer
 
   function periodItem(icon: string, label: string, period: PeriodUsage, resetLabel: string): vscode.QuickPickItem {
     const bar = progressBar(period.percent);
-    const spent = formatUsd(period.spent);
-    const limit = formatUsd(period.limit);
+    const amounts =
+      period.limit === undefined
+        ? `${formatUsd(period.spent)} local amount`
+        : `${formatUsd(period.spent)} / ${formatUsd(period.limit)} used`;
     const resets = formatRelativeTime(period.resetsAt, now);
     return {
       label: `${icon} ${label}`,
       description: `${bar} ${String(period.percent)}%`,
-      detail: `${spent} / ${limit} used · resets in ${resets} (${resetLabel})`,
+      detail: `${amounts} · resets in ${resets} (${resetLabel})`,
       alwaysShow: true,
     };
   }

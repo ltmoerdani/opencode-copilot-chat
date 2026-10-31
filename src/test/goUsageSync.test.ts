@@ -111,10 +111,12 @@ test("mergeServerUsage — overlays server percent and resetsAt per period", () 
 
 test("mergeServerUsage — derives spent from the authoritative percent", () => {
   const merged = mergeServerUsage(localSummary(), apiResponse(), LIMITS);
-  assert.equal(merged.session.spent, Math.round(LIMITS.session * 0.27 * 100) / 100);
-  assert.equal(merged.weekly.spent, Math.round(LIMITS.weekly * 0.62 * 100) / 100);
-  // rate-limited → 100% → full limit
-  assert.equal(merged.monthly.spent, LIMITS.monthly);
+  assert.equal(merged.session.spent, localSummary().session.spent);
+  assert.equal(merged.weekly.spent, localSummary().weekly.spent);
+  assert.equal(merged.monthly.spent, localSummary().monthly.spent);
+  assert.equal(merged.session.limit, undefined);
+  assert.equal(merged.weekly.limit, undefined);
+  assert.equal(merged.monthly.limit, undefined);
 });
 
 test("mergeServerUsage — keeps local today/yesterday and metadata", () => {
