@@ -328,6 +328,7 @@ export class OpenCodeProvider implements vscode.LanguageModelChatProvider<OpenCo
 
       requestHeaders,
       onTransportSummary,
+      toolLoopWarning,
     } = prepared;
 
     // ISSUE #220: one shared channel for the provider's lifetime — the
@@ -335,11 +336,12 @@ export class OpenCodeProvider implements vscode.LanguageModelChatProvider<OpenCo
     const outputChannel = this.getOutputChannel();
 
     try {
+      const requestOptions = toolLoopWarning ? { ...options, tools: undefined } : options;
       const contextWindowOutputBuffer = limits.advertisedMaxOutputTokens;
       // Subagent/tool-call requests always have tools present. Force
       // think-tag stripping for these requests to prevent <think> tags
       // in content from rendering as blank code blocks in the chat UI.
-      const isToolCallRequest = Array.isArray(options.tools) && options.tools.length > 0;
+      const isToolCallRequest = Array.isArray(requestOptions.tools) && requestOptions.tools.length > 0;
       const forceStripThinkTags = isToolCallRequest || undefined;
 
       if (routing.endpointKind === "messages") {
@@ -348,7 +350,7 @@ export class OpenCodeProvider implements vscode.LanguageModelChatProvider<OpenCo
           providerDisplayName: this.definition.displayName,
           apiKey,
           modelId: rawModelId,
-          body: buildAnthropicMessagesRequestBody(rawModelId, apiMessages, options, settings, metadata, limits),
+          body: buildAnthropicMessagesRequestBody(rawModelId, apiMessages, requestOptions, settings, metadata, limits),
           requestHeaders,
           progress,
           token,
@@ -372,7 +374,7 @@ export class OpenCodeProvider implements vscode.LanguageModelChatProvider<OpenCo
           providerDisplayName: this.definition.displayName,
           apiKey,
           modelId: rawModelId,
-          body: buildResponsesRequestBody(rawModelId, apiMessages, options, settings, metadata, limits),
+          body: buildResponsesRequestBody(rawModelId, apiMessages, requestOptions, settings, metadata, limits),
           authHeaders: buildOpenCodeGatewayAuthHeaders("responses", apiKey),
           requestHeaders,
           progress,
@@ -386,7 +388,7 @@ export class OpenCodeProvider implements vscode.LanguageModelChatProvider<OpenCo
           onTransportSummary,
           stripThinkTags: settings.stripThinkTags,
           forceStripThinkTags,
-          toolNameMap: buildToolNameMap(options.tools, rawModelId),
+          toolNameMap: buildToolNameMap(requestOptions.tools, rawModelId),
           onReasoningContent: (toolCallIds, reasoningContent) => {
             this.storeReasoningContent(toolCallIds, reasoningContent);
           },
@@ -401,7 +403,7 @@ export class OpenCodeProvider implements vscode.LanguageModelChatProvider<OpenCo
           providerDisplayName: this.definition.displayName,
           apiKey,
           modelId: rawModelId,
-          body: buildGoogleGenerateContentBody(rawModelId, apiMessages, options, settings, metadata, limits),
+          body: buildGoogleGenerateContentBody(rawModelId, apiMessages, requestOptions, settings, metadata, limits),
           requestHeaders,
           progress,
           token,
@@ -428,7 +430,7 @@ export class OpenCodeProvider implements vscode.LanguageModelChatProvider<OpenCo
         providerDisplayName: this.definition.displayName,
         apiKey,
         modelId: rawModelId,
-        body: buildChatCompletionsRequestBody(rawModelId, apiMessages, options, settings, metadata, limits),
+        body: buildChatCompletionsRequestBody(rawModelId, apiMessages, requestOptions, settings, metadata, limits),
         authHeaders: buildOpenCodeGatewayAuthHeaders("chat-completions", apiKey),
         requestHeaders,
         progress,
@@ -443,7 +445,7 @@ export class OpenCodeProvider implements vscode.LanguageModelChatProvider<OpenCo
         stripThinkTags: settings.stripThinkTags,
         forceStripThinkTags,
         treatReasoningAsContent: thinkingProviderFor(rawModelId).treatReasoningAsContent(routing.endpointUrl, settings.thinking),
-        toolNameMap: buildToolNameMap(options.tools, rawModelId),
+        toolNameMap: buildToolNameMap(requestOptions.tools, rawModelId),
         onReasoningContent: (toolCallIds, reasoningContent) => {
           this.storeReasoningContent(toolCallIds, reasoningContent);
         },

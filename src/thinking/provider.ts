@@ -24,6 +24,7 @@ import { MimoThinking } from "./mimo";
 import { MuseThinking } from "./muse";
 import { GeminiThinking } from "./gemini";
 import { FallbackThinking } from "./fallback";
+import { BeamThinking } from "./beam";
 
 /** Strategy interface implemented by each per-provider thinking class. */
 export interface ThinkingProvider {
@@ -60,6 +61,8 @@ export function thinkingFamily(modelId: string): ThinkingFamily {
 /** Resolve the thinking strategy for a raw model id. */
 export function thinkingProviderFor(modelId: string, metadata?: ResolvedModelMetadata): ThinkingProvider {
   switch (thinkingFamily(modelId)) {
+    case "beam":
+      return new BeamThinking(modelId);
     case "deepseek":
       return new DeepSeekThinking(modelId);
     case "glm":

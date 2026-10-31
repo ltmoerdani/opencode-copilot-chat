@@ -30,6 +30,7 @@ test("shouldEchoThinkingHistory — OpenAI-compatible reasoning families require
   assert.equal(shouldEchoThinkingHistory("kimi-k2.6"), true);
   assert.equal(shouldEchoThinkingHistory("glm-5.2"), true);
   assert.equal(shouldEchoThinkingHistory("qwen3.6-plus"), true);
+  assert.equal(shouldEchoThinkingHistory("beam-free"), true);
 });
 
 test("shouldEchoThinkingHistory — MiniMax replays thinking inline, not as a field", () => {

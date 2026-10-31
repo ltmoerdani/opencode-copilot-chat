@@ -214,6 +214,21 @@ describe("FallbackThinking — generic payload (issue #207)", () => {
     assert.deepEqual(payload, { repetition_penalty: 1.2 });
   });
 
+  it("Beam always emits a valid reasoning effort and normalizes off to low", () => {
+    const provider = thinkingProviderFor("beam-free");
+    assert.deepEqual(provider.buildPayload({ ...defaultSettings, generic: "off" }), { reasoning_effort: "low" });
+    assert.deepEqual(provider.normalize(defaultSettings).generic, "low");
+    assert.equal(provider.requestsThinking(defaultSettings), true);
+  });
+
+  it("Beam exposes only mandatory reasoning efforts", () => {
+    const schema = thinkingProviderFor("beam-free").schema();
+    assert.ok(schema);
+    const effort = schema.properties.reasoningEffort as Record<string, unknown>;
+    assert.deepEqual(effort.enum, ["low", "medium", "high", "xhigh", "max"]);
+    assert.equal(effort.default, "low");
+  });
+
   it("requestsThinking stays false — the penalty is not a thinking request", () => {
     const provider = thinkingProviderFor("big-pickle");
     assert.equal(provider.requestsThinking(defaultSettings), false);

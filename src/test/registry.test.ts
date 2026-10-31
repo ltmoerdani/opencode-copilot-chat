@@ -121,11 +121,11 @@ describe("model registry — data-driven thinking family", () => {
     assert.equal(thinkingFamily("muse-spark-1.2-contributor"), "muse");
     assert.equal(thinkingFamily("gemini-4-argon-contributor"), "gemini");
     assert.equal(thinkingFamily("gemini-3.5-flash"), "gemini");
+    assert.equal(thinkingFamily("beam-free"), "beam");
   });
 
   it("returns null for families without a dedicated strategy", () => {
     assert.equal(thinkingFamily("claude-sonnet-4-6"), null);
-    assert.equal(thinkingFamily("beam-free"), null);
     assert.equal(thinkingFamily("hy3"), null);
     assert.equal(thinkingFamily("unknown-model"), null);
   });

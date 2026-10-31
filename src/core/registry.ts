@@ -148,7 +148,7 @@ export const MODEL_REGISTRY: ModelRegistryEntry[] = [
     patterns: [/^beam-/i],
     endpointKind: "chat-completions",
     sdkPackage: "@ai-sdk/openai-compatible",
-    thinkingFamily: null,
+    thinkingFamily: "beam",
   },
   // Catch-all: unknown families use chat-completions with the generic strategy.
   { family: "default", patterns: [/.*/], endpointKind: "chat-completions", sdkPackage: "@ai-sdk/openai-compatible", thinkingFamily: null },

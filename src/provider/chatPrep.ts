@@ -31,8 +31,10 @@ import { createHash } from "node:crypto";
 import { messagesHaveImages } from "../request/builders";
 import { buildOpenCodeRequestHeaders } from "../request/headers";
 import type { ApiMessage, ApiSettings, OpenAiContentPart } from "../request/types";
+import { estimatePromptTokenCount } from "../tokenEstimate";
 import { proxyVision } from "./visionProxy";
 import { estimateCost } from "../usage/pricing";
+import { detectBeamToolLoop } from "../toolLoopGuard";
 import {
   activeProfileFingerprint,
   ensureProfileForApiKey,
@@ -82,6 +84,7 @@ export async function prepareChatRequest(
   thinkingPayload: unknown;
   requestHeaders: Record<string, string>;
   onTransportSummary: (summary: TransportRequestSummary) => void;
+  toolLoopWarning?: string;
 }> {
   // VS Code can invoke a cached selected model immediately after the
   // extension host restarts, before model discovery repopulates the in-memory
@@ -273,9 +276,20 @@ export async function prepareChatRequest(
     );
   }
 
+  const toolLoopWarning = detectBeamToolLoop(rawModelId, apiMessages);
+  if (toolLoopWarning) {
+    deps.log(`[tool-loop-guard] model=${rawModelId} ${toolLoopWarning}`);
+    apiMessages.push({
+      role: "user",
+      content:
+        "The previous tool-call sequence did not converge. Do not call any tools in this turn. Provide the best final answer now, explain any limitation briefly, and do not output placeholder dashes.",
+    });
+  }
+
   // Use the estimate computed during trimming (no second full re-estimation)
-  // so the output budget reflects the payload that is actually sent upstream.
-  const promptTokens = historyTrim.finalTokens;
+  // unless recovery added a synthetic finalization prompt. In that case the
+  // request also omits tools, so estimate the actual recovery payload.
+  const promptTokens = toolLoopWarning ? estimatePromptTokenCount(apiMessages) : historyTrim.finalTokens;
   const limits = modelLimits(metadata, settings, contextSizeOverride, promptTokens);
 
   const thinkingPayload = thinkingProviderFor(rawModelId, metadata).buildPayload(settings.thinking, {
@@ -367,5 +381,6 @@ export async function prepareChatRequest(
     thinkingPayload,
     requestHeaders,
     onTransportSummary,
+    toolLoopWarning,
   };
 }

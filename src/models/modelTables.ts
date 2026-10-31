@@ -10,6 +10,7 @@ import type { BaseModelLimits } from "./metadata";
 /** Bundled context/output limits per vendor+model (models.dev snapshot). */
 export const MODEL_LIMITS_BY_PROVIDER: Record<ProviderVendor, Record<string, BaseModelLimits | undefined>> = {
   [GO_VENDOR]: {
+    "beam-free": { contextWindow: 1048576, maxOutputTokens: 131072 },
     // OpenCode Go caps completion at 131072 even though models.dev still lists
     // output: 384000 — the gateway rejects larger values with HTTP 400 (#171).
     "deepseek-v4-flash": { contextWindow: 1000000, maxOutputTokens: 131072 },

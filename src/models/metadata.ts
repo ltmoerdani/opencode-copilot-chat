@@ -388,7 +388,7 @@ function detectModalityFlags(
 }
 
 function supportsReasoning(modelId: string): boolean {
-  return /^(deepseek-|glm-|kimi-|minimax-|qwen3(?:\.|-)|mimo-|muse-)/i.test(modelId);
+  return /^(beam-|deepseek-|glm-|kimi-|minimax-|qwen3(?:\.|-)|mimo-|muse-)/i.test(modelId);
 }
 
 // ---------------------------------------------------------------------------
