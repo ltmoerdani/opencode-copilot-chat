@@ -63,7 +63,14 @@ export function buildUsageTooltipSvg(s: _UsageSummary, profileLabel?: string): s
       text(`Resets in ${formatRelativeTime(p.resetsAt)}`, right, y, 12, 400, muted, "end"),
       bar(p.percent, padX, y + 14, 340),
       text(`${p.percent.toFixed(1)}%`, right, y + 21, 14, 700, fg, "end"),
-      text(`${formatUsd(p.spent)} / ${formatUsd(p.limit)} used`, padX, y + 36, 13, 400, fg),
+      text(
+        p.limit === undefined ? `${formatUsd(p.spent)} local amount` : `${formatUsd(p.spent)} / ${formatUsd(p.limit)} used`,
+        padX,
+        y + 36,
+        13,
+        400,
+        fg,
+      ),
     ].join("");
 
   // Device-local rows share one fixed column grid: label, cost, requests,

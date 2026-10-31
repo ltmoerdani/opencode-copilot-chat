@@ -521,7 +521,7 @@ export function usageWebviewHtml(profileLabel: string): string {
               '</svg><div class="ring-pct">' + Math.round(r.percent) + '%</div></div>' +
               '<div class="ring-info"><div class="label">' + r.label + '</div>' +
               '<div class="reset">resets in ' + r.resetsIn + '</div>' +
-              '<div class="amounts"><b>' + fmtUsd(r.spent) + '</b> / ' + fmtUsd(r.limit) + '</div></div></div>';
+              '<div class="amounts"><b>' + fmtUsd(r.spent) + '</b>' + (r.limit === undefined ? ' local amount' : ' / ' + fmtUsd(r.limit)) + '</div></div></div>';
           }).join('');
           document.querySelectorAll('.ring-fg').forEach(function (circle) {
             var pct = Math.max(0, Math.min(100, parseFloat(circle.getAttribute('data-pct'))));

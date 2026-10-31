@@ -154,7 +154,7 @@ describe("goUsageTracker windows & persistence", () => {
       const summary = tracker.getSummary();
       // No snapshot stored for this profile yet → meters fall back to local estimates.
       assert.equal(tracker.hasServerUsage, false);
-      assert.ok(summary.weekly.limit > 0);
+      assert.ok((summary.weekly.limit ?? 0) > 0);
     });
   });
 

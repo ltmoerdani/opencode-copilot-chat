@@ -14,7 +14,7 @@ export async function showUsageTargetEditor(tracker: GoUsageTracker): Promise<Us
   // Ask for session spent (pre-filled with current tracked value)
   const sessionStr = await vscode.window.showInputBox({
     title: "OpenCode Go — Session Spent",
-    prompt: `Total spent in the 5-hour rolling window (limit: $${String(GO_LIMITS.session)}).`,
+    prompt: `Total spent in the 5-hour rolling window (fallback limit: $${String(GO_LIMITS.session)}).`,
     placeHolder: "e.g. 3.50",
     value: summary.session.spent.toFixed(2),
     validateInput: (value: string) => {
@@ -30,7 +30,7 @@ export async function showUsageTargetEditor(tracker: GoUsageTracker): Promise<Us
   // Ask for weekly spent (pre-filled)
   const weeklyStr = await vscode.window.showInputBox({
     title: "OpenCode Go — Weekly Spent",
-    prompt: `Total spent this week Mon–Mon UTC (limit: $${String(GO_LIMITS.weekly)}).`,
+    prompt: `Total spent this week Mon–Mon UTC (fallback limit: $${String(GO_LIMITS.weekly)}).`,
     placeHolder: "e.g. 12.00",
     value: summary.weekly.spent.toFixed(2),
     validateInput: (value: string) => {
@@ -46,7 +46,7 @@ export async function showUsageTargetEditor(tracker: GoUsageTracker): Promise<Us
   // Ask for monthly spent (pre-filled)
   const monthlyStr = await vscode.window.showInputBox({
     title: "OpenCode Go — Monthly Spent",
-    prompt: `Total spent this month (limit: $${String(GO_LIMITS.monthly)}).`,
+    prompt: `Total spent this month (fallback limit: $${String(GO_LIMITS.monthly)}).`,
     placeHolder: "e.g. 25.00",
     value: summary.monthly.spent.toFixed(2),
     validateInput: (value: string) => {

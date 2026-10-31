@@ -2,6 +2,12 @@
 
 All notable changes to the **OpenCode Go BYOK Provider** extension are documented here.
 
+## [Unreleased]
+
+### Fixed
+
+- **`[Usage]` Go usage tracking now consumes OpenCode's response-level `opencode.allowance` globally across all transport formats.** Chat Completions, Responses, and Anthropic-compatible usage payloads preserve the dynamically weighted allowance and list cost; Go tracking uses the upstream allowance when present and falls back to local pricing for older or non-Go responses. Server percentage/reset meters no longer manufacture nominal dollar values from a hardcoded model tier, preventing model-policy changes from silently scaling the panel incorrectly. Regression coverage includes nested Responses usage, malformed billing metadata, fallback pricing, persistence, and server-meter merging. Documented in `docs/issues/119-20261031-issue273-dynamic-go-allowance.md`.
+
 ## [0.7.11] — 2026-10-27
 
 ### Fixed

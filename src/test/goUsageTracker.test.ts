@@ -197,6 +197,24 @@ describe("goUsageTracker", () => {
         assert.equal(session?.cost, 0.002);
       });
 
+      it("uses the upstream Go allowance instead of local model pricing", () => {
+        const tracker = new GoUsageTracker(createMockContext());
+        tracker.record(
+          makeSummary({
+            sessionId: "s1",
+            promptTokens: 100,
+            completionTokens: 50,
+            cachedTokens: 0,
+            allowance: 1.25,
+            listCost: 4.5,
+          }),
+        );
+
+        assert.equal(tracker.getCurrentSessionCost()?.cost, 1.25);
+        const storedEntries = tracker.getSummary();
+        assert.equal(storedEntries.today.cost, 1.25);
+      });
+
       it("delegates to costResolver when no externalCost is passed", () => {
         const resolver = (id: string): ModelCost | undefined => (id === "custom-resolved" ? { input: 5, output: 10 } : undefined);
         const tracker = new GoUsageTracker(createMockContext(), undefined, resolver);

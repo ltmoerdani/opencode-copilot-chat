@@ -165,19 +165,24 @@ export class GoUsageTracker {
       return;
     }
 
-    const cost = estimateCost(summary.modelId, prompt, completion, cached, externalCost, this.costResolver);
+    const allowance =
+      typeof summary.allowance === "number" && Number.isFinite(summary.allowance) && summary.allowance >= 0 ? summary.allowance : undefined;
+    const cost =
+      allowance === undefined ? estimateCost(summary.modelId, prompt, completion, cached, externalCost, this.costResolver) : allowance;
     // VS Code session cost reads usage.copilotCredits (1 credit = $0.01).
     // Compute from USD cost so the session info popover shows accurate totals.
     const copilotCredits = cost * 100;
 
     this.log?.(
-      `[go-tracker] RECORD: model=${summary.modelId} prompt=${String(prompt)} completion=${String(completion)} cached=${String(cached)} cost=$${cost.toFixed(6)} credits=${copilotCredits.toFixed(4)}`,
+      `[go-tracker] RECORD: model=${summary.modelId} prompt=${String(prompt)} completion=${String(completion)} cached=${String(cached)} cost=$${cost.toFixed(6)} source=${allowance === undefined ? "estimate" : "allowance"} credits=${copilotCredits.toFixed(4)}`,
     );
 
     this.entries.push({
       timestamp: Date.now(),
       modelId: summary.modelId,
       cost,
+      ...(allowance === undefined ? {} : { allowance }),
+      ...(summary.listCost === undefined ? {} : { listCost: summary.listCost }),
       promptTokens: prompt,
       completionTokens: completion,
       cachedTokens: cached,

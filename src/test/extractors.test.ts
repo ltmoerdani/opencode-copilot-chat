@@ -266,7 +266,15 @@ describe("updateRequestUsageSummary — Responses nested usage", () => {
   });
 
   it("reads usage from response.usage (Responses response.completed)", () => {
-    const summary: { promptTokens?: number; completionTokens?: number; totalTokens?: number; cachedTokens?: number } = {};
+    const summary: {
+      promptTokens?: number;
+      completionTokens?: number;
+      totalTokens?: number;
+      cachedTokens?: number;
+      allowance?: number;
+      listCost?: number;
+      billingSource?: string;
+    } = {};
     updateRequestUsageSummary(summary, {
       type: "response.completed",
       response: {
@@ -275,6 +283,7 @@ describe("updateRequestUsageSummary — Responses nested usage", () => {
           output_tokens: 45,
           total_tokens: 231452,
           input_tokens_details: { cached_tokens: 230961 },
+          opencode: { allowance: 0.00309, list_cost: 0.00412, billing_source: "go" },
         },
       },
     });
@@ -282,6 +291,18 @@ describe("updateRequestUsageSummary — Responses nested usage", () => {
     assert.equal(summary.completionTokens, 45);
     assert.equal(summary.totalTokens, 231452);
     assert.equal(summary.cachedTokens, 230961);
+    assert.equal(summary.allowance, 0.00309);
+    assert.equal(summary.listCost, 0.00412);
+    assert.equal(summary.billingSource, "go");
+  });
+
+  it("ignores malformed OpenCode billing metadata without affecting token usage", () => {
+    const summary: { promptTokens?: number; allowance?: number } = {};
+    updateRequestUsageSummary(summary, {
+      usage: { prompt_tokens: 10, opencode: { allowance: "0.1", list_cost: -1 } },
+    });
+    assert.equal(summary.promptTokens, 10);
+    assert.equal(summary.allowance, undefined);
   });
 
   it("prefers top-level usage over response.usage when both present", () => {
@@ -295,13 +316,19 @@ describe("updateRequestUsageSummary — Responses nested usage", () => {
   });
 
   it("still reads top-level usage for OpenAI/Anthropic shapes", () => {
-    const summary: { promptTokens?: number; completionTokens?: number; totalTokens?: number } = {};
+    const summary: { promptTokens?: number; completionTokens?: number; totalTokens?: number; allowance?: number } = {};
     updateRequestUsageSummary(summary, {
-      usage: { prompt_tokens: 100, completion_tokens: 20, total_tokens: 120 },
+      usage: {
+        prompt_tokens: 100,
+        completion_tokens: 20,
+        total_tokens: 120,
+        opencode: { allowance: 0.75 },
+      },
     });
     assert.equal(summary.promptTokens, 100);
     assert.equal(summary.completionTokens, 20);
     assert.equal(summary.totalTokens, 120);
+    assert.equal(summary.allowance, 0.75);
   });
 });
 

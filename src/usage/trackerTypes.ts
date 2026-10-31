@@ -12,6 +12,10 @@ export interface UsageLogEntry {
   modelId: string;
   /** Estimated cost in USD */
   cost: number;
+  /** Actual Go allowance counted by OpenCode, when reported by the response. */
+  allowance?: number;
+  /** Go list-price equivalent, when reported by the response. */
+  listCost?: number;
   promptTokens: number;
   completionTokens: number;
   cachedTokens: number;
@@ -33,7 +37,8 @@ export interface SessionCostSummary {
 
 export interface PeriodUsage {
   spent: number;
-  limit: number;
+  /** Known only for local fallback summaries; server meters expose percentage/reset only. */
+  limit?: number;
   percent: number;
   resetsAt: Date;
 }
