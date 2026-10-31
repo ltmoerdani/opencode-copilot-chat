@@ -2,9 +2,11 @@
 
 All notable changes to the **OpenCode Go BYOK Provider** extension are documented here.
 
-## [Unreleased]
+## [0.7.12] — 2026-11-01
 
 ### Fixed
+
+- **`[Tool calling]` DeepSeek no longer returns HTTP 400 `tool message content must be a string` when an MCP tool result contains an image (issue #272).** OpenCode Go's DeepSeek gRPC path accepts image parts in user messages but rejects array-valued `role: "tool"` content. DeepSeek tool-result images are now flattened out of the tool message and appended to a follow-up user message, preserving the screenshot without violating the upstream contract. The gate is family-scoped to `deepseek-*`; MiMo still drops images, GLM 5.3 still defers them, and Kimi, GLM 5.2, and MiniMax keep their existing native multimodal behavior. Coverage includes DeepSeek v4.1 Flash/v4 Pro, case-insensitive IDs, a non-family negative control, and the existing serialization matrix. Live verification in the already-running Extension Development Host on the separate `novaliners` project used local OpenCode Go + Deepseek V4 Pro: browser screenshot capture completed, the image attachment was present, the request finished with `stop`, and no HTTP 400 or tool-content serialization error occurred. Documented in `docs/issues/120-20261031-issue272-deepseek-tool-image-defer.md`.
 
 - **`[Usage]` Go usage tracking now consumes OpenCode's response-level `opencode.allowance` globally across all transport formats.** Chat Completions, Responses, and Anthropic-compatible usage payloads preserve the dynamically weighted allowance and list cost; Go tracking uses the upstream allowance when present and falls back to local pricing for older or non-Go responses. Server percentage/reset meters no longer manufacture nominal dollar values from a hardcoded model tier, preventing model-policy changes from silently scaling the panel incorrectly. Regression coverage includes nested Responses usage, malformed billing metadata, fallback pricing, persistence, and server-meter merging. Documented in `docs/issues/119-20261031-issue273-dynamic-go-allowance.md`.
 
