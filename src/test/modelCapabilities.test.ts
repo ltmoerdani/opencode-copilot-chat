@@ -15,7 +15,13 @@ describe("requiresStringToolContent", () => {
   it("keeps multimodal tool content for other families", () => {
     assert.equal(requiresStringToolContent("glm-5.2"), null);
     assert.equal(requiresStringToolContent("kimi-k3"), null);
-    assert.equal(requiresStringToolContent("deepseek-v4.1-flash"), null);
     assert.equal(requiresStringToolContent(undefined), null);
+  });
+
+  it("defers tool images for DeepSeek chat-completions models (issue #272)", () => {
+    assert.equal(requiresStringToolContent("deepseek-v4.1-flash"), "defer");
+    assert.equal(requiresStringToolContent("deepseek-v4-pro"), "defer");
+    assert.equal(requiresStringToolContent("DeepSeek-v4.1-flash"), "defer");
+    assert.equal(requiresStringToolContent("deepseekfoo"), null);
   });
 });

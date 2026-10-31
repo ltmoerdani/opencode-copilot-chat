@@ -28,6 +28,10 @@ export function buildStableModelCapabilities(supportsVision: boolean): StableMod
  *   string", but identical images in a user message return 200 (reproduced
  *   directly against zen/go/v1 chat-completions, issue #233). Move images
  *   into a follow-up user message instead of dropping them.
+ * - "defer" — DeepSeek (`deepseek-*`): the OpenCode Go gRPC path rejects
+ *   image-bearing tool messages with HTTP 400 "tool message content must be a
+ *   string", while the same images are valid in a user message (issue #272).
+ *   Move images into a follow-up user message instead of dropping them.
  * - null    — the upstream accepts multimodal tool content; forward it
  *   unchanged (Kimi, GLM-5.1/5.2, MiniMax, Qwen verified in production).
  *
@@ -37,5 +41,6 @@ export function requiresStringToolContent(rawModelId: string | undefined): "drop
   if (rawModelId === undefined) return null;
   if (/^mimo-/i.test(rawModelId)) return "drop";
   if (/^glm-5\.3/i.test(rawModelId)) return "defer";
+  if (/^deepseek-/i.test(rawModelId)) return "defer";
   return null;
 }
