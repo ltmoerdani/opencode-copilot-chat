@@ -34,7 +34,7 @@ export interface ThinkingSettings {
 }
 
 /** Detected thinking family for a raw model id. `null` = no known family. */
-export type ThinkingFamily = "deepseek" | "glm" | "kimi" | "minimax" | "openai" | "qwen" | "mimo" | "muse" | "gemini" | null;
+export type ThinkingFamily = "beam" | "deepseek" | "glm" | "kimi" | "minimax" | "openai" | "qwen" | "mimo" | "muse" | "gemini" | null;
 
 /**
  * Which configuration layer supplied the effective thinking value.

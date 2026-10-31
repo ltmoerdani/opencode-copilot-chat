@@ -58,6 +58,16 @@ describe("fallbackModelMetadata — deepseek-v4-flash completion cap (issue #171
   });
 });
 
+describe("fallbackModelMetadata — Beam reasoning fallback", () => {
+  it("reports Beam's 1M context, 131K output and reasoning capability", () => {
+    const meta = fallbackModelMetadata("beam-free", GO_VENDOR);
+    assert.ok(meta);
+    assert.equal(meta.contextWindow, 1048576);
+    assert.equal(meta.maxOutputTokens, 131072);
+    assert.equal(meta.reasoning, true);
+  });
+});
+
 describe("fallbackModelMetadata — regression safety for other kimi models", () => {
   it("kimi-k2.6 does NOT report temperature: false (still accepts temperature)", () => {
     const meta = fallbackModelMetadata("kimi-k2.6", GO_VENDOR);
