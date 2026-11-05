@@ -359,6 +359,18 @@ export const MIGRATED_KEY = "opencodego.migratedTo.v1";
 export const LEGACY_SECRET_KEY = SECRET_KEY;
 export const LEGACY_FINGERPRINT = "legacy";
 
+// ─── Prompt-cache hit-rate monitor (issue #232) ─────────────────────────────
+
+/** Setting key: alert when the rolling cache hit rate falls below this fraction (0 disables). */
+export const SETTING_CACHE_RATE_THRESHOLD = "cacheRateThreshold";
+export const DEFAULT_CACHE_RATE_THRESHOLD = 0.5;
+/** Rolling window size (requests) over which the cache hit rate is computed. */
+export const CACHE_RATE_WINDOW_REQUESTS = 5;
+/** Idle gap after which the provider's prefix cache is assumed expired (typical cache TTLs). */
+export const CACHE_RATE_IDLE_TTL_MS = 5 * 60 * 1000;
+/** Minimum time between two low-cache-rate warnings. */
+export const CACHE_RATE_ALERT_DEBOUNCE_MS = 10 * 60 * 1000;
+
 // ─── Diagnostics / caches ────────────────────────────────────────────────────
 
 /** How long the context-window hook waits after creating the probe participant. */

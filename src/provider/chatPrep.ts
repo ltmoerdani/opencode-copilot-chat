@@ -1,10 +1,12 @@
 import * as vscode from "vscode";
 import {
   CONFIG_SECTION,
+  DEFAULT_CACHE_RATE_THRESHOLD,
   DEFAULT_VISION_PROXY_PROMPT,
   HISTORY_TRIM_SAFETY_MARGIN_TOKENS,
   HISTORY_TRIM_TARGET_RATIO,
   MAX_HISTORY_IMAGES_KEPT,
+  SETTING_CACHE_RATE_THRESHOLD,
   SETTING_VISION_PROXY_WHOLE_CONVERSATION,
   VISION_PROXY_MODEL_ID_KEY,
   VISION_PROXY_PROMPT_KEY,
@@ -34,6 +36,7 @@ import type { ApiMessage, ApiSettings, OpenAiContentPart } from "../request/type
 import { estimatePromptTokenCount } from "../tokenEstimate";
 import { proxyVision } from "./visionProxy";
 import { estimateCost } from "../usage/pricing";
+import { createCacheMonitor, type CacheRateMonitor } from "../usage/cacheMonitor";
 import { detectBeamToolLoop } from "../toolLoopGuard";
 import {
   activeProfileFingerprint,
@@ -62,6 +65,34 @@ export interface ChatPrepDeps {
   resolveModelMetadata(modelId: string, snapshot: CachedModelMetadataSnapshot): ResolvedModelMetadata;
   reasoningContentByToolCallId: Map<string, string>;
   apiKeysByModelId: Map<string, string>;
+}
+
+/** Read (and clamp) the user-configured cache-rate alert threshold for one sample. */
+function readCacheRateThreshold(): number {
+  const raw = vscode.workspace.getConfiguration(CONFIG_SECTION).get<number>(SETTING_CACHE_RATE_THRESHOLD, DEFAULT_CACHE_RATE_THRESHOLD);
+  return typeof raw === "number" && Number.isFinite(raw) ? Math.min(1, Math.max(0, raw)) : DEFAULT_CACHE_RATE_THRESHOLD;
+}
+
+// Session-scoped monitor singleton: the rolling window must survive across
+// requests, so it lives at module scope and is created lazily on first use.
+let cacheRateMonitor: CacheRateMonitor | undefined;
+function getCacheRateMonitor(): CacheRateMonitor {
+  if (!cacheRateMonitor) {
+    cacheRateMonitor = createCacheMonitor(readCacheRateThreshold, {
+      notify: (message) => {
+        try {
+          void vscode.window.showWarningMessage(message).then(
+            () => undefined,
+            () => undefined,
+          );
+        } catch {
+          // Never break the request pipeline because a warning failed.
+        }
+      },
+      now: () => Date.now(),
+    });
+  }
+  return cacheRateMonitor;
 }
 
 export async function prepareChatRequest(
@@ -276,6 +307,11 @@ export async function prepareChatRequest(
     );
   }
 
+  // True when this request's history was just trimmed: the provider prefix
+  // cache will rebuild, so the cache monitor must treat the next miss as
+  // expected rather than as a regression (issue #232).
+  const historyTrimmed = historyTrim.removed > 0;
+
   const toolLoopWarning = detectBeamToolLoop(rawModelId, apiMessages);
   if (toolLoopWarning) {
     deps.log(`[tool-loop-guard] model=${rawModelId} ${toolLoopWarning}`);
@@ -358,6 +394,19 @@ export async function prepareChatRequest(
       // Re-sync the server-accurate account meters (TTL-guarded, uses the
       // exact key this request ran under — covers BYOK group keys too).
       void syncTrackerUsage(tracker, apiKey);
+      // Prompt-cache hit-rate monitor (issue #232). Go gateway only: Zen/free
+      // models may not report cachedTokens, and the monitor stays silent for
+      // a window where cachedTokens is undefined anyway.
+      const cacheResult = getCacheRateMonitor().recordCacheSample({
+        promptTokens: prompt,
+        cachedTokens: summary.cachedTokens,
+        modelId: summary.modelId,
+        timestampMs: Date.now(),
+        historyTrimmed,
+      });
+      if (cacheResult.hitRate !== undefined) {
+        deps.log(`[cache-monitor] hitRate=${cacheResult.hitRate.toFixed(3)} alerted=${String(cacheResult.alerted)}`);
+      }
     }
   };
 
