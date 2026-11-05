@@ -186,6 +186,7 @@ export class GoUsageTracker {
       promptTokens: prompt,
       completionTokens: completion,
       cachedTokens: cached,
+      ...(summary.tokensPerSecond === undefined ? {} : { tokensPerSecond: Math.round(summary.tokensPerSecond * 10) / 10 }),
       sessionId: summary.sessionId,
       copilotCredits,
     });
@@ -302,6 +303,16 @@ export class GoUsageTracker {
     const nowMs = Date.now();
     const rows = readOpenCodeHistory() ?? [];
     return buildUsageSeries(rows, this.entries, days, this.dayStartMs(nowMs), this.todayYesterdaySource());
+  }
+
+  /**
+   * Mean generation speed (tokens/s, issue #230) across tracked requests that
+   * reported it. `undefined` when no request carried a speed yet.
+   */
+  averageTokensPerSecond(): number | undefined {
+    const values = this.entries.map((entry) => entry.tokensPerSecond).filter((value): value is number => typeof value === "number");
+    if (values.length === 0) return undefined;
+    return values.reduce((sum, value) => sum + value, 0) / values.length;
   }
 
   /**

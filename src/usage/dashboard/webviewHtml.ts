@@ -196,6 +196,7 @@ export function usageWebviewHtml(profileLabel: string): string {
         }
         function clear() { while (svg.firstChild) svg.removeChild(svg.firstChild); }
         function fmtUsd(v) { return v >= 1000 ? '$' + (v/1000).toFixed(2) + 'K' : '$' + v.toFixed(2); }
+        function fmtSpeed(v) { return v === undefined ? '-' : v.toFixed(1) + ' tok/s'; }
         function fmtCount(v) {
           if (v >= 1e9) return (v/1e9).toFixed(1) + 'B';
           if (v >= 1e6) return (v/1e6).toFixed(1) + 'M';
@@ -481,7 +482,8 @@ export function usageWebviewHtml(profileLabel: string): string {
           var fmt = metricFmt(key), unit = metricUnit(key);
           if (key === 'models') {
             chips.innerHTML =
-              '<div class="stat-chip"><div class="k">Total spend</div><div class="v">' + fmtUsd(metricTotal('spend')) + '</div></div>';
+              '<div class="stat-chip"><div class="k">Total spend</div><div class="v">' + fmtUsd(metricTotal('spend')) + '</div></div>' +
+              '<div class="stat-chip"><div class="k">Speed</div><div class="v">' + fmtSpeed(DATA.tokensPerSecond) + '</div></div>';
             drawModelLines();
             return;
           }
@@ -496,7 +498,8 @@ export function usageWebviewHtml(profileLabel: string): string {
           chips.innerHTML =
             '<div class="stat-chip"><div class="k">' + st.today.label + '</div><div class="v">' + fmt(key === 'spend' ? st.today.cost : st.today[key]) + '</div></div>' +
             '<div class="stat-chip"><div class="k">' + st.yesterday.label + '</div><div class="v">' + fmt(key === 'spend' ? st.yesterday.cost : st.yesterday[key]) + '</div></div>' +
-            '<div class="stat-chip"><div class="k">' + (key === 'spend' ? st.total.label : 'Total ' + key) + '</div><div class="v">' + fmt(key === 'spend' ? st.total.cost : st.total[key]) + '</div></div>';
+            '<div class="stat-chip"><div class="k">' + (key === 'spend' ? st.total.label : 'Total ' + key) + '</div><div class="v">' + fmt(key === 'spend' ? st.total.cost : st.total[key]) + '</div></div>' +
+            '<div class="stat-chip"><div class="k">Speed</div><div class="v">' + fmtSpeed(DATA.tokensPerSecond) + '</div></div>';
           void unit;
           drawLine(key);
         }

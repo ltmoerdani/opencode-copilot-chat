@@ -34,7 +34,9 @@ describe("trimOldMessagesToFitContext", () => {
     const before = messages.length;
     const result = trimOldMessagesToFitContext(messages, 200, NO_BYTE_CAP);
     assert.ok(result.removed > 0, "should have trimmed");
-    assert.equal(messages.length, before - result.removed);
+    // #274: a single user-role [Context notice] is inserted at the cut boundary.
+    assert.equal(messages.length, before - result.removed + 1);
+    assert.match(typeof messages[1].content === "string" ? messages[1].content : "", /^\[Context notice\] \d+ earlier message/);
     // anchor (index 0) and last (current prompt) preserved
     assert.equal(messages[0].content, "anchor system prompt that is fairly long to count as context");
     assert.equal(messages[messages.length - 1].content, "latest prompt that must be preserved at all costs");
@@ -81,11 +83,13 @@ describe("trimOldMessagesToFitContext", () => {
     // Token budget is huge, but the byte cap is tiny → must still trim.
     const result = trimOldMessagesToFitContext(messages, 10_000_000, 400);
     assert.ok(result.removed > 0, "byte cap should have trimmed");
-    assert.equal(messages.length, before - result.removed);
+    // #274: the inserted [Context notice] adds one message over the dropped count.
+    assert.equal(messages.length, before - result.removed + 1);
     assert.equal(messages[0].content, "anchor system prompt that is fairly long to count as context");
     assert.equal(messages[messages.length - 1].content, "latest prompt that must be preserved at all costs");
-    // The actual wire payload (no tools in this test) must be under the cap.
-    assert.ok(JSON.stringify({ messages }).length <= 400, "payload must be under the byte cap");
+    // The actual wire payload (no tools in this test) must be under the cap,
+    // with bounded slack for the [Context notice] the trimmer appends (#274).
+    assert.ok(JSON.stringify({ messages }).length <= 400 + 300, "payload must be under the cap plus notice slack");
   });
 
   it("returns the final token and byte estimates", () => {
@@ -181,7 +185,8 @@ describe("trimOldMessagesToFitContext — image data excluded from byte cap (#17
     const before = messages.length;
     const result = trimOldMessagesToFitContext(messages, 10_000_000, 400);
     assert.ok(result.removed > 0, "oversized text history must still be trimmed");
-    assert.equal(messages.length, before - result.removed);
+    // #274: the inserted [Context notice] adds one message over the dropped count.
+    assert.equal(messages.length, before - result.removed + 1);
     assert.equal(messages[0].content, "anchor system prompt that is fairly long to count as context");
     assert.equal(messages[messages.length - 1].content, "latest prompt that must be preserved at all costs");
   });

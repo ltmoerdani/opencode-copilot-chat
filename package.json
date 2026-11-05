@@ -2,7 +2,7 @@
   "name": "opencode-copilot-chat",
   "displayName": "OpenCode for Copilot Chat: BYOK 30+ AI Models",
   "description": "Use 30+ frontier AI models (DeepSeek V4, Kimi K2.6, GLM-5.1, Qwen3.7, MiMo V2.5, MiniMax M2.7, Claude Opus, GPT-5.5, Gemini 3.5, Grok) in GitHub Copilot Chat. Bring Your Own Key, no Copilot Pro needed.",
-  "version": "0.7.12",
+  "version": "0.8.0",
   "publisher": "ltmoerdani",
   "license": "MIT",
   "icon": "media/opencodego.png",
@@ -246,6 +246,13 @@
           "type": "boolean",
           "default": true,
           "description": "Show the latest OpenCode prompt/output/cache usage summary in the VS Code status bar after each response."
+        },
+        "opencodego.cacheRateThreshold": {
+          "type": "number",
+          "default": 0.5,
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Alert when the rolling prompt-cache hit rate falls below this fraction (0 disables the alert). Cache misses make requests much more expensive; the warning suggests running Compact Conversation or starting a new session."
         },
         "opencodego.showProviderPrefix": {
           "type": "boolean",

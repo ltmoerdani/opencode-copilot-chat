@@ -1,6 +1,22 @@
 # 🧠 OPENCODE COPILOT CHAT DEVLOG
 
-**Branch:** `main` | **Updated:** 2026-10-27 Asia/Jakarta | **Current Phase:** issue #269 fix merged via PR #271 (merge commit `e959a86`) — 401 key-rejected hint + bundled catalog refresh (Go 27→38, Zen 42→72), 561/561 tests, lint 7/7, reporter reply posted, issue auto-closed. Release 0.7.11 not yet cut (CHANGELOG still `[Unreleased]`).
+**Branch:** `feat/issues-274-232-230` | **Updated:** 2026-11-05 Asia/Jakarta | **Current Phase:** issues #274 + #230 + #232 implemented on one feature branch (commits `25c5295`, `67a5610`, `9d53930`), 31/31 e2e checks + unit suite + lint 7/7 green, documented in `docs/features/20–22-20261105-*`, CHANGELOG bumped to `[0.8.0]`. Not yet pushed/merged (awaiting approval).
+
+---
+
+## ✅ Feature batch #274 + #230 + #232 — trim notice, tokens/sec, cache-rate alert — 2026-11-05
+
+**Scope:** three open feature requests implemented on `feat/issues-274-232-230` via three parallel subagents with disjoint file ownership, then cross-agent reconciliation by the orchestrator.
+
+**#274 (trim notice):** `trimOldMessagesToFitContext()` was structurally complete but silent — the model never learned turns had been dropped. A user-role `[Context notice]` is now inserted at the drop-unit boundary (`dropStart`) after the splice: never inside a tool-call group, never touching anchor/current prompt, re-inserted every trim (payload is rebuilt per request), and its token/byte cost is added to the returned estimates via `estimateTokenCount` (not the patcher's `/4` heuristic). Bounded overshoot ~250 bytes documented in the JSDoc CONTRACT. In-repo precedent used: the synthetic-user-message pattern from `toolLoopWarning` in `chatPrep.ts`.
+
+**#230 (tokens/sec):** pure helper `computeTokensPerSecond(completionTokens, durationMs, ttfbMs)` in `src/core/transport.ts`; generation window = duration − TTFB. Persisted per usage entry (1-decimal rounding) + `averageTokensPerSecond()` + dashboard Speed chip + `tokPerSec=` in the `[response-summary]` log line.
+
+**#232 (cache-rate alert):** new pure module `src/usage/cacheMonitor.ts` (injected `notify`/`now`), wired into the Go-only branch of `onTransportSummary` in `chatPrep.ts` capturing `historyTrimmed` from the trim result. Rolling window 5, threshold `opencodego.cacheRateThreshold` (default 0.5, 0 disables), 5-min idle TTL + own-trim = expected rebuilds that RESET (not alert), 2-consecutive-low streak requirement, 10-min debounce. "Stop request mid-flight" from the issue thread explicitly NOT implemented — no such abort in the `ChatRequestHandler` API; documented as a limitation.
+
+**Reconciliation:** 3 pre-existing `messages.test.ts` assertions updated for the `+1` notice message; eslint fixes (unnecessary assertions, `no-base-to-string`); prettier on 4 files. E2E written at `tmp/e2e-issues-274-230-232.mjs` (31 checks against compiled `out/`, no VS Code host / no live key needed) — the 10 initial failures were scenario bugs in the script (window semantics: a 5-request window blends healthy samples, so alert correctly needs several low requests in a row), not implementation bugs.
+
+**Verification:** unit suite full pass, `npm run lint` 7/7, e2e 31/31 PASS. Docs: `docs/features/20-20261105-history-trim-context-notice.md`, `docs/features/21-20261105-tokens-per-second-metric.md`, `docs/features/22-20261105-cache-rate-alert.md`, CHANGELOG `[0.8.0]`.
 
 ---
 

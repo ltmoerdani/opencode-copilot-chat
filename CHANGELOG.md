@@ -2,6 +2,16 @@
 
 All notable changes to the **OpenCode Go BYOK Provider** extension are documented here.
 
+## [0.8.0] — 2026-11-05
+
+### Added
+
+- **`[Provider]` The model is now told when history trimming drops context (issue #274).** When a long conversation exceeds the context window, the trimmer used to silently remove old turns — the model kept answering from incomplete history with no way to know context was missing. A short user-role `[Context notice]` is now inserted at the cut boundary on every trim, telling the model which information is unavailable and to re-read files or ask the user instead of guessing. Tool-call groups, the conversation anchor, and the current prompt remain untouched, and the notice's cost is included in the payload estimates. Documented in `docs/features/20-20261105-history-trim-context-notice.md`.
+
+- **`[Usage]` Tokens-per-second generation speed is now tracked and displayed (issue #230).** Each request computes generation speed from `completionTokens` and the generation window (total duration minus time-to-first-byte), so connection and queueing time do not inflate the number. The value appears in the output log, is persisted per usage entry, and is shown as an average Speed chip in the usage dashboard. Documented in `docs/features/21-20261105-tokens-per-second-metric.md`.
+
+- **`[Usage]` A warning now fires when the prompt-cache hit rate drops below a configurable threshold (issue #232).** Cache misses make Go requests 10–50× more expensive, and users rarely notice until credits are gone. A rolling per-session monitor (`opencodego.cacheRateThreshold`, default `0.5`, `0` disables) tracks the cache hit rate and warns with a remedy (run **Compact Conversation** or start a new session). Misses the extension causes itself — history trimming or idle gaps past the provider cache TTL — reset the monitor instead of alerting, and the alert is debounced and requires the low rate to hold on consecutive requests. Documented in `docs/features/22-20261105-cache-rate-alert.md`.
+
 ## [0.7.12] — 2026-11-01
 
 ### Fixed
