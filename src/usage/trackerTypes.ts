@@ -19,6 +19,8 @@ export interface UsageLogEntry {
   promptTokens: number;
   completionTokens: number;
   cachedTokens: number;
+  /** Generation speed in tokens/s (issue #230), rounded to 1 decimal when reported. */
+  tokensPerSecond?: number;
   /** Chat session identifier (stable hash per conversation thread). */
   sessionId?: string;
   /** Credits for VS Code session cost (1 credit = $0.01). */

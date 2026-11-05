@@ -32,6 +32,7 @@ import { getErrorMessage, parseRetryAfterMs, sleepWithCancellation } from "../ut
 import { parseServerSentEvent, isStreamTruncated } from "./sse";
 import { reportProgressPart, type RequestUsageSummary, type StreamOpenCodeResponseOptions } from "./streamParts";
 import type { TransportRequestSummary } from "../core/transport";
+import { computeTokensPerSecond } from "../core/transport";
 import { updateRequestUsageSummary } from "./extract";
 
 /**
@@ -111,6 +112,9 @@ export async function streamOpenCodeResponse(options: StreamOpenCodeResponseOpti
       return;
     }
     emittedSummary = true;
+    const durationMs = Date.now() - startedAt;
+    const ttfbMs = firstByteAt === undefined ? undefined : firstByteAt - startedAt;
+    const tokensPerSecond = computeTokensPerSecond(usageSummary.completionTokens, durationMs, ttfbMs);
     const summary: TransportRequestSummary = {
       providerDisplayName: options.providerDisplayName,
       modelId: options.modelId,
@@ -123,8 +127,9 @@ export async function streamOpenCodeResponse(options: StreamOpenCodeResponseOpti
         typeof options.body === "string" ? options.body.length : new TextEncoder().encode(JSON.stringify(options.body)).byteLength,
       totalBytes,
       totalEvents,
-      durationMs: Date.now() - startedAt,
-      ...(firstByteAt === undefined ? {} : { ttfbMs: firstByteAt - startedAt }),
+      durationMs,
+      ...(ttfbMs === undefined ? {} : { ttfbMs }),
+      ...(tokensPerSecond === undefined ? {} : { tokensPerSecond }),
       ...(usageSummary.promptTokens === undefined ? {} : { promptTokens: usageSummary.promptTokens }),
       ...(usageSummary.completionTokens === undefined ? {} : { completionTokens: usageSummary.completionTokens }),
       ...(usageSummary.totalTokens === undefined ? {} : { totalTokens: usageSummary.totalTokens }),
@@ -141,7 +146,7 @@ export async function streamOpenCodeResponse(options: StreamOpenCodeResponseOpti
     options.onTransportSummary?.(summary);
 
     options.output?.appendLine(
-      `[response-summary] status=${String(summary.status ?? "n/a")} durationMs=${String(summary.durationMs)} ttfbMs=${String(summary.ttfbMs ?? "n/a")} promptTokens=${String(summary.promptTokens ?? "n/a")} completionTokens=${String(summary.completionTokens ?? "n/a")} totalTokens=${String(summary.totalTokens ?? "n/a")} cachedTokens=${String(summary.cachedTokens ?? "n/a")} finishReason=${summary.finishReason ?? "<unknown>"} totalBytes=${String(summary.totalBytes)} totalEvents=${String(summary.totalEvents)}`,
+      `[response-summary] status=${String(summary.status ?? "n/a")} durationMs=${String(summary.durationMs)} ttfbMs=${String(summary.ttfbMs ?? "n/a")} tokPerSec=${String(summary.tokensPerSecond ?? "n/a")} promptTokens=${String(summary.promptTokens ?? "n/a")} completionTokens=${String(summary.completionTokens ?? "n/a")} totalTokens=${String(summary.totalTokens ?? "n/a")} cachedTokens=${String(summary.cachedTokens ?? "n/a")} finishReason=${summary.finishReason ?? "<unknown>"} totalBytes=${String(summary.totalBytes)} totalEvents=${String(summary.totalEvents)}`,
     );
     const usageLog = formatUsageLogLine({
       promptTokens: summary.promptTokens,

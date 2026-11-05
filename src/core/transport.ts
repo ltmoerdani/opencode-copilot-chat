@@ -71,6 +71,13 @@ export interface TransportRequestSummary {
   totalEvents: number;
   durationMs: number;
   ttfbMs?: number;
+  /**
+   * Output generation speed in tokens/second:
+   * `completionTokens / ((durationMs - ttfbMs) / 1000)`. Omitted when
+   * `completionTokens` or `durationMs` is missing, or when the generation
+   * window (`durationMs - ttfbMs`) is <= 0. See `computeTokensPerSecond`.
+   */
+  tokensPerSecond?: number;
   promptTokens?: number;
   completionTokens?: number;
   totalTokens?: number;
@@ -87,4 +94,21 @@ export interface TransportRequestSummary {
   rateLimitSummary?: string;
   abortedReason?: "request-timeout" | "stream-idle-timeout" | "cancelled" | "truncated-retry" | "stalled-retry";
   errorMessage?: string;
+}
+
+/**
+ * Pure generation-speed formula (issue #230): completion tokens emitted during
+ * the generation window (total time minus time-to-first-byte). Returns
+ * `undefined` when the inputs cannot yield a meaningful rate — missing tokens
+ * or duration, or a non-positive generation window.
+ */
+export function computeTokensPerSecond(
+  completionTokens: number | undefined,
+  durationMs: number | undefined,
+  ttfbMs: number | undefined,
+): number | undefined {
+  if (completionTokens === undefined || durationMs === undefined) return undefined;
+  const generationWindowMs = durationMs - (ttfbMs ?? 0);
+  if (generationWindowMs <= 0) return undefined;
+  return completionTokens / (generationWindowMs / 1000);
 }

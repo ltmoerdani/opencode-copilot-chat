@@ -34,6 +34,7 @@ export function usageWebviewData(): Record<string, unknown> | undefined {
   );
   const activeProfile = findProfile(profilesCache, activeProfileFingerprint);
   const showRolling = usageRollingMeterVisible();
+  const avgTokensPerSecond = tracker.averageTokensPerSecond();
 
   const rings = [
     ...(showRolling
@@ -79,6 +80,8 @@ export function usageWebviewData(): Record<string, unknown> | undefined {
     },
     days: series.days,
     byModel: series.byModel,
+    // Mean generation speed (tok/s) across tracked requests; undefined → "-" in the panel.
+    ...(avgTokensPerSecond === undefined ? {} : { tokensPerSecond: Math.round(avgTokensPerSecond * 10) / 10 }),
   };
 }
 
