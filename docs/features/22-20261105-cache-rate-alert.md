@@ -1,0 +1,70 @@
+**Status:** ✅ Solved
+
+# Prompt-Cache Hit-Rate Alert (#232)
+
+**Topic:** usage
+**Updated:** 2026-11-05
+**Tags:** #usage #cost #cache #notifications
+
+---
+
+## Overview
+
+When an agent session's prompt cache silently stops working, the cache hit
+rate can fall from ~99% to ~20% and requests become roughly 10–50× more
+expensive. Users often do not notice until a day's worth of credits is gone
+(GitHub issue #232, reported by @nickchomey). The extension now tracks the
+rolling cache hit rate per session and warns the user when it drops below a
+configurable threshold.
+
+## Implementation
+
+- `src/usage/cacheMonitor.ts` (new) — a **pure** module (no `vscode` import):
+  `createCacheMonitor(getThreshold, deps)` with `recordCacheSample(sample)` /
+  `reset()`. Warning delivery (`deps.notify`) and the clock (`deps.now`) are
+  injected, so the pipeline can never break on a warning failure and tests are
+  deterministic.
+- Each request's `promptTokens` / `cachedTokens` sample is recorded from
+  `onTransportSummary` in `src/provider/chatPrep.ts` (Go gateway only — other
+  providers do not report cached tokens). The closure captures
+  `historyTrimmed = historyTrim.removed > 0` so the monitor knows which misses
+  are the extension's own doing.
+- Hit rate = `Σ cachedTokens / Σ promptTokens` over a rolling window of
+  `CACHE_RATE_WINDOW_REQUESTS` (5) requests.
+
+### Anti-false-positive design
+
+| Mechanism                          | Constant                                | Effect                                                                        |
+| ---------------------------------- | --------------------------------------- | ----------------------------------------------------------------------------- |
+| Expected rebuild: own history trim | —                                       | Resets the window instead of alerting — a miss we caused is not a regression  |
+| Expected rebuild: idle gap         | `CACHE_RATE_IDLE_TTL_MS` (5 min)        | Provider cache TTL expiry after inactivity resets the window                  |
+| Consecutive-low requirement        | —                                       | The low rate must hold on consecutive eligible requests before alerting       |
+| Debounce                           | `CACHE_RATE_ALERT_DEBOUNCE_MS` (10 min) | At most one warning per window                                                |
+| Unknown cached tokens              | —                                       | Providers that never report `cachedTokens` (e.g. Zen free models) stay silent |
+| Disable switch                     | —                                       | Threshold `0` disables monitoring entirely                                    |
+
+## Configuration
+
+```jsonc
+"opencodego.cacheRateThreshold": 0.5
+```
+
+Alert when the window hit rate falls below this fraction (0–1; `0` disables).
+The warning message names the observed rate and the remedy: run
+**Compact Conversation** or start a new session to restore the cached prefix.
+
+> **Not supported:** stopping an in-flight request when the cache rate drops
+> (requested in the issue thread). VS Code's `ChatRequestHandler` provides no
+> mid-flight abort the extension can invoke; cancellation is user-driven.
+
+## Testing
+
+- `src/test/cacheMonitor.test.ts` — 12 unit tests (window math, expected
+  rebuilds, streak requirement, debounce, disable switch, injected notifier).
+- E2E (`tmp/e2e-issues-274-230-232.mjs`) — 7-phase scripted journey against
+  the compiled monitor: healthy session never alerts; degradation alerts once
+  the window rate falls and holds; debounce holds; both expected-rebuild paths
+  reset silently; unknown-cached-tokens and threshold-0 stay silent; `reset()`
+  clears state. All PASS.
+
+Closes #232.
