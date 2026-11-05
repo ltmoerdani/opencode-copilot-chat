@@ -48,6 +48,11 @@ export interface HistoryTrimResult {
  *   - Base64 image data is EXCLUDED from the byte ceiling (issue #173): image
  *     weight is already bounded by the image-history trimmer, and counting it
  *     made vision payloads trigger futile text-history drops.
+ *   - Context notice (issue #274): when units are dropped, a single user-role
+ *     `[Context notice]` message is inserted at the cut boundary so the model
+ *     knows earlier context is missing. It is re-inserted on every trim, since
+ *     each request rebuilds the payload from the full history, and the returned
+ *     estimates (`finalTokens`/`finalBytes`) include the notice's cost.
  *   - Cache-stable cut (low-water hysteresis + cut steps): when a trim is
  *     unavoidable the oldest droppable units are dropped past the minimal fit
  *     down to the low-water mark (`budget − headroom`, see
@@ -59,6 +64,13 @@ export interface HistoryTrimResult {
  *     (~12.4% cache hits), while a step alignment holds it for roughly
  *     `step / per-turn growth` turns. Bounded by the droppable units; overshoot
  *     is at most one unit past the step target.
+ *   - Context notice (#274): when units are dropped, a single user-role
+ *     `[Context notice]` message is inserted at the cut boundary so the model
+ *     knows earlier turns are missing. It is re-inserted on every trim (each
+ *     request rebuilds the payload from the full history), and its token/byte
+ *     cost is included in the returned estimates. This means the payload can
+ *     overshoot the ceilings by at most one notice (~250 bytes / ~50 tokens) —
+ *     negligible against the real byte-cap floor (512KB).
  *
  * @param messages ApiMessage[] (chronological, oldest first). Mutated in place.
  * @param budgetTokens Maximum input tokens the trimmed history may occupy.
@@ -176,7 +188,23 @@ export function trimOldMessagesToFitContext(
     const dropEnd = units[dropUpToUnit].end;
     const removed = dropEnd - dropStart + 1;
     messages.splice(dropStart, removed);
-    return { removed, finalTokens: remainingTokens, finalBytes: remainingBytes };
+    // Tell the model that history was dropped here, so it does not assume the
+    // omitted turns are still in context (issue #274). Re-inserted on every
+    // trim since each request rebuilds the payload from the full history.
+    const noticeText =
+      "[Context notice] " +
+      `${removed} earlier message(s) were omitted here to fit the model context window. ` +
+      "Information from before this point is NOT available in this request; " +
+      "re-read files or ask the user if you need those details.";
+    messages.splice(dropStart, 0, { role: "user", content: noticeText });
+    // The splice happens after the estimates were computed, so account for the
+    // notice on top of the remaining budget (mirrors the JSON overhead above).
+    const noticeTokens = estimateTokenCount(JSON.stringify({ role: "user", content: noticeText }));
+    return {
+      removed,
+      finalTokens: remainingTokens + noticeTokens,
+      finalBytes: remainingBytes + noticeText.length + 32,
+    };
   }
   return noTrim(messages, tools);
 }
