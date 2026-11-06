@@ -3,7 +3,8 @@ import { createReasoningMarkerPart } from "../chatParts";
 import { parseToolInput, ToolCallAccumulator, type PendingToolCall } from "../toolCallAccumulator";
 import { isRecord } from "../utils";
 import type { ThinkTagFilter } from "./thinkTags";
-import { emitThinkingPart, reportProgressPart, thinkingPartConstructor } from "./streamParts";
+import { ReasoningCoalescer } from "./reasoningCoalescer";
+import { reportProgressPart, thinkingPartConstructor } from "./streamParts";
 import { extractReasoningFromDelta, extractTextFromDelta } from "./extract";
 
 /**
@@ -21,6 +22,7 @@ abstract class BaseResponseExtractor {
    * used for the [stream-summary] log line so metrics stay accurate.
    */
   protected totalReasoningChars = 0;
+  protected readonly reasoningCoalescer: ReasoningCoalescer;
 
   constructor(
     protected readonly onReasoningContent?: (toolCallIds: string[], reasoningContent: string) => void,
@@ -29,7 +31,9 @@ abstract class BaseResponseExtractor {
     protected readonly progress?: vscode.Progress<vscode.LanguageModelResponsePart2>,
     protected readonly localRequestId?: string,
     protected readonly output?: vscode.OutputChannel,
-  ) {}
+  ) {
+    this.reasoningCoalescer = new ReasoningCoalescer(localRequestId, progress);
+  }
 
   get emittedText(): number {
     return this.emittedTextLength;
@@ -41,6 +45,11 @@ abstract class BaseResponseExtractor {
 
   get reasoningChars(): number {
     return this.totalReasoningChars;
+  }
+
+  /** Stable id shared by every thinking part of this request's reasoning run. */
+  get reasoningRunId(): string {
+    return this.reasoningCoalescer.reasoningRunId;
   }
 
   /** Split text through the think-tag filter (if active). */
@@ -58,6 +67,10 @@ abstract class BaseResponseExtractor {
    * Accumulate reasoning for tool-call replication and — when the thinking
    * part API is available — stream it live to the Copilot Chat UI as
    * `LanguageModelThinkingPart` so `chat.agent.thinkingStyle` applies.
+   *
+   * Live emission is coalesced (see `ReasoningCoalescer`): chunks are
+   * buffered and flushed as ~512-char parts, so VS Code 1.145's per-part
+   * timing/id stamping produces tens of cards instead of thousands.
    */
   protected handleReasoning(reasoning: string): string {
     if (!reasoning) {
@@ -66,9 +79,17 @@ abstract class BaseResponseExtractor {
     this.reasoningContent += reasoning;
     this.totalReasoningChars += reasoning.length;
     if (this.progress) {
-      emitThinkingPart(this.localRequestId, this.progress, reasoning);
+      this.reasoningCoalescer.append(reasoning);
     }
     return reasoning;
+  }
+
+  /**
+   * Flush buffered reasoning BEFORE emitting a later-reported visible/tool
+   * part, so reasoning never appears after the text it produced.
+   */
+  protected flushReasoningBeforeContent(): void {
+    this.reasoningCoalescer.flush();
   }
 
   /** Flush any buffered carry in the think filter to the returned parts array. */
@@ -78,6 +99,9 @@ abstract class BaseResponseExtractor {
     }
     const { visible, thinking } = this.thinkFilter.finish();
     if (visible) {
+      // Reasoning precedes the text it produced — flush the coalesced
+      // buffer first so the thinking panel keeps the model's order.
+      this.flushReasoningBeforeContent();
       this.emittedTextLength += visible.length;
       parts.push(new vscode.LanguageModelTextPart(visible));
     }
@@ -93,6 +117,9 @@ abstract class BaseResponseExtractor {
     }
     const { visible, thinking } = this.thinkFilter.finish();
     if (visible) {
+      // Reasoning precedes the text it produced — flush the coalesced
+      // buffer first so the thinking panel keeps the model's order.
+      this.flushReasoningBeforeContent();
       this.emittedTextLength += visible.length;
       reportProgressPart(localRequestId, progress, new vscode.LanguageModelTextPart(visible));
     }
@@ -105,6 +132,8 @@ abstract class BaseResponseExtractor {
   flushReasoningFallback(progress: vscode.Progress<vscode.LanguageModelResponsePart2>, localRequestId?: string): void {
     // Flush any remaining text in the think filter
     this.flushThinkFilterToProgress(progress, localRequestId);
+    // Flush coalesced reasoning so the final window reaches the UI.
+    this.reasoningCoalescer.flush();
 
     const reasoning = this.reasoningContent.trim();
     if (!reasoning) {
@@ -120,8 +149,9 @@ abstract class BaseResponseExtractor {
     // ThinkingPart API available but no live stream (progress absent at
     // construction time, e.g. non-standard call paths). Emit now via the
     // flush-time progress sink so the thinking panel still receives it.
+    // Carry the stable run id so id-aware hosts merge it with the live parts.
     if (thinkingPartConstructor) {
-      reportProgressPart(localRequestId, progress, new thinkingPartConstructor(reasoning));
+      reportProgressPart(localRequestId, progress, new thinkingPartConstructor(reasoning, this.reasoningRunId));
       this.reasoningContent = "";
       return;
     }
@@ -234,8 +264,10 @@ class OpenAiResponseExtractor extends BaseResponseExtractor {
     // Stream reasoning to the UI per-chunk as a thinking part, so that
     // chat.agent.thinkingStyle (collapsed / collapsedPreview / fixedScrolling)
     // can apply. Falls back to legacy accumulate-only when the API is absent.
+    // Coalesced: buffered reasoning is flushed before visible/tool parts so
+    // the thinking panel keeps the model's order.
     if (this.progress) {
-      emitThinkingPart(this.localRequestId, this.progress, reasoning);
+      this.reasoningCoalescer.append(reasoning);
     }
     return reasoning;
   }
@@ -292,20 +324,24 @@ class OpenAiResponseExtractor extends BaseResponseExtractor {
     if (isRecord(delta)) {
       const text = extractTextFromDelta(delta);
       const { visible, thinking } = this.filterText(text);
+      const reasoning = extractReasoningFromDelta(delta);
+      const reasoningGoesToContent = this.treatReasoningAsContent && !visible && text.length === 0 && Boolean(reasoning);
       if (visible) {
+        // Reasoning precedes the text it produced — flush the coalesced
+        // buffer first so the thinking panel keeps the model's order.
+        this.flushReasoningBeforeContent();
         this.emittedTextLength += visible.length;
         parts.push(new vscode.LanguageModelTextPart(visible));
       }
       if (thinking) {
         this.handleReasoning(thinking);
       }
-      const reasoning = extractReasoningFromDelta(delta);
       if (reasoning) {
         // Dormant display seam: were treatReasoningAsContent true AND
         // delta.content empty, reasoning_content would be emitted as visible
         // text (old gateway #37635 mislabel). Never set today — reasoning is
         // genuine CoT and goes to the thinking panel. Loop guard still applies.
-        if (this.treatReasoningAsContent && !visible && text.length === 0) {
+        if (reasoningGoesToContent) {
           if (!this.shouldSuppressThinkingEmit(reasoning)) {
             this.emittedTextLength += reasoning.length;
             this.reasoningAsContent += reasoning;
@@ -313,6 +349,13 @@ class OpenAiResponseExtractor extends BaseResponseExtractor {
           }
         } else {
           this.handleReasoning(reasoning);
+          // Same-delta reasoning + visible text: the reasoning precedes the
+          // text it produced, so flush the coalesced buffer now — the
+          // visible part is already queued above and both reach the UI in
+          // model order.
+          if (visible) {
+            this.flushReasoningBeforeContent();
+          }
         }
       }
       // Models that skip per-token deltas deliver the complete text in a
@@ -322,6 +365,7 @@ class OpenAiResponseExtractor extends BaseResponseExtractor {
       if (responseDoneText && this.emittedTextLength === 0) {
         const { visible: doneVisible, thinking: doneThinking } = this.filterText(responseDoneText);
         if (doneVisible) {
+          this.flushReasoningBeforeContent();
           this.emittedTextLength += doneVisible.length;
           parts.push(new vscode.LanguageModelTextPart(doneVisible));
         }
@@ -338,6 +382,7 @@ class OpenAiResponseExtractor extends BaseResponseExtractor {
       const text = extractTextFromDelta(message);
       const { visible, thinking } = this.filterText(text);
       if (visible) {
+        this.flushReasoningBeforeContent();
         this.emittedTextLength += visible.length;
         parts.push(new vscode.LanguageModelTextPart(visible));
       }
@@ -360,6 +405,9 @@ class OpenAiResponseExtractor extends BaseResponseExtractor {
     // `flushRemainingToolCalls()`.
     if (ToolCallAccumulator.shouldFlushOnFinishReason(first.finish_reason)) {
       this.flushThinkFilterToParts(parts);
+      // Reasoning precedes the tool calls it produced — flush the coalesced
+      // buffer first so the thinking panel keeps the model's order.
+      this.flushReasoningBeforeContent();
       const toolParts = this.flushToolCalls();
       this.emittedToolCallsCount += toolParts.length;
       parts.push(...toolParts);
@@ -433,6 +481,9 @@ class OpenAiResponseExtractor extends BaseResponseExtractor {
       return;
     }
     this.flushThinkFilterToProgress(progress, localRequestId);
+    // Reasoning precedes the tool calls it produced — flush the coalesced
+    // buffer first so the thinking panel keeps the model's order.
+    this.reasoningCoalescer.flush();
     const toolParts = this.flushToolCalls();
     this.emittedToolCallsCount += toolParts.length;
     for (const part of toolParts) {
@@ -480,6 +531,7 @@ class AnthropicResponseExtractor extends BaseResponseExtractor {
       } else if (contentBlock && typeof contentBlock.text === "string" && contentBlock.text.length > 0) {
         const { visible, thinking } = this.filterText(contentBlock.text);
         if (visible) {
+          this.flushReasoningBeforeContent();
           this.emittedTextLength += visible.length;
           parts.push(new vscode.LanguageModelTextPart(visible));
         }
@@ -499,6 +551,9 @@ class AnthropicResponseExtractor extends BaseResponseExtractor {
       if (delta.type === "text_delta" && typeof delta.text === "string" && delta.text.length > 0) {
         const { visible, thinking } = this.filterText(delta.text);
         if (visible) {
+          // Reasoning precedes the text it produced — flush the coalesced
+          // buffer first so the thinking panel keeps the model's order.
+          this.flushReasoningBeforeContent();
           this.emittedTextLength += visible.length;
           parts.push(new vscode.LanguageModelTextPart(visible));
         }
@@ -544,6 +599,7 @@ class AnthropicResponseExtractor extends BaseResponseExtractor {
       if (typeof delta.text === "string" && delta.text.length > 0) {
         const { visible, thinking } = this.filterText(delta.text);
         if (visible) {
+          this.flushReasoningBeforeContent();
           this.emittedTextLength += visible.length;
           parts.push(new vscode.LanguageModelTextPart(visible));
         }
@@ -596,6 +652,9 @@ class AnthropicResponseExtractor extends BaseResponseExtractor {
 
   private flushPendingToolCalls(parts: vscode.LanguageModelResponsePart[]): void {
     this.flushThinkFilterToParts(parts);
+    // Reasoning precedes the tool calls it produced — flush the coalesced
+    // buffer first so the thinking panel keeps the model's order.
+    this.flushReasoningBeforeContent();
     const toolParts = this.flushToolCalls();
     this.emittedToolCallsCount += toolParts.length;
     parts.push(...toolParts);

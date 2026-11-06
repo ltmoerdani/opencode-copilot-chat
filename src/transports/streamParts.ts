@@ -74,18 +74,30 @@ function reportProgressPart(
  *     successfully emitted, so the caller can decide whether to also
  *     accumulate into `reasoningContent` for the legacy fallback path.
  */
-const thinkingPartConstructor: (new (value: string | string[]) => vscode.LanguageModelResponsePart2) | undefined = (() => {
+const thinkingPartConstructor:
+  | (new (value: string | string[], id?: string, metadata?: Readonly<Record<string, unknown>>) => vscode.LanguageModelResponsePart2)
+  | undefined = (() => {
   const ctor = (
     vscode as unknown as {
       LanguageModelThinkingPart?: unknown;
     }
   ).LanguageModelThinkingPart;
-  return typeof ctor === "function" ? (ctor as new (value: string | string[]) => vscode.LanguageModelResponsePart2) : undefined;
+  return typeof ctor === "function"
+    ? (ctor as new (
+        value: string | string[],
+        id?: string,
+        metadata?: Readonly<Record<string, unknown>>,
+      ) => vscode.LanguageModelResponsePart2)
+    : undefined;
 })();
 
 /**
  * Emit a reasoning chunk to the Copilot Chat UI as a thinking part.
  *
+ * @param reasoningRunId Optional stable id shared by every thinking part of
+ *        one reasoning run. Hosts that preserve provider ids (VS Code 1.145+
+ *        agent-host converter) merge same-id parts into one card; hosts that
+ *        overwrite ids ignore it harmlessly.
  * @returns `true` if the thinking part was emitted successfully;
  *          `false` if the API is unavailable (caller should accumulate
  *          for the legacy fallback path).
@@ -94,12 +106,13 @@ function emitThinkingPart(
   localRequestId: string | undefined,
   progress: vscode.Progress<vscode.LanguageModelResponsePart2>,
   reasoningChunk: string,
+  reasoningRunId?: string,
 ): boolean {
   if (!reasoningChunk || !thinkingPartConstructor) {
     return false;
   }
   try {
-    reportProgressPart(localRequestId, progress, new thinkingPartConstructor(reasoningChunk));
+    reportProgressPart(localRequestId, progress, new thinkingPartConstructor(reasoningChunk, reasoningRunId));
     return true;
   } catch {
     // Defensive: never let a thinking-part emit failure break the visible response.
