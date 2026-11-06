@@ -11,13 +11,23 @@
  *   an alert failure can never break the request pipeline.
  * - The threshold arrives through a getter so the config read stays with the
  *   caller (chatPrep) and every sample re-reads the current setting.
- * - Expected rebuilds (a request whose history was just trimmed, or one that
- *   follows an idle gap longer than the provider cache TTL) RESET the window
- *   instead of alerting: a miss we caused ourselves is not a regression.
- * - Alerts require the low rate to hold on 2 consecutive eligible requests
- *   and are debounced to at most one per {@link CACHE_RATE_ALERT_DEBOUNCE_MS}.
+ * - Expected rebuilds (a request whose history was just trimmed, one that
+ *   follows an idle gap longer than the provider cache TTL, or the first
+ *   request after a model/session switch) RESET the window instead of
+ *   alerting: a miss we caused ourselves is not a regression.
+ * - Requests smaller than {@link CACHE_RATE_MIN_PROMPT_TOKENS} are ignored —
+ *   probes and one-shot helpers carry no conversation prefix to cache.
+ * - Alerts require the low rate to hold on {@link CACHE_RATE_LOW_STREAK_REQUIRED}
+ *   consecutive eligible requests and are debounced to at most one per
+ *   {@link CACHE_RATE_ALERT_DEBOUNCE_MS}.
  */
-import { CACHE_RATE_ALERT_DEBOUNCE_MS, CACHE_RATE_IDLE_TTL_MS, CACHE_RATE_WINDOW_REQUESTS } from "../config";
+import {
+  CACHE_RATE_ALERT_DEBOUNCE_MS,
+  CACHE_RATE_IDLE_TTL_MS,
+  CACHE_RATE_LOW_STREAK_REQUIRED,
+  CACHE_RATE_MIN_PROMPT_TOKENS,
+  CACHE_RATE_WINDOW_REQUESTS,
+} from "../config";
 
 /** One request's cache usage, recorded from a `TransportRequestSummary`. */
 export interface CacheSample {
@@ -25,6 +35,12 @@ export interface CacheSample {
   /** `undefined` when the provider did not report cached tokens. */
   cachedTokens: number | undefined;
   modelId: string;
+  /**
+   * Gateway session id (`x-opencode-session`). A change means a different
+   * provider-side prefix, so the first request of the new session is cold by
+   * construction. Omitted when the caller has no stable session identity.
+   */
+  sessionId?: string;
   timestampMs: number;
   /** True when the request history was just trimmed (expected cache rebuild). */
   historyTrimmed?: boolean;
@@ -67,17 +83,38 @@ interface WindowEntry {
  */
 export function createCacheMonitor(getThreshold: () => number, deps: CacheMonitorDeps): CacheRateMonitor {
   let samples: WindowEntry[] = [];
-  let lastEligibleHitRate: number | undefined;
+  let lowStreak = 0;
   let lastAlertMs = Number.NEGATIVE_INFINITY;
+  let lastContext: { modelId: string; sessionId: string | undefined } | undefined;
 
   const resetWindow = (): void => {
     samples = [];
-    lastEligibleHitRate = undefined;
+    lowStreak = 0;
   };
 
   const recordCacheSample = (sample: CacheSample): CacheMonitorResult => {
     const threshold = getThreshold();
     if (threshold <= 0) {
+      return { hitRate: undefined, alerted: false };
+    }
+
+    // Probes and one-shot helpers (context-window checks, title/summary calls)
+    // carry no conversation prefix worth caching — sampling them only dilutes
+    // the window with requests that can never hit the cache.
+    if (sample.promptTokens < CACHE_RATE_MIN_PROMPT_TOKENS) {
+      return { hitRate: undefined, alerted: false };
+    }
+
+    // A different model or chat session means a different provider-side prefix
+    // (the gateway's sticky session id is derived per model), so the first
+    // request afterwards is cold by construction. Reset instead of alerting.
+    const contextChanged =
+      lastContext !== undefined &&
+      (sample.modelId !== lastContext.modelId ||
+        (sample.sessionId !== undefined && lastContext.sessionId !== undefined && sample.sessionId !== lastContext.sessionId));
+    lastContext = { modelId: sample.modelId, sessionId: sample.sessionId };
+    if (contextChanged) {
+      resetWindow();
       return { hitRate: undefined, alerted: false };
     }
 
@@ -113,13 +150,11 @@ export function createCacheMonitor(getThreshold: () => number, deps: CacheMonito
     }
 
     const hitRate = sumCached / sumPrompt;
-    const isLow = hitRate < threshold;
-    const heldLow = lastEligibleHitRate !== undefined && lastEligibleHitRate < threshold;
-    lastEligibleHitRate = hitRate;
-    if (isLow && heldLow && deps.now() - lastAlertMs >= CACHE_RATE_ALERT_DEBOUNCE_MS) {
+    lowStreak = hitRate < threshold ? lowStreak + 1 : 0;
+    if (lowStreak >= CACHE_RATE_LOW_STREAK_REQUIRED && deps.now() - lastAlertMs >= CACHE_RATE_ALERT_DEBOUNCE_MS) {
       lastAlertMs = deps.now();
       try {
-        deps.notify(alertMessage(hitRate, samples.length));
+        deps.notify(alertMessage(hitRate, samples.length, sample.modelId));
       } catch {
         // Never break the request pipeline because a warning failed.
       }
@@ -135,10 +170,10 @@ export function createCacheMonitor(getThreshold: () => number, deps: CacheMonito
 }
 
 /** User-facing warning text, extracted so the copy lives in one place. */
-function alertMessage(hitRate: number, windowSize: number): string {
+function alertMessage(hitRate: number, windowSize: number, modelId: string): string {
   const percent = Math.round(hitRate * 100);
   return (
-    `OpenCode prompt-cache hit rate is low (${String(percent)}% over the last ${String(windowSize)} requests). ` +
+    `OpenCode prompt-cache hit rate is low (${String(percent)}% over the last ${String(windowSize)} requests on ${modelId}). ` +
     "Cache misses make requests much more expensive — run 'Compact Conversation' or start a new session to restore the cached prefix."
   );
 }

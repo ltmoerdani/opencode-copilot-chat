@@ -3,7 +3,7 @@
 # Prompt-Cache Hit-Rate Alert (#232)
 
 **Topic:** usage
-**Updated:** 2026-11-05
+**Updated:** 2026-11-06
 **Tags:** #usage #cost #cache #notifications
 
 ---
@@ -28,7 +28,8 @@ configurable threshold.
   `onTransportSummary` in `src/provider/chatPrep.ts` (Go gateway only — other
   providers do not report cached tokens). The closure captures
   `historyTrimmed = historyTrim.removed > 0` so the monitor knows which misses
-  are the extension's own doing.
+  are the extension's own doing, and the request's `x-opencode-session` so it
+  can tell one chat from another.
 - Hit rate = `Σ cachedTokens / Σ promptTokens` over a rolling window of
   `CACHE_RATE_WINDOW_REQUESTS` (5) requests.
 
@@ -38,10 +39,20 @@ configurable threshold.
 | ---------------------------------- | --------------------------------------- | ----------------------------------------------------------------------------- |
 | Expected rebuild: own history trim | —                                       | Resets the window instead of alerting — a miss we caused is not a regression  |
 | Expected rebuild: idle gap         | `CACHE_RATE_IDLE_TTL_MS` (5 min)        | Provider cache TTL expiry after inactivity resets the window                  |
-| Consecutive-low requirement        | —                                       | The low rate must hold on consecutive eligible requests before alerting       |
+| Expected rebuild: model switch     | —                                       | A different `modelId` means a different provider prefix → window reset        |
+| Expected rebuild: new chat session | —                                       | A different `x-opencode-session` → window reset                               |
+| Tiny-request filter                | `CACHE_RATE_MIN_PROMPT_TOKENS` (2 000)  | Probes and one-shot helpers are not sampled — they can never hit the cache    |
+| Consecutive-low requirement        | `CACHE_RATE_LOW_STREAK_REQUIRED` (3)    | The low rate must hold on 3 consecutive eligible requests before alerting     |
 | Debounce                           | `CACHE_RATE_ALERT_DEBOUNCE_MS` (10 min) | At most one warning per window                                                |
 | Unknown cached tokens              | —                                       | Providers that never report `cachedTokens` (e.g. Zen free models) stay silent |
 | Disable switch                     | —                                       | Threshold `0` disables monitoring entirely                                    |
+
+> **Why the switch resets matter:** the gateway derives its sticky session id
+> from a conversation anchor that includes the model, so the first request
+> after a model switch or in a new chat can never hit the previous prefix.
+> Counting those as regressions was the main source of false warnings, and the
+> remedy the alert suggests (Compact Conversation) itself starts a new prefix —
+> so the warning could re-fire right after the user followed it.
 
 ## Configuration
 
@@ -59,8 +70,9 @@ The warning message names the observed rate and the remedy: run
 
 ## Testing
 
-- `src/test/cacheMonitor.test.ts` — 12 unit tests (window math, expected
-  rebuilds, streak requirement, debounce, disable switch, injected notifier).
+- `src/test/cacheMonitor.test.ts` — 15 unit tests (window math, expected
+  rebuilds, model/session switch resets, tiny-request filter, low-streak
+  requirement, debounce, disable switch, injected notifier).
 - E2E (`tmp/e2e-issues-274-230-232.mjs`) — 7-phase scripted journey against
   the compiled monitor: healthy session never alerts; degradation alerts once
   the window rate falls and holds; debounce holds; both expected-rebuild paths

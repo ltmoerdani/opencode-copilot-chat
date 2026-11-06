@@ -396,11 +396,14 @@ export async function prepareChatRequest(
       void syncTrackerUsage(tracker, apiKey);
       // Prompt-cache hit-rate monitor (issue #232). Go gateway only: Zen/free
       // models may not report cachedTokens, and the monitor stays silent for
-      // a window where cachedTokens is undefined anyway.
+      // a window where cachedTokens is undefined anyway. The session id lets
+      // the monitor treat a new chat (or a model switch, which changes the
+      // session anchor) as an expected cold prefix rather than a regression.
       const cacheResult = getCacheRateMonitor().recordCacheSample({
         promptTokens: prompt,
         cachedTokens: summary.cachedTokens,
         modelId: summary.modelId,
+        sessionId: requestHeaders["x-opencode-session"],
         timestampMs: Date.now(),
         historyTrimmed,
       });
