@@ -361,11 +361,25 @@ export const LEGACY_FINGERPRINT = "legacy";
 
 // ─── Prompt-cache hit-rate monitor (issue #232) ─────────────────────────────
 
+/** Setting key: master switch for the prompt-cache hit-rate warning. */
+export const SETTING_CACHE_RATE_ALERT_ENABLED = "cacheRateAlertEnabled";
+export const DEFAULT_CACHE_RATE_ALERT_ENABLED = true;
 /** Setting key: alert when the rolling cache hit rate falls below this fraction (0 disables). */
 export const SETTING_CACHE_RATE_THRESHOLD = "cacheRateThreshold";
 export const DEFAULT_CACHE_RATE_THRESHOLD = 0.5;
 /** Rolling window size (requests) over which the cache hit rate is computed. */
 export const CACHE_RATE_WINDOW_REQUESTS = 5;
+/**
+ * Requests below this prompt size are not sampled: context-window probes and
+ * one-shot helpers carry no conversation prefix worth caching, and including
+ * them only dilutes the window.
+ */
+export const CACHE_RATE_MIN_PROMPT_TOKENS = 2000;
+/**
+ * Consecutive eligible requests that must stay below the threshold before
+ * warning. A single cold request (model switch, compaction, trim) is expected.
+ */
+export const CACHE_RATE_LOW_STREAK_REQUIRED = 3;
 /** Idle gap after which the provider's prefix cache is assumed expired (typical cache TTLs). */
 export const CACHE_RATE_IDLE_TTL_MS = 5 * 60 * 1000;
 /** Minimum time between two low-cache-rate warnings. */
