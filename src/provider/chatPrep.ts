@@ -1,11 +1,13 @@
 import * as vscode from "vscode";
 import {
   CONFIG_SECTION,
+  DEFAULT_CACHE_RATE_ALERT_ENABLED,
   DEFAULT_CACHE_RATE_THRESHOLD,
   DEFAULT_VISION_PROXY_PROMPT,
   HISTORY_TRIM_SAFETY_MARGIN_TOKENS,
   HISTORY_TRIM_TARGET_RATIO,
   MAX_HISTORY_IMAGES_KEPT,
+  SETTING_CACHE_RATE_ALERT_ENABLED,
   SETTING_CACHE_RATE_THRESHOLD,
   SETTING_VISION_PROXY_WHOLE_CONVERSATION,
   VISION_PROXY_MODEL_ID_KEY,
@@ -36,7 +38,7 @@ import type { ApiMessage, ApiSettings, OpenAiContentPart } from "../request/type
 import { estimatePromptTokenCount } from "../tokenEstimate";
 import { proxyVision } from "./visionProxy";
 import { estimateCost } from "../usage/pricing";
-import { createCacheMonitor, type CacheRateMonitor } from "../usage/cacheMonitor";
+import { createCacheMonitor, resolveCacheRateThreshold, type CacheRateMonitor } from "../usage/cacheMonitor";
 import { detectBeamToolLoop } from "../toolLoopGuard";
 import {
   activeProfileFingerprint,
@@ -67,10 +69,17 @@ export interface ChatPrepDeps {
   apiKeysByModelId: Map<string, string>;
 }
 
-/** Read (and clamp) the user-configured cache-rate alert threshold for one sample. */
+/**
+ * Read the cache-rate alert settings for one sample. The on/off switch wins and
+ * maps to threshold 0 (monitoring off); the monitor re-reads this on every
+ * sample, so a settings change takes effect on the next request.
+ */
 function readCacheRateThreshold(): number {
-  const raw = vscode.workspace.getConfiguration(CONFIG_SECTION).get<number>(SETTING_CACHE_RATE_THRESHOLD, DEFAULT_CACHE_RATE_THRESHOLD);
-  return typeof raw === "number" && Number.isFinite(raw) ? Math.min(1, Math.max(0, raw)) : DEFAULT_CACHE_RATE_THRESHOLD;
+  const config = vscode.workspace.getConfiguration(CONFIG_SECTION);
+  return resolveCacheRateThreshold(
+    config.get<boolean>(SETTING_CACHE_RATE_ALERT_ENABLED, DEFAULT_CACHE_RATE_ALERT_ENABLED),
+    config.get<number>(SETTING_CACHE_RATE_THRESHOLD, DEFAULT_CACHE_RATE_THRESHOLD),
+  );
 }
 
 // Session-scoped monitor singleton: the rolling window must survive across

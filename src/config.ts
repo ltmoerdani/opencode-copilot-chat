@@ -361,6 +361,9 @@ export const LEGACY_FINGERPRINT = "legacy";
 
 // ─── Prompt-cache hit-rate monitor (issue #232) ─────────────────────────────
 
+/** Setting key: master switch for the prompt-cache hit-rate warning. */
+export const SETTING_CACHE_RATE_ALERT_ENABLED = "cacheRateAlertEnabled";
+export const DEFAULT_CACHE_RATE_ALERT_ENABLED = true;
 /** Setting key: alert when the rolling cache hit rate falls below this fraction (0 disables). */
 export const SETTING_CACHE_RATE_THRESHOLD = "cacheRateThreshold";
 export const DEFAULT_CACHE_RATE_THRESHOLD = 0.5;

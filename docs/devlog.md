@@ -1,6 +1,20 @@
 # 🧠 OPENCODE COPILOT CHAT DEVLOG
 
-**Branch:** `feat/issues-274-232-230` | **Updated:** 2026-11-05 Asia/Jakarta | **Current Phase:** issues #274 + #230 + #232 implemented on one feature branch (commits `25c5295`, `67a5610`, `9d53930`), 31/31 e2e checks + unit suite + lint 7/7 green, documented in `docs/features/20–22-20261105-*`, CHANGELOG bumped to `[0.8.0]`. Not yet pushed/merged (awaiting approval).
+**Branch:** `fix/usage-cache-rate-false-positives` | **Updated:** 2026-11-06 Asia/Jakarta | **Current Phase:** #232 cache-rate alert refined after a false-positive report (commit `260f9a2`), plus an explicit `opencodego.cacheRateAlertEnabled` switch. Unit suite 604/604, e2e 32/32, lint 7/7 green. Branch not yet pushed/merged (awaiting approval).
+
+---
+
+## ✅ Cache-rate alert: false positives on cold prefixes + on/off switch — 2026-11-06
+
+**Trigger:** the #232 warning kept firing with "0% over the last 4 requests" right after model switches and compactions.
+
+**Forensics:** replayed `opencode.recentTransportSummaries.opencodego` from globalState (25-request ring). Steady state was 96–99% hits; the only 0% samples were (a) the first request after `beam-free` → `deepseek-v4.1-flash` (the gateway's sticky session anchor includes the model, so the new model can never hit the previous prefix), (b) a 311-token context-window probe, and (c) two cold requests after the session id changed `vscode-a2496d57` → `vscode-32289e4e` (compact/new chat). The monitor had no notion of model or session, so all of them counted as regressions — and the remedy it suggests (Compact Conversation) creates another cold prefix, so following the advice re-fired the warning.
+
+**Fix:** reset the window when `modelId` or `x-opencode-session` changes (first request afterwards is silent); ignore requests below `CACHE_RATE_MIN_PROMPT_TOKENS` (2000); raise the streak requirement to `CACHE_RATE_LOW_STREAK_REQUIRED` (3) using an explicit counter instead of the previous-rate comparison; name the model in the message. `chatPrep` now passes the request's session id with each sample.
+
+**Switch:** new `opencodego.cacheRateAlertEnabled` (default `true`) turns the warning off without discarding the configured threshold; threshold `0` still disables. Turning it off clears the rolling window, so turning it back on starts from a clean state. Resolution lives in the pure `resolveCacheRateThreshold(enabled, fraction)` helper so it is unit-testable without `vscode`.
+
+**Verification:** 604/604 unit tests (20 in `cacheMonitor.test.ts`), e2e `tmp/e2e-issues-274-230-232.mjs` 32/32, lint 7/7. Replaying the reported shape gives legacy 1 alert @36% vs new 0; a sustained same-model/same-session degradation still alerts after 5 misses (no over-suppression).
 
 ---
 

@@ -7,8 +7,9 @@ import {
   CACHE_RATE_LOW_STREAK_REQUIRED,
   CACHE_RATE_MIN_PROMPT_TOKENS,
   CACHE_RATE_WINDOW_REQUESTS,
+  DEFAULT_CACHE_RATE_THRESHOLD,
 } from "../config.js";
-import { createCacheMonitor, type CacheSample } from "../usage/cacheMonitor.js";
+import { createCacheMonitor, resolveCacheRateThreshold, type CacheSample } from "../usage/cacheMonitor.js";
 
 /** Prompt size above {@link CACHE_RATE_MIN_PROMPT_TOKENS}, i.e. a real turn. */
 const PROMPT = 100_000;
@@ -258,5 +259,46 @@ describe("cacheMonitor", () => {
     const result = monitor.recordCacheSample(sample({ cachedTokens: 0, timestampMs: 2 }));
     assert.equal(result.alerted, false);
     assert.equal(messages.length, 0);
+  });
+
+  it("turning the switch off clears the window, so re-enabling starts fresh", () => {
+    let threshold = 0.5;
+    const messages: string[] = [];
+    const monitor = createCacheMonitor(() => threshold, {
+      notify: (message) => messages.push(message),
+      now: () => 0,
+    });
+    monitor.recordCacheSample(sample({ cachedTokens: 0, timestampMs: 1 }));
+    monitor.recordCacheSample(sample({ cachedTokens: 0, timestampMs: 2 }));
+    // Switch off (the setting maps to threshold 0) — the window is dropped.
+    threshold = 0;
+    monitor.recordCacheSample(sample({ cachedTokens: 0, timestampMs: 3 }));
+    // Switch back on: the first sample must not inherit the pre-switch streak.
+    threshold = 0.5;
+    const after = monitor.recordCacheSample(sample({ cachedTokens: 0, timestampMs: 4 }));
+    assert.equal(after.alerted, false);
+    assert.equal(messages.length, 0);
+  });
+});
+
+describe("resolveCacheRateThreshold", () => {
+  it("returns 0 when the on/off switch is off", () => {
+    assert.equal(resolveCacheRateThreshold(false, 0.5), 0);
+    assert.equal(resolveCacheRateThreshold(false, undefined), 0);
+  });
+
+  it("keeps the configured fraction when the switch is on", () => {
+    assert.equal(resolveCacheRateThreshold(true, 0.7), 0.7);
+    assert.equal(resolveCacheRateThreshold(undefined, 0.7), 0.7);
+  });
+
+  it("falls back to the default for a missing or non-numeric fraction", () => {
+    assert.equal(resolveCacheRateThreshold(true, undefined), DEFAULT_CACHE_RATE_THRESHOLD);
+    assert.equal(resolveCacheRateThreshold(true, Number.NaN), DEFAULT_CACHE_RATE_THRESHOLD);
+  });
+
+  it("clamps the fraction into 0..1", () => {
+    assert.equal(resolveCacheRateThreshold(true, 5), 1);
+    assert.equal(resolveCacheRateThreshold(true, -1), 0);
   });
 });

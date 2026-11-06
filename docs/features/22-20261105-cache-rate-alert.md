@@ -45,7 +45,7 @@ configurable threshold.
 | Consecutive-low requirement        | `CACHE_RATE_LOW_STREAK_REQUIRED` (3)    | The low rate must hold on 3 consecutive eligible requests before alerting     |
 | Debounce                           | `CACHE_RATE_ALERT_DEBOUNCE_MS` (10 min) | At most one warning per window                                                |
 | Unknown cached tokens              | —                                       | Providers that never report `cachedTokens` (e.g. Zen free models) stay silent |
-| Disable switch                     | —                                       | Threshold `0` disables monitoring entirely                                    |
+| Disable switch                     | `cacheRateAlertEnabled` (or `0`)        | Silences monitoring entirely and clears the window                            |
 
 > **Why the switch resets matter:** the gateway derives its sticky session id
 > from a conversation anchor that includes the model, so the first request
@@ -57,12 +57,17 @@ configurable threshold.
 ## Configuration
 
 ```jsonc
-"opencodego.cacheRateThreshold": 0.5
+"opencodego.cacheRateAlertEnabled": true, // master switch
+"opencodego.cacheRateThreshold": 0.5      // sensitivity (0–1; 0 also disables)
 ```
 
-Alert when the window hit rate falls below this fraction (0–1; `0` disables).
-The warning message names the observed rate and the remedy: run
-**Compact Conversation** or start a new session to restore the cached prefix.
+`cacheRateAlertEnabled` turns the warning on or off without touching the
+sensitivity — the switch wins over the fraction. Turning it off clears the
+rolling window, so turning it back on starts from a clean state instead of
+resuming a stale one. `cacheRateThreshold` sets how low the hit rate must fall
+before warning. The warning names the observed rate, the model, and the remedy:
+run **Compact Conversation** or start a new session to restore the cached
+prefix.
 
 > **Not supported:** stopping an in-flight request when the cache rate drops
 > (requested in the issue thread). VS Code's `ChatRequestHandler` provides no
@@ -70,9 +75,10 @@ The warning message names the observed rate and the remedy: run
 
 ## Testing
 
-- `src/test/cacheMonitor.test.ts` — 15 unit tests (window math, expected
+- `src/test/cacheMonitor.test.ts` — 20 unit tests (window math, expected
   rebuilds, model/session switch resets, tiny-request filter, low-streak
-  requirement, debounce, disable switch, injected notifier).
+  requirement, debounce, on/off switch + threshold resolution, injected
+  notifier).
 - E2E (`tmp/e2e-issues-274-230-232.mjs`) — 7-phase scripted journey against
   the compiled monitor: healthy session never alerts; degradation alerts once
   the window rate falls and holds; debounce holds; both expected-rebuild paths

@@ -20,6 +20,9 @@
  * - Alerts require the low rate to hold on {@link CACHE_RATE_LOW_STREAK_REQUIRED}
  *   consecutive eligible requests and are debounced to at most one per
  *   {@link CACHE_RATE_ALERT_DEBOUNCE_MS}.
+ * - A threshold of 0 means monitoring is switched off (the caller resolves the
+ *   `cacheRateAlertEnabled` setting into 0); the window is cleared so that
+ *   re-enabling starts from a clean state.
  */
 import {
   CACHE_RATE_ALERT_DEBOUNCE_MS,
@@ -27,6 +30,7 @@ import {
   CACHE_RATE_LOW_STREAK_REQUIRED,
   CACHE_RATE_MIN_PROMPT_TOKENS,
   CACHE_RATE_WINDOW_REQUESTS,
+  DEFAULT_CACHE_RATE_THRESHOLD,
 } from "../config";
 
 /** One request's cache usage, recorded from a `TransportRequestSummary`. */
@@ -76,6 +80,18 @@ interface WindowEntry {
 }
 
 /**
+ * Resolve the effective threshold from the two settings: the on/off switch wins
+ * over the sensitivity fraction, and an out-of-range or non-numeric fraction
+ * falls back to the default. Returns 0 (monitoring off) when disabled.
+ */
+export function resolveCacheRateThreshold(enabled: boolean | undefined, fraction: number | undefined): number {
+  if (enabled === false) {
+    return 0;
+  }
+  return typeof fraction === "number" && Number.isFinite(fraction) ? Math.min(1, Math.max(0, fraction)) : DEFAULT_CACHE_RATE_THRESHOLD;
+}
+
+/**
  * Create a monitor for one chat session.
  *
  * @param getThreshold Alert when the window hit rate falls below this fraction
@@ -95,6 +111,10 @@ export function createCacheMonitor(getThreshold: () => number, deps: CacheMonito
   const recordCacheSample = (sample: CacheSample): CacheMonitorResult => {
     const threshold = getThreshold();
     if (threshold <= 0) {
+      // Monitoring is switched off (or the fraction is 0): drop any window we
+      // were holding, so re-enabling starts from a clean state instead of
+      // resuming a stale window from before the switch was turned off.
+      resetWindow();
       return { hitRate: undefined, alerted: false };
     }
 

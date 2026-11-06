@@ -247,12 +247,17 @@
           "default": true,
           "description": "Show the latest OpenCode prompt/output/cache usage summary in the VS Code status bar after each response."
         },
+        "opencodego.cacheRateAlertEnabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Warn when the rolling prompt-cache hit rate stays below the threshold. Turn this off to silence the warning entirely."
+        },
         "opencodego.cacheRateThreshold": {
           "type": "number",
           "default": 0.5,
           "minimum": 0,
           "maximum": 1,
-          "description": "Alert when the rolling prompt-cache hit rate falls below this fraction (0 disables the alert). Cache misses make requests much more expensive; the warning suggests running Compact Conversation or starting a new session."
+          "description": "Alert when the rolling prompt-cache hit rate falls below this fraction (0 also disables the alert). Cache misses make requests much more expensive; the warning suggests running Compact Conversation or starting a new session."
         },
         "opencodego.showProviderPrefix": {
           "type": "boolean",

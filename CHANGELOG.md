@@ -4,6 +4,10 @@ All notable changes to the **OpenCode Go BYOK Provider** extension are documente
 
 ## [Unreleased]
 
+### Added
+
+- **`[Usage]` The prompt-cache warning can now be switched off directly (`opencodego.cacheRateAlertEnabled`, default `true`).** Previously the only way to silence the warning was setting `opencodego.cacheRateThreshold` to `0`, which doubled as the sensitivity knob. The new boolean turns the warning off without discarding the configured threshold, and switching it off clears the rolling window so turning it back on starts from a clean state instead of resuming a stale one.
+
 ### Fixed
 
 - **`[Usage]` The prompt-cache warning no longer fires on cache misses the extension causes itself.** Model switches and new chat sessions always start a cold provider prefix (the gateway derives its sticky session id from an anchor that includes the model), tiny probe requests can never hit the cache, and following the alert's own "Compact Conversation" advice creates another cold prefix — all of which were counted as regressions, so the warning re-fired shortly after the user acted on it. The monitor now resets its rolling window when the model or `x-opencode-session` changes, ignores requests below 2 000 prompt tokens, and requires the low rate to hold on 3 consecutive requests (was 2); the message also names the model. Verified against the stored transport summaries of a real session: steady state was 96–99% hits, with misses only at the model switch and trim points. Documented in `docs/features/22-20261105-cache-rate-alert.md`.
