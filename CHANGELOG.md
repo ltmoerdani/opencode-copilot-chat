@@ -2,6 +2,12 @@
 
 All notable changes to the **OpenCode Go BYOK Provider** extension are documented here.
 
+## [Unreleased]
+
+### Fixed
+
+- **`[Thinking]` Reasoning no longer floods the chat with one "Thought for Xs" card per word on VS Code 1.145.** VS Code 1.145 stamps every streamed thinking part with client-side timing and treats parts with different downstream ids as separate reasoning runs (upstream [microsoft/vscode#345390](https://github.com/microsoft/vscode/issues/345390), fixed by [#346106](https://github.com/microsoft/vscode/pull/346106) in 1.146). Reasoning deltas are now coalesced into one `LanguageModelThinkingPart` per ~512 chars with a stable per-request run id, and the buffer flushes before any visible/tool part so the thinking panel keeps the model's order — cutting thousands of cards down to tens. Single-block rendering returns with the upstream fix. Documented in `docs/issues/121-20261106-vscode-145-thinking-part-fragmentation.md`.
+
 ## [0.8.0] — 2026-11-05
 
 ### Added

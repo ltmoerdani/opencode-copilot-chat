@@ -171,8 +171,12 @@ describe("OpenAiResponseExtractor — reasoning surfacing invariants (issue #196
 
     assert.equal(parts.length, 1, "only text part in returned array");
     assert.ok(isTextPart(parts[0]), "returned part is TextPart");
+    // Coalesced live emission (VS Code 1.145 mitigation): the reasoning
+    // buffer flushes before the visible text part is returned, so the
+    // thinking part reaches progress first.
     assert.equal(reported.length, 1, "one progress.report call for reasoning");
     assert.ok(isThinkingPart(reported[0]), "reported part is ThinkingPart");
+    assert.equal((reported[0] as { text?: string }).text, "thinking...");
   });
 
   it("reasoning_content only: ThinkingPart via progress, empty returned parts", () => {
@@ -182,8 +186,44 @@ describe("OpenAiResponseExtractor — reasoning surfacing invariants (issue #196
     const parts = extractor.extractStreamParts(reasoningDelta("chain of thought"));
 
     assert.equal(parts.length, 0, "nothing in returned parts");
+    // Coalesced live emission: small reasoning chunks stay buffered until
+    // the coalescing window fills or the stream flushes (before visible
+    // content / tool calls / end-of-stream). Force the end-of-stream flush
+    // here to observe the single ThinkingPart.
+    extractor.flushReasoningFallback(progress, undefined);
     assert.equal(reported.length, 1);
     assert.ok(isThinkingPart(reported[0]));
+    assert.equal((reported[0] as { text?: string }).text, "chain of thought");
+  });
+
+  it("many small reasoning deltas coalesce into few ThinkingParts", () => {
+    const { reported, progress } = makeProgress();
+    const extractor = new Extractor(undefined, undefined, undefined, progress, undefined, undefined, false);
+
+    // Simulate the VS Code 1.145 fragmentation scenario: one word per delta.
+    for (let i = 0; i < 40; i++) {
+      extractor.extractStreamParts(reasoningDelta(`word${String(i)} `));
+    }
+    extractor.flushReasoningFallback(progress, undefined);
+
+    assert.ok(reported.length >= 1, "buffered reasoning is flushed");
+    assert.ok(reported.length < 40, `coalesced: ${String(reported.length)} parts for 40 deltas`);
+    assert.ok(reported.every(isThinkingPart), "all flushed parts are ThinkingParts");
+    const joined = reported.map((p) => (p as { text?: string }).text ?? "").join("");
+    assert.equal(joined, Array.from({ length: 40 }, (_, i) => `word${String(i)} `).join(""), "no reasoning lost");
+  });
+
+  it("reasoning flushes before visible text so the thinking panel keeps order", () => {
+    const { reported, progress } = makeProgress();
+    const extractor = new Extractor(undefined, undefined, undefined, progress, undefined, undefined, false);
+
+    // Reasoning arrives in one delta, visible text in the next — the
+    // coalesced buffer must flush before the text part is returned.
+    extractor.extractStreamParts(reasoningDelta("first thought"));
+    extractor.extractStreamParts(reasoningDelta("", "hello"));
+
+    assert.equal(reported.length, 1, "reasoning flushed before the text part");
+    assert.ok(isThinkingPart(reported[0]), "flushed part is a ThinkingPart");
   });
 
   it("no progress sink at construction: flushReasoningFallback emits ThinkingPart, not TextPart", () => {
