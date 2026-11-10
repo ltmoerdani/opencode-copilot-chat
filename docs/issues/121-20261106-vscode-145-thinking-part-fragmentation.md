@@ -1,9 +1,9 @@
-**Status:** 🟢 Active (upstream regression — fixed in VS Code 1.146.0 / Insiders; extension-side mitigation shipped)
+**Status:** 🟢 Active (upstream regression — fixed in VS Code 1.146.0 / Insiders; extension-side mitigation shipped in `0.8.1`)
 
 # VS Code 1.145 Splits Streamed Reasoning Into One "Thought for Xs" Card Per Chunk
 
 **Topic:** thinking / reasoning / vscode / byok / chat-ui / upstream
-**Updated:** 2026-11-06
+**Updated:** 2026-11-10
 **Tags:** #thinking #reasoning #vscode-1.145 #byok #upstream #regression
 **Affected host:** VS Code **1.145.0 / 1.145.1** (not reproducible on 1.144.0)
 **Upstream:** [microsoft/vscode#345390](https://github.com/microsoft/vscode/issues/345390) (closed, fixed by [#346106](https://github.com/microsoft/vscode/pull/346106)), [microsoft/vscode#346240](https://github.com/microsoft/vscode/issues/346240) (open, same symptom), [microsoft/vscode#343322](https://github.com/microsoft/vscode/issues/343322) (related: invisible markers split markdown parts)

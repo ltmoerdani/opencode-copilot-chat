@@ -474,7 +474,7 @@ On push/PR to `main`/`develop`, Node 20: `npm ci` → `compile` → `lint` (with
 
 ## 9. Version & Contribution Surface
 
-- **Version:** `0.6.0` · **Engine:** `vscode ^1.125.0` · **Entry:** `./out/extension.js`
+- **Version:** `0.8.1` · **Engine:** `vscode ^1.125.0` · **Entry:** `./out/extension.js`
 - **Activation:** `onStartupFinished`, `onLanguageModelChatProvider:opencodego`, `onLanguageModelChatProvider:opencodezen`
 - **Contribution points:** `commands` (16), `configuration` (35+ keys), `languageModelChatProviders` (4 vendors: `opencodego`, `opencodezen`, `opencodego-agent`, `opencodezen-agent`)
 - **4 providers:** Go (paid) + Zen (free default) + agent-host variants mirroring each base vendor

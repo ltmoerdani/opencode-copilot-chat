@@ -1,6 +1,20 @@
 # 🧠 OPENCODE COPILOT CHAT DEVLOG
 
-**Branch:** `fix/usage-cache-rate-false-positives` | **Updated:** 2026-11-06 Asia/Jakarta | **Current Phase:** #232 cache-rate alert refined after a false-positive report (commit `260f9a2`), plus an explicit `opencodego.cacheRateAlertEnabled` switch. Unit suite 604/604, e2e 32/32, lint 7/7 green. Branch not yet pushed/merged (awaiting approval).
+**Branch:** `main` | **Updated:** 2026-11-10 Asia/Jakarta | **Current Phase:** `0.8.1` released — cache-rate alert on/off switch + false-positive fix (PR #281) and VS Code 1.145 reasoning coalescing (PR #280), both merged 2026-11-06. Unit suite 604/604, compile clean, VSIX `opencode-copilot-chat-0.8.1.vsix` (1.68 MB) built and installed locally.
+
+---
+
+## ✅ Release 0.8.1 — cache-rate alert switch + false-positive fix + VS Code 1.145 reasoning coalescing — 2026-11-10
+
+**Scope:** two merged fixes shipped as `0.8.1` (`package.json` `0.8.0` → `0.8.1`).
+
+**#232 follow-up (PR #281, commits `260f9a2` + `4bbe8ee`):** the prompt-cache warning could only be silenced by setting the threshold to `0`, which also discarded the sensitivity knob. New `opencodego.cacheRateAlertEnabled` (default `true`) is a dedicated master switch — turning it off clears the rolling window so re-enabling starts clean. The false-positive half: the monitor now resets its window when `modelId` or `x-opencode-session` changes (the gateway's sticky session anchor includes the model, so a model switch or new chat can never hit the previous prefix), ignores requests below 2 000 prompt tokens, and requires the low rate to hold on 3 consecutive requests (was 2). Resolution lives in the pure `resolveCacheRateThreshold(enabled, fraction)` helper.
+
+**VS Code 1.145 reasoning fragmentation (PR #280, commit `5f92be2`):** 1.145 stamps every streamed thinking part with client-side timing and treats parts with different downstream ids as separate reasoning runs (upstream microsoft/vscode#345390, fixed by #346106 in 1.146), so reasoning rendered as one "Thought for Xs" card per word. New `src/transports/reasoningCoalescer.ts` buffers reasoning deltas and emits one `LanguageModelThinkingPart` per ~512 chars with a stable per-request run id, flushing before any visible/tool part — cutting thousands of cards down to tens. Documented in `docs/issues/121-20261106-vscode-145-thinking-part-fragmentation.md`.
+
+**Verification:** `npm run compile` clean; `npm test` 604/604; VSIX packaged (1.68 MB) and installed locally as `ltmoerdani.opencode-copilot-chat@0.8.1`. E2E 32/32 + lint 7/7 are from the merged PRs, not re-run in this release pass.
+
+**Docs:** CHANGELOG `[0.8.1]`, `docs/features/22-20261105-cache-rate-alert.md`, `docs/issues/121-20261106-vscode-145-thinking-part-fragmentation.md`, ARCHITECTURE-MAP version surface.
 
 ---
 
