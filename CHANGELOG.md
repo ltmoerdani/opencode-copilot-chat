@@ -2,6 +2,24 @@
 
 All notable changes to the **OpenCode Go BYOK Provider** extension are documented here.
 
+## [Unreleased]
+
+### Added
+
+- **`[Auth]` A new "OpenCode Go: Sign In with OpenCode Console" command imports the API key the OpenCode CLI already saved, with explicit consent, or opens the Console key page and stores the pasted key in SecretStorage (issue #286).** OpenCode's `/connect` still requires an API key for Go, so no undocumented OAuth or session-cookie scraping is used. Documented in `docs/issues/127-20261125-issue286-console-sign-in.md`.
+
+### Fixed
+
+- **`[Google]` Gemini tool results use the valid `functionResponse` shape again (issue #283).** A July regression moved `content` to the top level; strict validators such as `gemini-4-argon` rejected every request after the first tool call. The text now lives in the required `response` object while multimodal `parts` stay at `functionResponse` level. Documented in `docs/issues/122-20261125-issue283-gemini-function-response-regression.md`.
+
+- **`[Models]` GPT Luna no longer sends a rejected `temperature` parameter (issue #285).** models.dev reports `temperature: true` for `gpt-6-luna` and `gpt-5.6-luna`, but the Go gateway rejects it. The gateway restriction now overrides live metadata, and the HTTP 400 retry classifier recognizes the `Unsupported parameter` wording. Documented in `docs/issues/123-20261125-issue285-gpt-luna-temperature.md`.
+
+- **`[History]` Viewing figures no longer evicts most of the conversation (issue #287).** The token estimator charged base64 image data as prose, so a few screenshots inflated the prompt estimate past the 70% budget and the trimmer dropped hundreds of text messages. Images are now stripped before token measurement and charged a bounded per-image estimate, matching the byte-cap rule from #173. Documented in `docs/issues/124-20261125-issue287-image-token-accounting.md`.
+
+- **`[Muse]` Repeated-answer loops in Muse Spark agent runs are stopped (issue #284).** Three consecutive identical assistant answers now trigger a tool-free final-answer recovery turn, using the same recovery path as the Beam tool-loop guard. Documented in `docs/issues/125-20261125-issue284-muse-repetition-guard.md`.
+
+- **`[VS Code]` The Agent picker stays visible and the Go privacy gate is explained (issue #282).** The extension pins VS Code's experimental `agentsPickerInAttachContextMenu` setting off (and restores it on cleanup), and the training opt-in 400 now names the Console privacy setting instead of showing a bare failure. Documented in `docs/issues/126-20261125-issue282-agent-mode-picker-and-privacy.md`.
+
 ## [0.8.1] — 2026-11-10
 
 ### Added
