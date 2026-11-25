@@ -405,6 +405,9 @@ export const SUPPORT_AGENTS_WINDOW_SETTING = "supportAgentsWindow";
 export const AGENT_HOST_BYOK_MINOR_VERSION = 129;
 export const AGENTS_BYOK_BRIDGE_STATE_KEY = "opencode.agentsByokBridge.v1";
 export const SUPPORT_AGENTS_WINDOW_STATE_KEY = "opencode.supportAgentsWindow.v1";
+/** VS Code experiment that hides the Agent picker in default Agent mode (#282). */
+export const AGENTS_PICKER_IN_ATTACH_CONTEXT_SETTING = "agentsPickerInAttachContextMenu";
+export const AGENTS_PICKER_STATE_KEY = "opencode.agentsPickerInAttachContextMenu.v1";
 
 // ─── Vision proxy (issue #74) ────────────────────────────────────────────────
 

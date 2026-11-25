@@ -66,6 +66,10 @@
         "title": "OpenCode Go: Manage Provider"
       },
       {
+        "command": "opencodego.signInWithConsole",
+        "title": "OpenCode Go: Sign In with OpenCode Console"
+      },
+      {
         "command": "opencodego.toggleProvider",
         "title": "OpenCode Go: Toggle Provider Registration in Language Models"
       },

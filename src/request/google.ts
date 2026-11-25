@@ -148,30 +148,30 @@ function dataUrlToInlineData(url: string): { mimeType: string; data: string } | 
   };
 }
 
-// RULES: Gemini's functionResponse.response is a flexible object. The plain
-// form is `{ name, content }` where content is a JSON string (text-only tool
-// results). When the tool result carries an image (e.g. MCP screenshot), we
-// extend it with `parts` containing both the text and an inlineData block so
-// vision-capable Gemini models can see the image. The `content` field is kept
-// for backwards compatibility with providers that ignore the `parts` field.
+// RULES (Gemini generateContent FunctionResponse): `name` and `response`
+// are required; `response` is an arbitrary JSON object chosen by the caller.
+// There is NO top-level `content` field — strict validators reject it (#283).
+// Multimodal tool results put their text in `response` and their media in the
+// optional top-level `parts` array (FunctionResponsePart), never inside
+// `response`. This shape is what the official API reference documents.
 function googleFunctionResponseContent(
   content: ApiMessage["content"],
   name: string,
-): { name: string; content: string; parts?: Record<string, unknown>[] } {
+): { name: string; response: Record<string, unknown>; parts?: Record<string, unknown>[] } {
   if (typeof content === "string") {
-    return { name, content };
+    return { name, response: { content } };
   }
 
   if (!Array.isArray(content)) {
     // ApiMessage content is `string | null | OpenAiContentPart[]`; after the
     // string and array checks above, this branch only sees null.
-    return { name, content: JSON.stringify("") };
+    return { name, response: { content: JSON.stringify("") } };
   }
 
   const text = joinedTextContent(content, "\n");
   const hasImage = content.some((part) => part.type === "image_url" && part.image_url?.url);
   if (!hasImage) {
-    return { name, content: text };
+    return { name, response: { content: text } };
   }
 
   const parts: Record<string, unknown>[] = [];
@@ -187,5 +187,5 @@ function googleFunctionResponseContent(
     }
   }
 
-  return { name, content: text, parts };
+  return { name, response: { content: text }, parts };
 }

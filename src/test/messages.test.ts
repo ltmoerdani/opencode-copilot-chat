@@ -219,6 +219,23 @@ describe("trimOldMessagesToFitContext — image data excluded from byte cap (#17
   });
 });
 
+describe("trimOldMessagesToFitContext — image data excluded from token budget (#287)", () => {
+  it("keeps text history when only a large image would inflate the token estimate", () => {
+    const messages: ApiMessage[] = [
+      textMessage("user", "anchor"),
+      {
+        role: "user",
+        content: [{ type: "image_url", image_url: { url: `data:image/png;base64,${"A".repeat(400_000)}` } }],
+      },
+      textMessage("assistant", "work already done"),
+      textMessage("user", "current prompt"),
+    ];
+    const result = trimOldMessagesToFitContext(messages, 5_000, 512 * 1024);
+    assert.equal(result.removed, 0, "text history must survive a vision-only payload");
+    assert.ok(result.finalTokens < 5_000, `finalTokens ${String(result.finalTokens)} must stay near the real prompt size`);
+  });
+});
+
 describe("trimOldMessagesToFitContext — cache-stable headroom", () => {
   /**
    * Budget used across these tests: 100K tokens. The headroom resolves to

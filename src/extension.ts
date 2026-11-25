@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import { registerInlineCompletions } from "./autocomplete";
 import { ensureAgentsWindowSupport, revertAgentsWindowSupport, warmModelPickerMetadata } from "./commands/agentsWindow";
+import { signInWithConsole } from "./commands/consoleSignIn";
 import { showModelPickerDiagnostics } from "./commands/diagnostics";
 import { showThinkingEffortPicker } from "./commands/thinkingPicker";
 import { configureUtilityModels, toggleProviderEnabled } from "./commands/providers";
@@ -172,6 +173,7 @@ export function activate(context: vscode.ExtensionContext) {
     ...(goProviderEnabled ? [vscode.lm.registerLanguageModelChatProvider(GO_VENDOR, goProvider)] : []),
     ...(zenProviderEnabled ? [vscode.lm.registerLanguageModelChatProvider(ZEN_VENDOR, zenProvider)] : []),
     vscode.commands.registerCommand("opencodego.manage", () => goProvider.manage()),
+    vscode.commands.registerCommand("opencodego.signInWithConsole", () => signInWithConsole(context)),
     vscode.commands.registerCommand("opencodego.diagnostics", () => goProvider.showDiagnostics()),
     vscode.commands.registerCommand("opencodego.refreshModels", () => goProvider.refreshModels()),
     vscode.commands.registerCommand("opencodego.toggleProvider", () => toggleProviderEnabled(GO_VENDOR, "OpenCode Go")),
@@ -190,7 +192,7 @@ export function activate(context: vscode.ExtensionContext) {
       // markers, so it also cleans up machines in that state.
       await revertAgentsWindowSupport(context, { force: true });
       void vscode.window.showInformationMessage(
-        "OpenCode: reverted the Agents window core settings (extensions.supportAgentsWindow + chat.agentHost.byokModels.enabled). Reload the window for it to take effect.",
+        "OpenCode: reverted the Agents window core settings (extensions.supportAgentsWindow + chat.agentHost.byokModels.enabled + agentsPickerInAttachContextMenu). Reload the window for it to take effect.",
       );
     }),
     vscode.commands.registerCommand("opencodego.showUsageDetails", () => {
