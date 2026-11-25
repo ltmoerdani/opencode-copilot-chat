@@ -50,6 +50,14 @@ describe("analyzeHttp400ForRetry — temperature errors", () => {
     assert.ok(result, "should be recoverable");
     assert.deepEqual(result.body, { model: "kimi-k2.7-code" });
   });
+
+  it("patches GPT Luna's 'Unsupported parameter: temperature' (issue #285)", () => {
+    const body = { model: "gpt-6-luna", temperature: 0.2, stream: true };
+    const result = analyzeHttp400ForRetry("Unsupported parameter: 'temperature' is not supported with this model.", body);
+    assert.ok(result, "should be recoverable");
+    assert.deepEqual(result.body, { model: "gpt-6-luna", stream: true });
+    assert.match(result.reason, /temperature/i);
+  });
 });
 
 describe("analyzeHttp400ForRetry — enable_thinking errors", () => {

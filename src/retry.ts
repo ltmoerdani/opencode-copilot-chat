@@ -152,6 +152,18 @@ const RECOVERABLE_ERROR_PATTERNS: {
   },
 
   // --- Temperature errors ---
+  // "Unsupported parameter: 'temperature' is not supported with this model"
+  // OpenCode Go gateway for GPT Luna (issue #285). models.dev still claims
+  // temperature is supported, so the request must be patched on retry too.
+  {
+    pattern: /unsupported parameter:\s*['"]temperature['"]/i,
+    patch: (body) => {
+      const next = { ...body };
+      delete next.temperature;
+      return next;
+    },
+    describe: () => "removed temperature (unsupported parameter)",
+  },
   // "invalid temperature: only 1 is allowed for this model"
   {
     pattern: /invalid temperature[:\s]+only \d+(\.\d+)? is allowed/i,

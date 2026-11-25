@@ -261,10 +261,13 @@ export function resolveModelMetadata(
     source: liveMetadata ? "live" : cachedMetadata ? "models.dev" : fallbackMetadata ? "fallback" : "default",
     cost: liveMetadata?.cost ?? cachedMetadata?.cost ?? fallbackMetadata?.cost,
     reasoningOptions: liveMetadata?.reasoningOptions ?? cachedMetadata?.reasoningOptions,
-    // The bundled fallback propagates `temperature: false` (models whose API
-    // rejects the parameter) so the request body omits it even when the live
-    // models.dev fetch is unavailable.
-    temperature: liveMetadata?.temperature ?? cachedMetadata?.temperature ?? fallbackMetadata?.temperature,
+    // Gateway-specific restrictions win over models.dev: some Go models reject
+    // `temperature` even though models.dev reports `temperature: true` (#285).
+    // The bundled fallback also propagates `temperature: false` so the request
+    // body omits it when the live fetch is unavailable.
+    temperature: MODELS_WITHOUT_TEMPERATURE.has(modelId)
+      ? false
+      : (liveMetadata?.temperature ?? cachedMetadata?.temperature ?? fallbackMetadata?.temperature),
   };
 }
 

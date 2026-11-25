@@ -39,6 +39,7 @@ export const MODEL_LIMITS_BY_PROVIDER: Record<ProviderVendor, Record<string, Bas
     "qwen3.6-plus": { contextWindow: 1000000, maxOutputTokens: 65536 },
     "qwen3.5-plus": { contextWindow: 262144, maxOutputTokens: 65536 },
     "gpt-5.6-luna": { contextWindow: 1050000, maxOutputTokens: 128000 },
+    "gpt-6-luna": { contextWindow: 1050000, maxOutputTokens: 128000 },
     "grok-4.6": { contextWindow: 500000, maxOutputTokens: 500000 },
     "grok-4.5": { contextWindow: 500000, maxOutputTokens: 500000 },
     hy3: { contextWindow: 256000, maxOutputTokens: 128000 },
@@ -108,6 +109,11 @@ export const MODELS_WITHOUT_TEMPERATURE = new Set([
   "kimi-k2.7-code",
   // Kimi K3: models.dev lists temperature: false (rejects non-default temperature)
   "kimi-k3",
+  // GPT Luna on OpenCode Go rejects temperature even though models.dev reports
+  // `temperature: true` for the opencode-go provider (issue #285). The gateway
+  // error is "Unsupported parameter: 'temperature' is not supported".
+  "gpt-6-luna",
+  "gpt-5.6-luna",
 ]);
 
 /** Models known to accept image input even without live modality metadata. */

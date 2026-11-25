@@ -99,6 +99,20 @@ describe("fallbackModelMetadata — non-kimi models unaffected", () => {
   });
 });
 
+describe("fallbackModelMetadata — GPT Luna temperature (issue #285)", () => {
+  it("gpt-6-luna reports temperature: false despite models.dev claiming support", () => {
+    const meta = fallbackModelMetadata("gpt-6-luna", GO_VENDOR);
+    assert.ok(meta, "expected fallback metadata to be defined");
+    assert.equal(meta.temperature, false);
+  });
+
+  it("gpt-5.6-luna reports temperature: false", () => {
+    const meta = fallbackModelMetadata("gpt-5.6-luna", GO_VENDOR);
+    assert.ok(meta, "expected fallback metadata to be defined");
+    assert.equal(meta.temperature, false);
+  });
+});
+
 describe("VISION_CAPABLE_MODELS", () => {
   it("includes known vision models (minimax-m2.7, kimi-k2.6, mimo-v2.5)", () => {
     assert.ok(VISION_CAPABLE_MODELS.has("minimax-m2.7"));
@@ -179,6 +193,12 @@ describe("resolveModelMetadata — cold-start temperature chain", () => {
   it("keeps temperature undefined for models without the restriction", () => {
     const resolved = resolveModelMetadata("glm-5", GO_VENDOR, emptySnapshot, new Map());
     assert.notEqual(resolved.temperature, false);
+  });
+
+  it("overrides a live models.dev temperature:true for GPT Luna (issue #285)", () => {
+    const live = new Map([["gpt-6-luna", { temperature: true }]]);
+    const resolved = resolveModelMetadata("gpt-6-luna", GO_VENDOR, emptySnapshot, live);
+    assert.equal(resolved.temperature, false, "the Go gateway rejects temperature regardless of models.dev");
   });
 });
 
