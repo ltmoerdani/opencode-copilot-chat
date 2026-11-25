@@ -3,7 +3,7 @@
 # Agents Window Model Visibility — OpenCode Models in VS Code Agents Tab
 
 **Topic:** models / vscode / architecture
-**Updated:** 2026-06-14
+**Updated:** 2026-11-26
 **Tags:** #models #vscode #agents-window #targetChatSessionType #marketplace #chatSessions
 **GitHub Issue:** [ltmoerdani/opencode-copilot-chat#11](https://github.com/ltmoerdani/opencode-copilot-chat/issues/11)
 **Implementation:** [Feature doc 06-20260614](../features/06-20260614-agents-window-model-visibility.md) — shipped in PR [#39](https://github.com/ltmoerdani/opencode-copilot-chat/pull/39) by @Marinski
@@ -277,6 +277,10 @@ provideLanguageModelChatInformation()
 > **Note (2026-06-14, post-implementation):** Option A shipped successfully. Confirmed that the bare value `"copilotcli"` (from `SessionType.CopilotCLI`) is the correct `targetChatSessionType`, NOT `"agent-host-copilotcli"` (the resource URI scheme). The research below initially pointed to `"agent-host-copilotcli"` as the working value — that was incorrect; PR #39 verified `"copilotcli"` is what actually works. An additional prerequisite not covered in the original research: users must set `"extensions.supportAgentsWindow": { "ltmoerdani.opencode-copilot-chat": true }` for the extension to load in the Agents window process.
 
 ---
+
+## Agent Host Caveat (2026-11-26)
+
+Model visibility and request routing are separate from context-window accounting. In the Agent Host, VS Code can lose BYOK context limits and fall back to a 128K budget, which triggers compaction near 102K even for a 1M-context model ([microsoft/vscode#336797](https://github.com/microsoft/vscode/issues/336797)). This extension advertises the correct limits through `provider/modelInfo.ts`; the failure is upstream. Related Agent Host BYOK gaps: #340138 (metadata dropped), #340983 (buffered streaming), #348630 (remote windows, local harness removal in Feb 2027). See `docs/issues/128-20261126-gemini-thought-signature-and-triage.md`.
 
 ## Lessons Learned
 

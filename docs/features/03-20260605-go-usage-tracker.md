@@ -3,7 +3,7 @@
 # Go Usage Tracker — Feature Implementation
 
 **Topic:** usage / features / status-bar / provider / tracking
-**Updated:** 2026-08-13
+**Updated:** 2026-11-26
 **Tags:** #usage #features #status-bar #go-usage #pricing #byok #sqlite #server-sync
 **Supersedes:** —
 
@@ -112,6 +112,8 @@ cost = (billablePrompt × pricing.input + completionTokens × pricing.output
 - Usage log stored in VS Code `globalState` under key `opencodego.usageLog.v1`
 - Max 2000 entries, pruned to last 31 days
 - Survives editor restarts
+
+> **Known limitation (2026-11-26):** storing per-profile usage logs in `globalState` can trigger VS Code's "large extension state" warning. The reporter saw 632 KB; local verification with four profiles reached ~2 MB. A migration to `globalStorageUri`, with only a small index left in `globalState`, is **planned and not implemented**. See `docs/issues/128-20261126-gemini-thought-signature-and-triage.md` §Open follow-ups.
 
 ---
 
@@ -262,3 +264,4 @@ Bonus dialog fixes: wired the dead "Reset tracked usage data" action, stopped re
 - Consolidated issue #23 timeline: `docs/issues/65-20260813-issue23-go-usage-status-sync.md`
 - PR #132 doc: `docs/issues/62-20260812-pr132-go-usage-server-sync.md`
 - Upstream endpoint: `anomalyco/opencode#16513`
+- `globalState` growth triage: `docs/issues/128-20261126-gemini-thought-signature-and-triage.md`

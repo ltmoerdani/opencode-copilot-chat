@@ -2,7 +2,7 @@
 
 All notable changes to the **OpenCode Go BYOK Provider** extension are documented here.
 
-## [Unreleased]
+## [0.8.2] — 2026-11-26
 
 ### Added
 
@@ -10,7 +10,7 @@ All notable changes to the **OpenCode Go BYOK Provider** extension are documente
 
 ### Fixed
 
-- **`[Google]` Gemini 3+ follow-up turns no longer fail with `MISSING_THOUGHT_SIGNATURE` (Gemini 4 Hydrogen on Zen).** The Google normalizers dropped the opaque `thoughtSignature` from response parts, and the request builder never sent it back. Signatures are now captured across SSE events, carried through the Copilot Chat transcript as an invisible internal data part, and replayed as trailing parts on the next `model` turn — including after tool calls. A signature-only event is no longer discarded as empty. Documented in `docs/issues/128-20261126-gemini-thought-signature-and-triage.md`, which also records the verdicts for the Haiku 5.5 context bug (upstream VS Code #336797), the `gpt-6.2-sol` skill loader (model-generated arguments), and the `globalState` growth warning (old design debt).
+- **`[Google]` Gemini 3+ follow-up turns now replay the required `thoughtSignature` (Gemini 4 Hydrogen on Zen, PR [#289](https://github.com/ltmoerdani/opencode-copilot-chat/pull/289)).** The Google normalizers dropped the opaque `thoughtSignature` from response parts, and the request builder never sent it back. Signatures are now captured across SSE events, carried through the Copilot Chat transcript as an invisible internal data part, and replayed as trailing parts on the next `model` turn — including after tool calls. A signature-only event is no longer discarded as empty. Documented in `docs/issues/128-20261126-gemini-thought-signature-and-triage.md`, which also records the verdicts for the Haiku 5.5 context bug (upstream VS Code #336797), the `gpt-6.2-sol` skill loader (model-generated arguments), and the `globalState` growth warning (old design debt). Live verification on the reporter's model is still pending; the work and its open gaps are recorded in `docs/issues/129-20261126-gemini-thought-signature-pr289-session.md`.
 
 - **`[Google]` Gemini tool results use the valid `functionResponse` shape again (issue #283).** A July regression moved `content` to the top level; strict validators such as `gemini-4-argon` rejected every request after the first tool call. The text now lives in the required `response` object while multimodal `parts` stay at `functionResponse` level. Documented in `docs/issues/122-20261125-issue283-gemini-function-response-regression.md`.
 
