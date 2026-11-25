@@ -13,6 +13,8 @@ export interface ApiMessage {
   role: ApiRole;
   content: string | null | OpenAiContentPart[];
   reasoning_content?: string;
+  /** Opaque Gemini thought signatures replayed on the next turn (Google requires this for Gemini 3+). */
+  thought_signatures?: string[];
   tool_call_id?: string;
   tool_calls?: OpenAiToolCall[];
 }

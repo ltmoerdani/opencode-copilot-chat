@@ -19,6 +19,12 @@
  * `thought: true` parts, `core/routing.ts` already maps them to
  * `reasoning_content` with no further client work.
  *
+ * SIGNATURES (2026-11-26): that opaque signature is now captured by
+ * `core/routing.ts`, carried through the transcript by `chatParts.ts`, and
+ * replayed by `request/google.ts`. Google requires it on every follow-up turn
+ * for Gemini 3+ with thinking enabled; omitting it yields
+ * `MISSING_THOUGHT_SIGNATURE`. The signature is metadata, never displayed text.
+ *
  * DISPLAY: Gemini thought parts are genuine CoT (echoed back as `thought: true`
  * parts on follow-up turns, see `request/google.ts`) → never visible text.
  *

@@ -1,5 +1,11 @@
 import * as vscode from "vscode";
-import { isInternalDataPart, isReasoningMarkerPart, readReasoningMarker } from "../chatParts";
+import {
+  isInternalDataPart,
+  isReasoningMarkerPart,
+  isThoughtSignaturePart,
+  readReasoningMarker,
+  readThoughtSignaturePart,
+} from "../chatParts";
 import { requiresStringToolContent } from "../models/modelCapabilities";
 import { MAX_HISTORY_IMAGES_KEPT, MAX_TOOL_RESULT_IMAGE_BYTES } from "../config";
 import { getImageDataUrlBase64Bytes, MAX_IMAGE_BASE64_BYTES, normalizeImageDataUrl } from "../imageNormalizer";
@@ -18,6 +24,7 @@ export async function convertMessage(
   const role = message.role === vscode.LanguageModelChatMessageRole.Assistant ? "assistant" : "user";
   const textParts: string[] = [];
   const thinkingTextParts: string[] = [];
+  const thoughtSignatures: string[] = [];
   const imageParts: OpenAiContentPart[] = [];
   const toolCalls: OpenAiToolCall[] = [];
   const toolResults: ApiMessage[] = [];
@@ -173,6 +180,14 @@ export async function convertMessage(
       continue;
     }
 
+    if (part instanceof vscode.LanguageModelDataPart && isThoughtSignaturePart(part)) {
+      const signatures = readThoughtSignaturePart(part);
+      if (signatures) {
+        thoughtSignatures.push(...signatures);
+      }
+      continue;
+    }
+
     if (part instanceof vscode.LanguageModelDataPart && isReasoningMarkerPart(part)) {
       // Thinking-off responses carry their reasoning in a marker data part
       // (see streaming.ts / gateway bug #37635); echo it as reasoning_content
@@ -262,6 +277,7 @@ export async function convertMessage(
               ? content || null
               : content,
         reasoning_content: shouldOmitReasoningEcho || isMiniMaxModel(rawModelId) ? undefined : toolCallReasoning,
+        thought_signatures: thoughtSignatures.length ? thoughtSignatures : undefined,
         tool_calls: toolCalls,
       },
     ]);
@@ -280,6 +296,7 @@ export async function convertMessage(
         role,
         content: plainPrefix ? plainPrefix + (textContent || "") : typeof content === "string" ? content || null : content,
         reasoning_content: shouldEchoThinkingHistory(rawModelId) ? thinkingText : undefined,
+        thought_signatures: thoughtSignatures.length ? thoughtSignatures : undefined,
       },
     ]);
   }
@@ -346,6 +363,9 @@ export function normalizeMessages(messages: ApiMessage[]): ApiMessage[] {
       // the next turn. Concatenate both into the merged message.
       if (message.reasoning_content) {
         previous.reasoning_content = [previous.reasoning_content, message.reasoning_content].filter(Boolean).join("\n");
+      }
+      if (message.thought_signatures?.length) {
+        previous.thought_signatures = [...(previous.thought_signatures ?? []), ...message.thought_signatures];
       }
       previous.content = `${prevContent}\n\n${msgContent}`.trim();
     } else {
@@ -447,6 +467,12 @@ export function trimOldImagesFromHistoryInPlace(messages: ApiMessage[]): number 
 
 export function hasMessagePayload(message: ApiMessage): boolean {
   if (message.tool_calls?.length || message.tool_call_id) {
+    return true;
+  }
+
+  // A signature-only assistant turn still carries state Gemini 3+ needs on the
+  // next request — never drop it just because it produced no visible text.
+  if (message.thought_signatures?.length) {
     return true;
   }
 
