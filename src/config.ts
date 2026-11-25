@@ -212,6 +212,8 @@ export const IMAGE_TOKEN_ESTIMATE = 1024;
 export const MAX_TOOL_RESULT_IMAGE_BYTES = 1_000_000;
 /** Max images kept in conversation history before older ones are placeholder-replaced. */
 export const MAX_HISTORY_IMAGES_KEPT = 2;
+/** Max opaque Gemini thought signatures replayed on one assistant turn. */
+export const MAX_THOUGHT_SIGNATURES = 8;
 /**
  * Tokens reserved below the model's input context window when trimming old
  * conversation history. Keeps the trimmed payload safely under the limit so the

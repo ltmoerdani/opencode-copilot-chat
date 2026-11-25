@@ -90,6 +90,13 @@ function googleContentsFromMessages(messages: ApiMessage[]): Record<string, unkn
         parts.push({ functionCall: { name: toolCall.function.name, args } });
         toolNamesById.set(toolCall.id, toolCall.function.name);
       }
+      // Gemini 3+ rejects a follow-up turn with MISSING_THOUGHT_SIGNATURE when
+      // the opaque signature from the previous response is not replayed. The
+      // gateway returns it on a trailing empty-text part; replay the same part
+      // shape so the reasoning state stays valid across turns and tool loops.
+      for (const signature of message.thought_signatures ?? []) {
+        parts.push({ text: "", thoughtSignature: signature });
+      }
       if (parts.length) {
         contents.push({ role: "model", parts });
       }

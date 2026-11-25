@@ -3,7 +3,7 @@
 # Architecture Map
 
 **Topic:** architecture / provider / streaming / routing / usage / models / thinking
-**Updated:** 2026-09-23
+**Updated:** 2026-11-26
 **Tags:** #architecture #provider #streaming #routing #usage #models #thinking #byok #autocomplete
 **Supersedes:** -
 **Related:** `docs/architecture/01-20260514-open-code-provider-architecture.md` · `docs/architecture/02-20260809-provider-adapter-architecture.md`
@@ -214,13 +214,14 @@ flowchart TD
 
 ### Key edges & blast-radius notes
 
-| Edge                                                          | Why it matters                                                                                                                                                    |
-| ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `OpenCodeProvider` → `transports/*` + `core/routing`          | Changing a transport adapter or the registry can break the provider's request path. **Always `npm run compile` + test ≥1 model family of the touched transport.** |
-| `thinking/provider` + `core/routing` → `core/registry`        | The registry is the **single source of truth** for both transport AND thinking family. Never hardcode a family decision elsewhere.                                |
-| `transports/*` → `core/transport.ts`                          | `StreamRequestOptions` is the shared contract — changing it touches every adapter.                                                                                |
-| `usage/dashboard` → `tracker` + `history` + `metadataFetcher` | The dashboard is the hub for all usage UI; it pulls from tracker (server+tracked), history (CLI SQLite), and metadata (cost).                                     |
-| `OpenCodeProvider` → `usage/*`                                | Every Go request records usage via `onTransportSummary` → `tracker.record()`. Breaking this silently stops usage accounting.                                      |
+| Edge                                                          | Why it matters                                                                                                                                                                                                                                                                                |
+| ------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `OpenCodeProvider` → `transports/*` + `core/routing`          | Changing a transport adapter or the registry can break the provider's request path. **Always `npm run compile` + test ≥1 model family of the touched transport.**                                                                                                                             |
+| `thinking/provider` + `core/routing` → `core/registry`        | The registry is the **single source of truth** for both transport AND thinking family. Never hardcode a family decision elsewhere.                                                                                                                                                            |
+| `transports/*` → `core/transport.ts`                          | `StreamRequestOptions` is the shared contract — changing it touches every adapter.                                                                                                                                                                                                            |
+| `usage/dashboard` → `tracker` + `history` + `metadataFetcher` | The dashboard is the hub for all usage UI; it pulls from tracker (server+tracked), history (CLI SQLite), and metadata (cost).                                                                                                                                                                 |
+| `OpenCodeProvider` → `usage/*`                                | Every Go request records usage via `onTransportSummary` → `tracker.record()`. Breaking this silently stops usage accounting.                                                                                                                                                                  |
+| `core/routing` → `transports/google` → `request/google`       | Gemini 3+ thought signatures are captured by the normalizers, carried through the transcript as an internal `LanguageModelDataPart` (`chatParts.ts`), and replayed on the next turn. Never drop a signature-only event or merge adjacent assistant messages without concatenating signatures. |
 
 ---
 

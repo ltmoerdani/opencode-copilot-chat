@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
-import { createReasoningMarkerPart } from "../chatParts";
+import { createReasoningMarkerPart, createThoughtSignaturePart } from "../chatParts";
+import { MAX_THOUGHT_SIGNATURES } from "../config";
 import { parseToolInput, ToolCallAccumulator, type PendingToolCall } from "../toolCallAccumulator";
 import { isRecord } from "../utils";
 import type { ThinkTagFilter } from "./thinkTags";
@@ -238,6 +239,27 @@ class OpenAiResponseExtractor extends BaseResponseExtractor {
     }
     const part = createReasoningMarkerPart(this.reasoningAsContent);
     this.reasoningAsContent = "";
+    return part;
+  }
+
+  /** Accumulate opaque Gemini signatures seen across SSE events of one turn. */
+  private readonly thoughtSignatures: string[] = [];
+
+  captureThoughtSignatures(signatures: readonly string[]): void {
+    for (const signature of signatures) {
+      if (signature && !this.thoughtSignatures.includes(signature) && this.thoughtSignatures.length < MAX_THOUGHT_SIGNATURES) {
+        this.thoughtSignatures.push(signature);
+      }
+    }
+  }
+
+  /** Emit an internal transcript part so the next turn can replay the signatures. */
+  flushThoughtSignaturePart(): vscode.LanguageModelResponsePart2 | undefined {
+    if (!this.thoughtSignatures.length) {
+      return undefined;
+    }
+    const part = createThoughtSignaturePart(this.thoughtSignatures);
+    this.thoughtSignatures.length = 0;
     return part;
   }
 

@@ -4,6 +4,7 @@ import { createThinkTagFilter } from "./thinkTags";
 import { createReasoningDebugger, streamOpenCodeResponse } from "./engine";
 import { OpenAiResponseExtractor } from "./extractors";
 import { extractChatCompletionParts } from "./extract";
+import { reportProgressPart } from "./streamParts";
 
 /** Google Generative Language API transport (Gemini via Zen). */
 export async function streamGoogleGenerateContent(options: StreamRequestOptions): Promise<void> {
@@ -21,14 +22,38 @@ export async function streamGoogleGenerateContent(options: StreamRequestOptions)
       ...options,
       usesDoneSentinel: false,
       url: `${options.url}:streamGenerateContent?alt=sse`,
-      extractStreamParts: (data) => extractor.extractStreamParts(normalizeGoogleStreamEvent(data)),
-      extractFullParts: (data) => extractChatCompletionParts(normalizeGoogleFullResponse(data)),
+      extractStreamParts: (data) => {
+        const normalized = normalizeGoogleStreamEvent(data) as {
+          choices?: { delta?: { thought_signatures?: string[] } }[];
+        };
+        const signatures = normalized.choices?.[0]?.delta?.thought_signatures;
+        if (signatures) {
+          extractor.captureThoughtSignatures(signatures);
+        }
+        return extractor.extractStreamParts(normalized);
+      },
+      extractFullParts: (data) => {
+        const normalized = normalizeGoogleFullResponse(data) as {
+          choices?: { message?: { thought_signatures?: string[] } }[];
+        };
+        const signatures = normalized.choices?.[0]?.message?.thought_signatures;
+        if (signatures) {
+          extractor.captureThoughtSignatures(signatures);
+        }
+        return extractChatCompletionParts(normalized);
+      },
     });
   } finally {
     // Flush accumulated tool calls / reasoning even when the engine throws
     // (e.g. truncation detection) so nothing already received is dropped.
     extractor.flushRemainingToolCalls(options.progress, options.requestHeaders["x-opencode-request"]);
     extractor.flushReasoningFallback(options.progress, options.requestHeaders["x-opencode-request"]);
+  }
+  // Gemini 3+ requires the opaque signature on the next turn; carry it in the
+  // transcript as an internal data part (invisible in the chat UI).
+  const signaturePart = extractor.flushThoughtSignaturePart();
+  if (signaturePart) {
+    reportProgressPart(options.requestHeaders["x-opencode-request"], options.progress, signaturePart);
   }
   options.output?.appendLine(
     `[stream-summary model=${options.modelId}] textChars=${String(extractor.emittedText)} toolCalls=${String(extractor.emittedTools)} reasoningChars=${String(extractor.reasoningChars)}`,

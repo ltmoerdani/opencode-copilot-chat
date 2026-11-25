@@ -276,6 +276,11 @@ export function normalizeResponsesFullResponse(data: unknown): unknown {
   };
 }
 
+/** Opaque Gemini thought signatures must be replayed unchanged on the next turn. */
+function googleThoughtSignatures(parts: Record<string, unknown>[]): string[] {
+  return parts.map((part) => part.thoughtSignature).filter((value): value is string => typeof value === "string" && value.length > 0);
+}
+
 export function normalizeGoogleStreamEvent(data: unknown): unknown {
   if (!isRecord(data)) {
     return data;
@@ -312,8 +317,9 @@ export function normalizeGoogleStreamEvent(data: unknown): unknown {
     ];
   });
   const usage = normalizeGoogleUsage(data.usageMetadata);
+  const thoughtSignatures = googleThoughtSignatures(parts);
 
-  if (!text && !reasoning && !toolCalls.length && !candidate?.finishReason && !usage) {
+  if (!text && !reasoning && !toolCalls.length && !thoughtSignatures.length && !candidate?.finishReason && !usage) {
     return { choices: [] };
   }
 
@@ -325,6 +331,7 @@ export function normalizeGoogleStreamEvent(data: unknown): unknown {
           ...(text ? { content: text } : {}),
           ...(reasoning ? { reasoning_content: reasoning } : {}),
           ...(toolCalls.length ? { tool_calls: toolCalls } : {}),
+          ...(thoughtSignatures.length ? { thought_signatures: thoughtSignatures } : {}),
         },
         finish_reason: normalizeGoogleFinishReason(
           typeof candidate?.finishReason === "string" ? candidate.finishReason : undefined,
@@ -368,6 +375,7 @@ export function normalizeGoogleFullResponse(data: unknown): unknown {
     ];
   });
   const usage = normalizeGoogleUsage(data.usageMetadata);
+  const thoughtSignatures = googleThoughtSignatures(parts);
 
   return {
     choices: [
@@ -377,6 +385,7 @@ export function normalizeGoogleFullResponse(data: unknown): unknown {
           ...(text ? { content: text } : {}),
           ...(reasoning ? { reasoning_content: reasoning } : {}),
           ...(toolCalls.length ? { tool_calls: toolCalls } : {}),
+          ...(thoughtSignatures.length ? { thought_signatures: thoughtSignatures } : {}),
         },
         finish_reason: normalizeGoogleFinishReason(
           typeof candidate?.finishReason === "string" ? candidate.finishReason : undefined,
