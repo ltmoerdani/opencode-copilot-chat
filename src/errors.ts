@@ -61,7 +61,11 @@ export function buildOpenCodeRequestError(
   // upstream body is still preserved in the provider output channel
   // (`[http-error-body]` in transports/engine.ts), so no diagnostic is lost.
   const hint =
-    describeFreeTierRestriction(apiMessage) ?? describeRouterUnavailable(apiError) ?? describeEndpointUnavailable(apiMessage) ?? apiMessage;
+    describeFreeTierRestriction(apiMessage) ??
+    describeTrainingOptInRestriction(apiMessage) ??
+    describeRouterUnavailable(apiError) ??
+    describeEndpointUnavailable(apiMessage) ??
+    apiMessage;
   const userMessage = `${providerDisplayName} API request failed (HTTP ${String(response.status)})${modelId ? ` for ${modelId}` : ""}: ${hint}${capacityHint}`;
   const requestMessage = `${providerDisplayName} API request failed (${String(response.status)})${modelHint}${sizeHint}${capacityHint}: ${hint}`;
   return new OpenCodeRequestError(requestMessage, userMessage);
@@ -103,6 +107,22 @@ export function describeFreeTierRestriction(apiMessage: string): string | undefi
     "OpenCode restricts this free-tier model to their official app " +
     "(effective Sep 17, 2026). Use a paid OpenCode Go model, or run free models " +
     "in the OpenCode app/CLI."
+  );
+}
+
+/**
+ * Explain the Go privacy gate for contributor/training models (issue #282).
+ * The gateway already includes a Console URL; surface the exact setting name
+ * in the user-facing message so the failure is actionable in Copilot Chat.
+ */
+export function describeTrainingOptInRestriction(apiMessage: string): string | undefined {
+  if (!/trains on request data|allow paid endpoints that train on request data/i.test(apiMessage)) {
+    return undefined;
+  }
+  return (
+    "This Go model requires the workspace privacy setting 'Allow paid endpoints that train on request data'. " +
+    "Enable it in OpenCode Console under Settings > Privacy, then retry. " +
+    "The exact workspace link is in the OpenCode Output channel."
   );
 }
 

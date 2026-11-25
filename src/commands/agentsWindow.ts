@@ -1,6 +1,8 @@
 import * as vscode from "vscode";
 import {
   AGENTS_BYOK_BRIDGE_STATE_KEY,
+  AGENTS_PICKER_IN_ATTACH_CONTEXT_SETTING,
+  AGENTS_PICKER_STATE_KEY,
   AGENT_HOST_BYOK_ENABLED_SETTING,
   AGENT_HOST_BYOK_MINOR_VERSION,
   CONFIG_SECTION,
@@ -42,6 +44,10 @@ function isModernAgentHostVscode(): boolean {
  * 2. `chat.agentHost.byokModels.enabled` (VS Code 1.129+) — the BYOK
  *    language-model bridge that mirrors extension BYOK models into
  *    agent-host sessions. Off by default and experimental.
+ * 3. `sessions.chat.experimental.agentsPickerInAttachContextMenu` — when an
+ *    experiment turns this on, VS Code hides the Agent picker in default
+ *    Agent mode (microsoft/vscode#346223, issue #282). We pin it off so the
+ *    picker stays visible.
  *
  * CONTRACT:
  * - Only writes the settings while the user keeps `opencodego.agentsWindow`
@@ -76,6 +82,13 @@ export async function ensureAgentsWindowSupport(context: vscode.ExtensionContext
       await context.globalState.update(AGENTS_BYOK_BRIDGE_STATE_KEY, true);
       changed = true;
     }
+  }
+
+  const sessionsCfg = vscode.workspace.getConfiguration("sessions.chat.experimental");
+  if (sessionsCfg.get<boolean>(AGENTS_PICKER_IN_ATTACH_CONTEXT_SETTING, false)) {
+    await sessionsCfg.update(AGENTS_PICKER_IN_ATTACH_CONTEXT_SETTING, false, vscode.ConfigurationTarget.Global);
+    await context.globalState.update(AGENTS_PICKER_STATE_KEY, true);
+    changed = true;
   }
 
   if (changed) {
@@ -125,6 +138,13 @@ export async function revertAgentsWindowSupport(context: vscode.ExtensionContext
       .getConfiguration("chat.agentHost")
       .update(AGENT_HOST_BYOK_ENABLED_SETTING, false, vscode.ConfigurationTarget.Global);
     await context.globalState.update(AGENTS_BYOK_BRIDGE_STATE_KEY, undefined);
+  }
+
+  if (force || context.globalState.get<boolean>(AGENTS_PICKER_STATE_KEY)) {
+    await vscode.workspace
+      .getConfiguration("sessions.chat.experimental")
+      .update(AGENTS_PICKER_IN_ATTACH_CONTEXT_SETTING, undefined, vscode.ConfigurationTarget.Global);
+    await context.globalState.update(AGENTS_PICKER_STATE_KEY, undefined);
   }
 }
 

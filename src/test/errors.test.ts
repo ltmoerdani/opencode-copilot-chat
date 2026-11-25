@@ -1,6 +1,12 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { describeEndpointUnavailable, describeFreeTierRestriction, buildOpenCodeRequestError, OpenCodeRequestError } from "../errors.js";
+import {
+  describeEndpointUnavailable,
+  describeFreeTierRestriction,
+  describeTrainingOptInRestriction,
+  buildOpenCodeRequestError,
+  OpenCodeRequestError,
+} from "../errors.js";
 import { MODEL_METADATA_CACHE_KEY, MODEL_METADATA_REVISION } from "../config.js";
 
 describe("describeFreeTierRestriction (issues #235/#240)", () => {
@@ -35,6 +41,35 @@ describe("describeFreeTierRestriction (issues #235/#240)", () => {
     assert.match(error.message, /restricts this free-tier model to their official app/);
     assert.match(error.message, /muse-spark-1.2-contributor-free/);
     assert.doesNotMatch(error.message, /can only be used from within OpenCode/);
+  });
+});
+
+describe("describeTrainingOptInRestriction (issue #282)", () => {
+  it("turns the Go training opt-in rejection into an actionable hint", () => {
+    const hint = describeTrainingOptInRestriction(
+      "This Go model trains on request data. Turn on 'Allow paid endpoints that train on request data' at https://opencode.ai/console/...",
+    );
+    assert.ok(hint, "should produce a hint");
+    assert.match(hint, /Allow paid endpoints that train on request data/);
+    assert.match(hint, /Settings > Privacy/);
+  });
+
+  it("returns undefined for unrelated messages", () => {
+    assert.equal(describeTrainingOptInRestriction("Model is unavailable"), undefined);
+  });
+
+  it("surfaces the hint through buildOpenCodeRequestError", () => {
+    const response = new Response(null, { status: 400 });
+    const error = buildOpenCodeRequestError(
+      "OpenCode Go",
+      response,
+      JSON.stringify({ error: { message: "This Go model trains on request data." } }),
+      "iceman-contributor-free",
+      49097,
+      "",
+    );
+    assert.match(error.userMessage, /workspace privacy setting/);
+    assert.match(error.message, /workspace privacy setting/);
   });
 });
 
