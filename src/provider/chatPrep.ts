@@ -39,7 +39,7 @@ import { estimatePromptTokenCount } from "../tokenEstimate";
 import { proxyVision } from "./visionProxy";
 import { estimateCost } from "../usage/pricing";
 import { createCacheMonitor, resolveCacheRateThreshold, type CacheRateMonitor } from "../usage/cacheMonitor";
-import { detectBeamToolLoop } from "../toolLoopGuard";
+import { detectBeamToolLoop, detectMuseRepetitionLoop } from "../toolLoopGuard";
 import {
   activeProfileFingerprint,
   ensureProfileForApiKey,
@@ -321,9 +321,9 @@ export async function prepareChatRequest(
   // expected rather than as a regression (issue #232).
   const historyTrimmed = historyTrim.removed > 0;
 
-  const toolLoopWarning = detectBeamToolLoop(rawModelId, apiMessages);
+  const toolLoopWarning = detectBeamToolLoop(rawModelId, apiMessages) ?? detectMuseRepetitionLoop(rawModelId, apiMessages);
   if (toolLoopWarning) {
-    deps.log(`[tool-loop-guard] model=${rawModelId} ${toolLoopWarning}`);
+    deps.log(`[loop-guard] model=${rawModelId} ${toolLoopWarning}`);
     apiMessages.push({
       role: "user",
       content:
