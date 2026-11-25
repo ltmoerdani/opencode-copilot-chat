@@ -1,13 +1,29 @@
+import { IMAGE_TOKEN_ESTIMATE } from "./config";
+import { countImageDataParts, stripImageData } from "./request/shared";
+import type { ApiMessage } from "./request/types";
+
 export interface PromptToolDefinition {
   name: string;
   description?: string;
   inputSchema?: unknown;
 }
 
-/** Estimate the complete prompt surface that the provider will tokenize. */
-export function estimatePromptTokenCount(messages: unknown, tools?: readonly PromptToolDefinition[]): number {
+/**
+ * Estimate the complete prompt surface that the provider will tokenize.
+ *
+ * CONTRACT: base64 image data is replaced with a short placeholder before the
+ * character heuristic runs; each stripped image is charged a bounded
+ * `IMAGE_TOKEN_ESTIMATE` instead of its base64 length (#287). Hosted image
+ * URLs stay counted as ordinary text. Tool schemas are included as before.
+ */
+export function estimatePromptTokenCount(messages: readonly ApiMessage[], tools?: readonly PromptToolDefinition[]): number {
+  let imageTokens = 0;
+  const strippedMessages = messages.map((message) => {
+    imageTokens += countImageDataParts(message) * IMAGE_TOKEN_ESTIMATE;
+    return stripImageData(message);
+  });
   const prompt = {
-    messages,
+    messages: strippedMessages,
     ...(tools?.length
       ? {
           tools: tools.map((tool) => ({
@@ -19,7 +35,12 @@ export function estimatePromptTokenCount(messages: unknown, tools?: readonly Pro
       : {}),
   };
 
-  return estimateTokenCount(JSON.stringify(prompt));
+  return estimateTokenCount(JSON.stringify(prompt)) + imageTokens;
+}
+
+/** Estimate one message with the same image accounting as the full prompt. */
+export function estimateMessageTokenCount(message: ApiMessage): number {
+  return estimateTokenCount(JSON.stringify(stripImageData(message))) + countImageDataParts(message) * IMAGE_TOKEN_ESTIMATE;
 }
 
 export function estimateTokenCount(value: string): number {

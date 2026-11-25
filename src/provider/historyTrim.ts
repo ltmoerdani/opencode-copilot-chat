@@ -7,8 +7,9 @@ import {
   HISTORY_TRIM_HEADROOM_RATIO,
   MAX_REQUEST_PAYLOAD_BYTES,
 } from "../config";
-import type { ApiMessage, OpenAiContentPart } from "../request/types";
-import { estimatePromptTokenCount, estimateTokenCount } from "../tokenEstimate";
+import { stripImageData } from "../request/shared";
+import type { ApiMessage } from "../request/types";
+import { estimateMessageTokenCount, estimatePromptTokenCount, estimateTokenCount } from "../tokenEstimate";
 
 /**
  * Result of trimming old conversation messages to fit the request budget.
@@ -45,9 +46,10 @@ export interface HistoryTrimResult {
  *   - Runs in O(n): the full history is estimated once, then each dropped unit's
  *     size is subtracted incrementally (no per-candidate re-stringification of
  *     the whole array), so it stays fast even for very long histories.
- *   - Base64 image data is EXCLUDED from the byte ceiling (issue #173): image
- *     weight is already bounded by the image-history trimmer, and counting it
- *     made vision payloads trigger futile text-history drops.
+ *   - Base64 image data is EXCLUDED from the byte ceiling (issue #173) and
+ *     charged only a bounded per-image token estimate (issue #287): image
+ *     weight is already bounded by the image-history trimmer, and counting its
+ *     base64 characters made vision payloads trigger futile text-history drops.
  *   - Context notice (issue #274): when units are dropped, a single user-role
  *     `[Context notice]` message is inserted at the cut boundary so the model
  *     knows earlier context is missing. It is re-inserted on every trim, since
@@ -107,7 +109,7 @@ export function trimOldMessagesToFitContext(
 
   // Per-unit size estimates. The running remainder keeps the JSON structure
   // overhead, so the estimate is slightly pessimistic — we never under-trim.
-  const unitTokens = units.map((u) => sumUnit(messages, u, (m) => estimateTokenCount(JSON.stringify(m))));
+  const unitTokens = units.map((u) => sumUnit(messages, u, estimateMessageTokenCount));
   const unitBytes = units.map((u) => sumUnit(messages, u, messageBytes));
 
   // Low-water mark for the cache-stable cut (see HISTORY_TRIM_HEADROOM_RATIO).
@@ -217,8 +219,6 @@ function noTrim(messages: ApiMessage[], tools?: readonly vscode.LanguageModelCha
   };
 }
 
-/** Placeholder substituted for base64 image data when measuring byte weight. */
-const IMAGE_DATA_PLACEHOLDER = "[image]";
 /**
  * Serialized size of one message, excluding base64 image payloads (#173).
  *
@@ -237,30 +237,6 @@ function messageBytes(m: ApiMessage): number {
 
 function payloadBytes(messages: ApiMessage[], tools?: readonly vscode.LanguageModelChatTool[]): number {
   return JSON.stringify({ messages: messages.map(stripImageData), ...(tools?.length ? { tools } : {}) }).length;
-}
-
-/**
- * Shallow clone of `m` with base64 data-URL image payloads replaced by a short
- * placeholder. Only `data:` URLs are stripped — a hosted `https://` image URL
- * is plain text of trivial size and never carries the payload weight that
- * caused #173, so it stays counted as-is. Returns `m` itself when there is
- * nothing to strip (the common case).
- */
-function stripImageData(m: ApiMessage): ApiMessage {
-  if (!Array.isArray(m.content)) {
-    return m;
-  }
-  // Copy-on-write: only clone the array when an oversized data URL is found.
-  let stripped: OpenAiContentPart[] | undefined;
-  for (let i = 0; i < m.content.length; i++) {
-    const part = m.content[i];
-    const url = part.type === "image_url" ? part.image_url?.url : undefined;
-    if (typeof url === "string" && url.startsWith("data:")) {
-      stripped ??= [...m.content];
-      stripped[i] = { ...part, image_url: { url: IMAGE_DATA_PLACEHOLDER } };
-    }
-  }
-  return stripped ? { ...m, content: stripped } : m;
 }
 
 function sumUnit(messages: ApiMessage[], unit: DropUnit, measure: (m: ApiMessage) => number): number {
